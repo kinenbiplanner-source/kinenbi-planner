@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>記念日サポートサービス 事業ロードマップ</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
+      font-size: 14px;
+      line-height: 1.8;
+      color: #222;
+      background: #f9f9f9;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 8px;
+      padding: 48px 56px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    h1 { font-size: 22px; font-weight: 700; border-bottom: 2px solid #222; padding-bottom: 12px; margin-bottom: 8px; }
+    .meta { font-size: 12px; color: #888; margin-bottom: 16px; }
+    .update-log {
+      background: #f0f0f0;
+      border-radius: 6px;
+      padding: 10px 16px;
+      font-size: 12px;
+      color: #555;
+      margin-bottom: 32px;
+    }
+    .update-log strong { color: #222; }
+
+    .ops-rule {
+      background: #fff8e1;
+      border-left: 4px solid #f5a623;
+      border-radius: 0 6px 6px 0;
+      padding: 10px 16px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+
+    .cost-rule {
+      background: #e8f5e9;
+      border-left: 4px solid #388e3c;
+      border-radius: 0 6px 6px 0;
+      padding: 10px 16px;
+      font-size: 13px;
+      margin-bottom: 32px;
+    }
+
+    .phase {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 40px;
+      position: relative;
+    }
+    .phase::before {
+      content: '';
+      position: absolute;
+      left: 28px;
+      top: 56px;
+      bottom: -40px;
+      width: 2px;
+      background: #e0e0e0;
+    }
+    .phase:last-child::before { display: none; }
+    .phase-left { flex-shrink: 0; width: 58px; display: flex; flex-direction: column; align-items: center; }
+    .phase-circle {
+      width: 58px; height: 58px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: #fff;
+      text-align: center; line-height: 1.3; flex-shrink: 0;
+    }
+    .phase-0 .phase-circle { background: #555; }
+    .phase-1 .phase-circle { background: #2d6a4f; }
+    .phase-2 .phase-circle { background: #1a6692; }
+    .phase-3 .phase-circle { background: #7b3fa0; }
+    .phase-4 .phase-circle { background: #c0392b; }
+
+    .phase-right { flex: 1; }
+    .phase-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px; flex-wrap: wrap; }
+    .phase-title { font-size: 17px; font-weight: 700; }
+    .phase-duration { font-size: 12px; color: #fff; padding: 2px 10px; border-radius: 12px; font-weight: 700; }
+    .phase-0 .phase-duration { background: #555; }
+    .phase-1 .phase-duration { background: #2d6a4f; }
+    .phase-2 .phase-duration { background: #1a6692; }
+    .phase-3 .phase-duration { background: #7b3fa0; }
+    .phase-4 .phase-duration { background: #c0392b; }
+
+    .cost-badge {
+      font-size: 11px; padding: 2px 10px; border-radius: 12px; font-weight: 700;
+    }
+    .cost-free { background: #e8f5e9; color: #2e7d32; }
+    .cost-low { background: #fff3e0; color: #e65100; }
+    .cost-mid { background: #fce4ec; color: #c62828; }
+
+    .phase-goal { font-size: 13px; color: #555; margin-bottom: 14px; font-style: italic; }
+
+    .task-group { margin-bottom: 14px; }
+    .task-group-title { font-size: 12px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .task-list { list-style: none; padding: 0; }
+    .task-list li { padding: 5px 0 5px 20px; position: relative; font-size: 13px; border-bottom: 1px solid #f0f0f0; }
+    .task-list li:last-child { border-bottom: none; }
+    .task-list li::before { content: '→'; position: absolute; left: 0; color: #aaa; }
+    .task-list li.done { color: #aaa; }
+    .task-list li.done::before { content: '✓'; color: #2d6a4f; }
+    .task-list li.alert { color: #c0392b; font-weight: 700; }
+    .task-list li.alert::before { content: '!'; color: #c0392b; font-weight: 700; }
+
+    .owner { display: inline-block; font-size: 11px; color: #888; background: #f0f0f0; border-radius: 4px; padding: 0 6px; margin-left: 6px; }
+    .milestone { background: #fffbea; border: 1px solid #e8d84b; border-radius: 6px; padding: 8px 14px; font-size: 13px; font-weight: 700; margin-top: 10px; }
+    .milestone::before { content: '★ '; }
+    .legal-badge { display: inline-block; font-size: 11px; background: #fde8e8; color: #c0392b; border-radius: 4px; padding: 1px 7px; margin-left: 6px; font-weight: 700; }
+    .free-badge { display: inline-block; font-size: 11px; background: #e8f5e9; color: #2e7d32; border-radius: 4px; padding: 1px 7px; margin-left: 6px; font-weight: 700; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <h1>事業ロードマップ</h1>
+  <div class="meta">作成日：2026-04-27　　最終更新：2026-04-30 v2.1　　目標：最短で初受注を達成し、徐々に拡張する</div>
+
+  <div class="update-log">
+    <strong>更新履歴</strong><br>
+    2026-04-27 v1.0 — 初版作成<br>
+    2026-04-27 v1.1 — Phase 0 に法的必須タスク追加・運用ルール明記<br>
+    2026-04-27 v1.2 — リーナ・ベルのアカウント作成チェックリスト整備<br>
+    2026-04-27 v1.3 — ツール変更：Typeform→Tally・Zapier→Make<br>
+    2026-04-28 v2.0 — 法務部（スティッチ）追加。初期コスト後倒し方針に基づきフェーズを全面再構築。<br>
+    2026-04-30 v2.1 — サービス名確定：記念日プランナー。
+  </div>
+
+  <div class="ops-rule">
+    <strong>運用ルール（ダッフィー）</strong>：作業が進むたびに、関連するファイル・書類を最新状態にアップデートする。
+  </div>
+
+  <div class="cost-rule">
+    <strong>コスト方針</strong>：初期投資は最大限後倒し。収益が出てから必要なものに投資する。Phase 0〜1 は原則無料ツールのみで動かす。
+  </div>
+
+  <!-- Phase 0 -->
+  <div class="phase phase-0">
+    <div class="phase-left"><div class="phase-circle">Phase<br>0</div></div>
+    <div class="phase-right">
+      <div class="phase-header">
+        <div class="phase-title">骨格をつくる</div>
+        <div class="phase-duration">今すぐ〜今週中</div>
+        <span class="cost-badge cost-free">完全無料</span>
+      </div>
+      <div class="phase-goal">1円も使わずにシステムの骨格を完成させる。公開テストまで無料で行ける状態を作る。</div>
+
+      <div class="task-group">
+        <div class="task-group-title">環境・アカウント</div>
+        <ul class="task-list">
+          <li class="done">Stripeアカウント作成・サンドボックス設定<span class="free-badge">完了</span><span class="owner">リーナ・ベル</span></li>
+          <li class="done">Framerアカウント作成・Norréテンプレート選定<span class="free-badge">完了</span><span class="owner">リーナ・ベル</span></li>
+          <li>Gmail 新規作成（事業用・無料）<span class="owner">オーナー</span></li>
+          <li>Tallyアカウント作成<span class="owner">リーナ・ベル</span></li>
+          <li>Makeアカウント作成<span class="owner">リーナ・ベル</span></li>
+          <li>Notionアカウント確認・顧客管理DB作成<span class="owner">クッキー・アン</span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-title">LP制作（Framer）</div>
+        <ul class="task-list">
+          <li class="done">LPコンテンツ設計書の作成<span class="free-badge">完了</span><span class="owner">ダッフィー</span></li>
+          <li>ヒーロー画像の選定（Unsplash・無料素材）<span class="owner">ジェラトーニ</span></li>
+          <li>7セクションのコンテンツをFramerに流し込み<span class="owner">ジェラトーニ</span></li>
+          <li>申し込みフォーム設置（プラン選択＋メアド入力）<span class="owner">ジェラトーニ</span></li>
+          <li>スマホ表示確認<span class="owner">ジェラトーニ</span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-title">フォーム・自動化</div>
+        <ul class="task-list">
+          <li>Tallyでアンケートフォーム実装（仕様書Section5準拠）<span class="owner">リーナ・ベル</span></li>
+          <li>Make フロー①：LPフォーム送信→Tally URLをメール自動送信<span class="owner">リーナ・ベル</span></li>
+          <li>Make フロー②：Tally回答→Notion自動転記<span class="owner">リーナ・ベル＋クッキー・アン</span></li>
+          <li>自動返信メール文面の設定（受付確認）<span class="owner">クッキー・アン</span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-title">法務（スティッチ）</div>
+        <ul class="task-list">
+          <li class="alert">特定商取引法に基づく表記の草案作成<span class="legal-badge">法律必須</span><span class="owner">スティッチ</span></li>
+          <li class="alert">プライバシーポリシーの草案作成<span class="legal-badge">法律必須</span><span class="owner">スティッチ</span></li>
+          <li>個人事業主として開業届の要否確認<span class="owner">スティッチ</span></li>
+          <li>各ツール利用規約の適法性確認<span class="owner">スティッチ</span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-title">ブランディング</div>
+        <ul class="task-list">
+          <li>サービス名の決定<span class="owner">ダッフィー＋オーナー</span></li>
+        </ul>
+      </div>
+
+      <div class="milestone">Phase 0 完了条件：framer.app ドメインでLP公開テストができ、フォーム→Notion の自動化が動いている</div>
+    </div>
+  </div>
+
+  <!-- Phase 1 -->
+  <div class="phase phase-1">
+    <div class="phase-left"><div class="phase-circle">Phase<br>1</div></div>
+    <div class="phase-right">
+      <div class="phase-header">
+        <div class="phase-title">お金を受け取れる状態にする → 初受注</div>
+        <div class="phase-duration">2週間以内</div>
+        <span class="cost-badge cost-low">最小コスト（月300円〜）</span>
+      </div>
+      <div class="phase-goal">決済を受け取れる環境を整え、LP を正式公開して初受注・初納品を達成する。</div>
+
+      <div class="task-group">
+        <div class="task-group-title">決済環境（収益の前提）</div>
+        <ul class="task-list">
+          <li>ネット銀行 口座開設申請（PayPay銀行 or 住信SBI・無料）<span class="owner">オーナー</span></li>
+          <li>050アプリ契約（SMARTalk等・月200〜300円）<span class="owner">オーナー</span></li>
+          <li>Stripe 本番環境：本人確認・銀行口座登録<span class="owner">リーナ・ベル</span></li>
+          <li>PayPay for Business アカウント申請・設定<span class="owner">リーナ・ベル</span></li>
+          <li>Stripe決済リンク（各プラン分）の作成・テスト<span class="owner">リーナ・ベル</span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-title">LP 正式公開</div>
+        <ul class="task-list">
+          <li>特定商取引法・プライバシーポリシーをFramerに設置<span class="owner">リーナ・ベル＋スティッチ</span></li>
+          <li>フッターに法的書類リンクを追加<span class="owner">リーナ・ベル</span></li>
+          <li>LP 公開（framer.app サブドメインのまま）<span class="owner">リーナ・ベル</span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-title">初受注対応</div>
+        <ul class="task-list">
+          <li>知人・友人への告知（口コミで最初の顧客獲得）<span class="owner">オーナー</span></li>
+          <li>全フロー（申し込み→アンケート→返信→決済→納品）を1件通しで実施<span class="owner">全部署</span></li>
+          <li>問題点をメモして即改善<span class="owner">ダッフィー</span></li>
+        </ul>
+      </div>
+
+      <div class="milestone">Phase 1 完了条件：LP正式公開・初受注・初納品が完了している</div>
+    </div>
+  </div>
+
+  <!-- Phase 2 -->
+  <div class="phase phase-2">
+    <div class="phase-left"><div class="phase-circle">Phase<br>2</div></div>
+    <div class="phase-right">
+      <div class="phase-header">
+        <div class="phase-title">ブランドの体裁を整える</div>
+        <div class="phase-duration">収益が出てから</div>
+        <span class="cost-badge cost-low">月1,000円程度〜</span>
+      </div>
+      <div class="phase-goal">収益を使って見た目と信頼感を強化する。カスタムドメインとSNSで本格始動。</div>
+
+      <div class="task-group">
+        <div class="task-group-title">ドメイン・HP強化</div>
+        <ul class="task-list">
+          <li>サービス名のドメイン取得（年1,000〜2,000円）<span class="owner">リーナ・ベル</span></li>
+          <li>Framer Mini プラン契約（月$5）でカスタムドメイン設定<span class="owner">リーナ・ベル</span></li>
+          <li>LPにお客様の声・実績を追加<span class="owner">ジェラトーニ</span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-title">SNS準備（シェリーメイ）</div>
+        <ul class="task-list">
+          <li>InstagramまたはTikTokのアカウント開設<span class="owner">シェリーメイ</span></li>
+          <li>投稿の世界観・テンプレートを設計<span class="owner">シェリーメイ＋ジェラトーニ</span></li>
+          <li>テスト投稿（3〜5件）でエンゲージメント確認<span class="owner">シェリーメイ</span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-title">オペレーション整備（オル・メル）</div>
+        <ul class="task-list">
+          <li>プレゼント仕入れ先リストの整備<span class="owner">オル・メル</span></li>
+          <li>レストランリストの整備（エリア別・雰囲気別）<span class="owner">オル・メル</span></li>
+          <li>配送リードタイムの標準化<span class="owner">オル・メル</span></li>
+        </ul>
+      </div>
+
+      <div class="milestone">Phase 2 完了条件：カスタムドメイン設定・SNSアカウント開設・5件以上の実績</div>
+    </div>
+  </div>
+
+  <!-- Phase 3 -->
+  <div class="phase phase-3">
+    <div class="phase-left"><div class="phase-circle">Phase<br>3</div></div>
+    <div class="phase-right">
+      <div class="phase-header">
+        <div class="phase-title">SNS集客の本格化</div>
+        <div class="phase-duration">2〜3ヶ月</div>
+        <span class="cost-badge cost-low">SNS運用コストのみ</span>
+      </div>
+      <div class="phase-goal">SNSからの自然流入を作り、月間受注数を安定させる。</div>
+
+      <div class="task-group">
+        <div class="task-group-title">SNS運用（シェリーメイ）</div>
+        <ul class="task-list">
+          <li>定期投稿スケジュールの確立（週2〜3回）<span class="owner">シェリーメイ</span></li>
+          <li>「こんな記念日が実現できます」系コンテンツ制作<span class="owner">シェリーメイ</span></li>
+          <li>インサイト分析→反応の良い投稿パターンに絞り込み<span class="owner">シェリーメイ</span></li>
+          <li>UGC（顧客の許可を得た体験談）の活用<span class="owner">シェリーメイ＋クッキー・アン</span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-title">LP改善（ジェラトーニ＋リーナ・ベル）</div>
+        <ul class="task-list">
+          <li>実績・お客様の声をLPに追加<span class="owner">ジェラトーニ</span></li>
+          <li>CVR改善（申し込みフォームのA/Bテスト）<span class="owner">リーナ・ベル</span></li>
+        </ul>
+      </div>
+
+      <div class="milestone">Phase 3 完了条件：SNS経由の申し込みが月間5件以上</div>
+    </div>
+  </div>
+
+  <!-- Phase 4 -->
+  <div class="phase phase-4">
+    <div class="phase-left"><div class="phase-circle">Phase<br>4</div></div>
+    <div class="phase-right">
+      <div class="phase-header">
+        <div class="phase-title">拡張フェーズ</div>
+        <div class="phase-duration">4〜6ヶ月以降</div>
+        <span class="cost-badge cost-mid">投資フェーズ</span>
+      </div>
+      <div class="phase-goal">サービスの幅を広げ、単価・件数ともに伸ばす。</div>
+
+      <div class="task-group">
+        <div class="task-group-title">サービス拡張</div>
+        <ul class="task-list">
+          <li>ホテルへの営業・提携交渉<span class="owner">オル・メル＋ダッフィー</span></li>
+          <li>ホテル宿泊プランの追加（新プラン設計）<span class="owner">ステラ・ルー</span></li>
+          <li>リピーター特典・割引制度の設計<span class="owner">ダッフィー</span></li>
+          <li>プロポーザル専門プランの検討<span class="owner">ステラ・ルー</span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-title">システム強化（リーナ・ベル）</div>
+        <ul class="task-list">
+          <li>顧客管理システムの高度化<span class="owner">リーナ・ベル</span></li>
+          <li>HPのSEO対策・ブログコンテンツ追加<span class="owner">シェリーメイ＋リーナ・ベル</span></li>
+        </ul>
+      </div>
+
+      <div class="milestone">Phase 4 完了条件：月間受注15件以上・ホテル提携1社以上</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

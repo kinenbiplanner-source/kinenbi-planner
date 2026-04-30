@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>記念日プランナー | 記念日トータルサポート</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --white: #ffffff;
+      --blue-pale: #f0f7fc;
+      --blue-light: #d6eaf8;
+      --blue-pastel: #a8c8e0;
+      --blue-mid: #4a8ab5;
+      --navy: #1a2840;
+      --navy-soft: #243550;
+      --text: #2d3748;
+      --text-light: #64748b;
+      --border: #d1e8f5;
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-weight: 400;
+      color: var(--text);
+      background: var(--white);
+      overflow-x: hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 60px;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      transition: box-shadow 0.3s;
+    }
+    nav.scrolled { box-shadow: 0 2px 20px rgba(26,40,64,0.08); }
+    .nav-logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--navy);
+      letter-spacing: 0.05em;
+      text-decoration: none;
+    }
+    .nav-links { display: flex; gap: 36px; list-style: none; }
+    .nav-links a {
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--text-light);
+      text-decoration: none;
+      letter-spacing: 0.03em;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--navy); }
+    .nav-cta {
+      background: var(--navy);
+      color: var(--white) !important;
+      padding: 10px 22px;
+      border-radius: 6px;
+      font-weight: 500 !important;
+      transition: background 0.2s !important;
+    }
+    .nav-cta:hover { background: var(--navy-soft) !important; }
+
+    /* ── HERO ── */
+    #hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding: 140px 60px 80px;
+      position: relative;
+      overflow: hidden;
+      background: var(--white);
+    }
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 70% 40%, rgba(168,200,224,0.25) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 20% 80%, rgba(168,200,224,0.12) 0%, transparent 50%);
+      animation: bgPulse 8s ease-in-out infinite alternate;
+    }
+    @keyframes bgPulse {
+      from { opacity: 0.7; }
+      to   { opacity: 1; }
+    }
+    .hero-grid {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
+      align-items: center;
+    }
+    .hero-label {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      color: var(--blue-mid);
+      text-transform: uppercase;
+      margin-bottom: 24px;
+      padding: 6px 14px;
+      border: 1px solid var(--blue-pastel);
+      border-radius: 20px;
+    }
+    .hero-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(40px, 5vw, 64px);
+      font-weight: 400;
+      line-height: 1.2;
+      color: var(--navy);
+      letter-spacing: 0.02em;
+      margin-bottom: 24px;
+    }
+    .hero-title em { font-style: normal; color: var(--blue-mid); }
+    .hero-sub {
+      font-size: 15px;
+      font-weight: 300;
+      line-height: 1.9;
+      color: var(--text-light);
+      margin-bottom: 40px;
+      max-width: 420px;
+    }
+    .hero-cta-wrap { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--navy);
+      color: var(--white);
+      padding: 14px 30px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      letter-spacing: 0.03em;
+      transition: background 0.25s, transform 0.2s;
+    }
+    .btn-primary:hover { background: var(--navy-soft); transform: translateY(-1px); }
+    .btn-primary svg { transition: transform 0.2s; }
+    .btn-primary:hover svg { transform: translateX(3px); }
+    .btn-secondary {
+      font-size: 13px;
+      color: var(--text-light);
+      text-decoration: none;
+      letter-spacing: 0.03em;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 2px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .btn-secondary:hover { color: var(--navy); border-color: var(--navy); }
+    .hero-visual { display: flex; justify-content: center; align-items: center; }
+
+    /* hero stats */
+    .hero-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      width: 100%;
+      max-width: 400px;
+    }
+    .hero-stat {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px 20px;
+      box-shadow: 0 4px 20px rgba(26,40,64,0.06);
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+    .hero-stat:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(26,40,64,0.1); }
+    .hero-stat:first-child {
+      grid-column: span 2;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .hero-stat-num {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 42px;
+      font-weight: 400;
+      color: var(--navy);
+      line-height: 1;
+    }
+    .hero-stat:first-child .hero-stat-num { font-size: 52px; }
+    .hero-stat-unit {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 18px;
+      font-weight: 300;
+      color: var(--blue-mid);
+    }
+    .hero-stat-label {
+      font-size: 12px;
+      font-weight: 300;
+      color: var(--text-light);
+      line-height: 1.6;
+      margin-top: 6px;
+    }
+    .hero-stat:first-child .hero-stat-label { margin-top: 0; }
+    .hero-stat-divider {
+      width: 1px;
+      height: 40px;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+
+    /* ── SECTION BASE ── */
+    section { padding: 100px 60px; }
+    .section-inner { max-width: 1100px; margin: 0 auto; }
+    .section-label {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      color: var(--blue-mid);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(28px, 3.5vw, 44px);
+      font-weight: 400;
+      color: var(--navy);
+      line-height: 1.3;
+      margin-bottom: 16px;
+    }
+    .section-sub {
+      font-size: 14px;
+      font-weight: 300;
+      color: var(--text-light);
+      line-height: 1.9;
+      max-width: 560px;
+    }
+    .section-header { margin-bottom: 56px; }
+
+    /* ── PAIN ── */
+    #pain { background: var(--blue-pale); }
+    .pain-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .pain-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+    .pain-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(26,40,64,0.09); }
+    .pain-icon {
+      width: 44px; height: 44px;
+      background: var(--blue-light);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      margin-bottom: 16px;
+    }
+    .pain-card h3 { font-size: 15px; font-weight: 500; color: var(--navy); margin-bottom: 8px; }
+    .pain-card p { font-size: 13px; font-weight: 300; color: var(--text-light); line-height: 1.8; }
+
+    /* ── SERVICES ── */
+    #services { background: var(--white); }
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+      margin-bottom: 36px;
+    }
+    .service-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 36px 28px;
+      transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+    }
+    .service-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 40px rgba(26,40,64,0.09);
+      border-color: var(--blue-pastel);
+    }
+    .service-num {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 36px;
+      font-weight: 300;
+      color: var(--blue-light);
+      line-height: 1;
+      margin-bottom: 20px;
+    }
+    .service-card h3 { font-size: 17px; font-weight: 500; color: var(--navy); margin-bottom: 12px; }
+    .service-card p { font-size: 13px; font-weight: 300; color: var(--text-light); line-height: 1.9; }
+    .service-note {
+      background: var(--blue-pale);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 28px;
+      font-size: 13px;
+      font-weight: 300;
+      color: var(--text-light);
+      line-height: 1.9;
+    }
+    .service-note strong { color: var(--navy); font-weight: 500; }
+
+    /* ── CONCIERGE ── */
+    #concierge { background: var(--navy); }
+    #concierge .section-label { color: var(--blue-pastel); }
+    #concierge .section-title { color: var(--white); }
+    .concierge-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+    }
+    .concierge-text {
+      font-size: 14px;
+      font-weight: 300;
+      color: rgba(255,255,255,0.7);
+      line-height: 2;
+      margin-bottom: 24px;
+    }
+    .concierge-tags { display: flex; flex-wrap: wrap; gap: 10px; }
+    .concierge-tag {
+      font-size: 12px;
+      color: var(--blue-pastel);
+      border: 1px solid rgba(168,200,224,0.4);
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-weight: 400;
+      letter-spacing: 0.03em;
+    }
+    .concierge-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .concierge-card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+    }
+    .concierge-card-role {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      color: var(--blue-pastel);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .concierge-card-desc {
+      font-size: 13px;
+      font-weight: 300;
+      color: rgba(255,255,255,0.65);
+      line-height: 1.7;
+    }
+
+    /* ── FLOW ── */
+    #flow { background: var(--blue-pale); }
+    .flow-steps { display: flex; flex-direction: column; gap: 0; max-width: 720px; }
+    .flow-step {
+      display: flex;
+      gap: 28px;
+      align-items: flex-start;
+      padding: 28px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .flow-step:last-child { border-bottom: none; }
+    .flow-step-num {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--blue-mid);
+      letter-spacing: 0.1em;
+      width: 56px;
+      flex-shrink: 0;
+      padding-top: 3px;
+    }
+    .flow-step-content h3 { font-size: 16px; font-weight: 500; color: var(--navy); margin-bottom: 6px; }
+    .flow-step-content p { font-size: 13px; font-weight: 300; color: var(--text-light); line-height: 1.8; }
+
+    /* ── PRICING ── */
+    #pricing { background: var(--white); }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+    .pricing-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px 24px;
+      position: relative;
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+    .pricing-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(26,40,64,0.1); }
+    .pricing-card.featured {
+      border-color: var(--navy);
+      background: var(--navy);
+      color: var(--white);
+    }
+    .pricing-featured-badge {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--blue-pastel);
+      color: var(--navy);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 14px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+    .pricing-plan-name {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-light);
+      margin-bottom: 12px;
+    }
+    .pricing-card.featured .pricing-plan-name { color: var(--blue-pastel); }
+    .pricing-price {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 38px;
+      font-weight: 400;
+      color: var(--navy);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .pricing-card.featured .pricing-price { color: var(--white); }
+    .pricing-price-unit {
+      font-size: 12px;
+      color: var(--text-light);
+      margin-bottom: 20px;
+      font-weight: 300;
+    }
+    .pricing-card.featured .pricing-price-unit { color: rgba(255,255,255,0.5); }
+    .pricing-divider {
+      height: 1px;
+      background: var(--border);
+      margin-bottom: 20px;
+    }
+    .pricing-card.featured .pricing-divider { background: rgba(255,255,255,0.15); }
+    .pricing-features { list-style: none; }
+    .pricing-features li {
+      font-size: 12px;
+      font-weight: 300;
+      color: var(--text-light);
+      padding: 7px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      line-height: 1.6;
+    }
+    .pricing-card.featured .pricing-features li { color: rgba(255,255,255,0.75); }
+    .pricing-features li::before {
+      content: '';
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--blue-pastel);
+      flex-shrink: 0;
+      margin-top: 6px;
+    }
+    .pricing-cta {
+      display: block;
+      text-align: center;
+      margin-top: 24px;
+      padding: 12px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.2s;
+      background: var(--blue-pale);
+      color: var(--navy);
+      border: 1px solid var(--border);
+    }
+    .pricing-cta:hover { background: var(--blue-light); }
+    .pricing-card.featured .pricing-cta { background: var(--white); color: var(--navy); }
+    .pricing-card.featured .pricing-cta:hover { background: var(--blue-pale); }
+    .pricing-express {
+      margin-top: 28px;
+      padding: 20px 24px;
+      background: var(--blue-pale);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text-light);
+      text-align: center;
+    }
+    .pricing-express strong { color: var(--navy); }
+
+    /* ── TRUST ── */
+    #trust { background: var(--blue-pale); }
+    .trust-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+    }
+    .trust-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px 24px;
+    }
+    .trust-icon { font-size: 24px; margin-bottom: 16px; }
+    .trust-card h3 { font-size: 15px; font-weight: 500; color: var(--navy); margin-bottom: 8px; }
+    .trust-card p { font-size: 13px; font-weight: 300; color: var(--text-light); line-height: 1.9; }
+
+    /* ── FINAL CTA ── */
+    #cta { background: var(--navy); text-align: center; padding: 100px 60px; }
+    #cta .section-label { color: var(--blue-pastel); }
+    #cta .section-title { color: var(--white); margin-bottom: 20px; }
+    #cta .section-sub { color: rgba(255,255,255,0.6); margin: 0 auto 40px; }
+    #cta .btn-primary { background: var(--white); color: var(--navy); padding: 16px 36px; font-size: 15px; }
+    #cta .btn-primary:hover { background: var(--blue-pale); }
+    #cta .payment-note { margin-top: 20px; font-size: 12px; color: rgba(255,255,255,0.4); letter-spacing: 0.05em; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--navy);
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding: 36px 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .footer-logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 18px;
+      font-weight: 400;
+      color: rgba(255,255,255,0.7);
+      letter-spacing: 0.05em;
+      text-decoration: none;
+    }
+    .footer-links { display: flex; gap: 28px; }
+    .footer-links a {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      text-decoration: none;
+      letter-spacing: 0.03em;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: rgba(255,255,255,0.7); }
+    .footer-copy { font-size: 12px; color: rgba(255,255,255,0.3); letter-spacing: 0.03em; }
+
+    /* ── POPUP ── */
+    .popup-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(26,40,64,0.5);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+      backdrop-filter: blur(4px);
+    }
+    .popup-overlay.show {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .popup {
+      background: var(--white);
+      border-radius: 20px;
+      padding: 48px 44px;
+      max-width: 420px;
+      width: 90%;
+      position: relative;
+      transform: translateY(20px);
+      transition: transform 0.4s ease;
+      text-align: center;
+      box-shadow: 0 24px 60px rgba(26,40,64,0.2);
+    }
+    .popup-overlay.show .popup { transform: translateY(0); }
+    .popup-close {
+      position: absolute;
+      top: 16px; right: 20px;
+      background: none;
+      border: none;
+      font-size: 20px;
+      color: var(--text-light);
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px;
+      transition: color 0.2s;
+    }
+    .popup-close:hover { color: var(--navy); }
+    .popup-icon {
+      width: 56px; height: 56px;
+      background: var(--blue-pale);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+      margin: 0 auto 20px;
+    }
+    .popup-label {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      color: var(--blue-mid);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .popup-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 26px;
+      font-weight: 400;
+      color: var(--navy);
+      line-height: 1.4;
+      margin-bottom: 12px;
+    }
+    .popup-text {
+      font-size: 13px;
+      font-weight: 300;
+      color: var(--text-light);
+      line-height: 1.9;
+      margin-bottom: 28px;
+    }
+    .popup-cta {
+      display: block;
+      background: var(--navy);
+      color: var(--white);
+      padding: 14px 28px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: background 0.2s;
+      margin-bottom: 12px;
+    }
+    .popup-cta:hover { background: var(--navy-soft); }
+    .popup-skip {
+      font-size: 12px;
+      color: var(--text-light);
+      cursor: pointer;
+      background: none;
+      border: none;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .popup-skip:hover { color: var(--navy); }
+
+    /* ── SCROLL ANIMATION ── */
+    .animate {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .animate.delay-1 { transition-delay: 0.1s; }
+    .animate.delay-2 { transition-delay: 0.2s; }
+    .animate.delay-3 { transition-delay: 0.3s; }
+    .animate.visible { opacity: 1; transform: translateY(0); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      nav { padding: 16px 24px; }
+      nav .nav-links { display: none; }
+      section { padding: 72px 24px; }
+      #hero { padding: 120px 24px 72px; }
+      .hero-grid, .concierge-inner { grid-template-columns: 1fr; }
+      .hero-visual { display: none; }
+      .pain-grid, .services-grid, .trust-grid { grid-template-columns: 1fr; }
+      .pricing-grid { grid-template-columns: 1fr 1fr; }
+      footer { flex-direction: column; align-items: flex-start; padding: 28px 24px; }
+    }
+    @media (max-width: 560px) {
+      .pricing-grid { grid-template-columns: 1fr; }
+      #cta { padding: 72px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="navbar">
+  <a href="#" class="nav-logo">記念日プランナー</a>
+  <ul class="nav-links">
+    <li><a href="#services">サービス</a></li>
+    <li><a href="#flow">ご利用の流れ</a></li>
+    <li><a href="#pricing">料金</a></li>
+    <li><a href="#cta" class="nav-cta">申し込む</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid">
+    <div class="hero-content">
+      <span class="hero-label animate">Anniversary Concierge</span>
+      <h1 class="hero-title animate delay-1">記念日を、<br>もっと<em>特別</em>に。</h1>
+      <p class="hero-sub animate delay-2">
+        プレゼント選びから、レストラン予約、当日の演出まで。<br>
+        あなたの代わりに、すべてプロデュースします。
+      </p>
+      <div class="hero-cta-wrap animate delay-3">
+        <a href="#pricing" class="btn-primary">
+          プランを見る
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+        <a href="#flow" class="btn-secondary">ご利用の流れを見る</a>
+      </div>
+    </div>
+    <div class="hero-visual animate delay-2">
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div>
+            <div class="hero-stat-num">98<span class="hero-stat-unit">%</span></div>
+          </div>
+          <div class="hero-stat-divider"></div>
+          <div class="hero-stat-label">ご利用いただいたお客様の<br>満足度</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">100<span class="hero-stat-unit">+</span></div>
+          <div class="hero-stat-label">累計<br>サポート実績</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">2<span class="hero-stat-unit">日</span></div>
+          <div class="hero-stat-label">最短<br>納品スピード</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">24<span class="hero-stat-unit">h</span></div>
+          <div class="hero-stat-label">以内に<br>コンシェルジュが返信</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PAIN -->
+<section id="pain">
+  <div class="section-inner">
+    <div class="section-header animate">
+      <div class="section-label">こんな悩み、ありませんか？</div>
+      <h2 class="section-title">記念日の準備、<br>毎回迷っていませんか。</h2>
+    </div>
+    <div class="pain-grid">
+      <div class="pain-card animate delay-1">
+        <div class="pain-icon">🎁</div>
+        <h3>何を贈ればいいかわからない</h3>
+        <p>毎回ネットを何時間も検索して、結局決められない。センスに自信がない。</p>
+      </div>
+      <div class="pain-card animate delay-2">
+        <div class="pain-icon">🍽️</div>
+        <h3>レストランを調べる時間がない</h3>
+        <p>仕事が忙しくて、予約まで手が回らない。どこがいいかもわからない。</p>
+      </div>
+      <div class="pain-card animate delay-3">
+        <div class="pain-icon">💌</div>
+        <h3>気持ちを上手く伝えられない</h3>
+        <p>思いはあるのに、言葉や演出にどうまとめればいいか悩んでしまう。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section id="services">
+  <div class="section-inner">
+    <div class="section-header animate">
+      <div class="section-label">Service</div>
+      <h2 class="section-title">3つのプロデュースで、<br>記念日を完成させます。</h2>
+      <p class="section-sub">アンケートに答えるだけで、プレゼント・レストラン・演出のすべてをお任せいただけます。</p>
+    </div>
+    <div class="services-grid">
+      <div class="service-card animate delay-1">
+        <div class="service-num">01</div>
+        <h3>プレゼント選定・手配</h3>
+        <p>パートナーの趣味・好みをもとに、ご予算の範囲内で最適なプレゼントを選定。ブランドへ発注し、ラッピング済みで直送します。</p>
+      </div>
+      <div class="service-card animate delay-2">
+        <div class="service-num">02</div>
+        <h3>レストラン予約 + 演出手配</h3>
+        <p>エリア・予算・雰囲気に合ったレストランをリサーチし、予約を代行。サプライズプレートや花などの特別なリクエストも交渉します。</p>
+      </div>
+      <div class="service-card animate delay-3">
+        <div class="service-num">03</div>
+        <h3>演出指示書</h3>
+        <p>当日どう動けばいいか、プレゼントを渡すタイミングから手紙の文案まで、1枚にまとめてお届けします。</p>
+      </div>
+    </div>
+    <div class="service-note animate">
+      <strong>お任せの度合いはお選びいただけます。</strong><br>
+      すべてお任せいただくことも、複数の提案の中からお好みのものをお選びいただくことも可能です。コンシェルジュが一緒に考えます。
+    </div>
+  </div>
+</section>
+
+<!-- CONCIERGE -->
+<section id="concierge">
+  <div class="section-inner">
+    <div class="concierge-inner">
+      <div>
+        <div class="section-label animate">Concierge</div>
+        <h2 class="section-title animate delay-1">多様な視点を持つ<br>コンシェルジュが担当します。</h2>
+        <p class="concierge-text animate delay-2">
+          元化粧品販売員や主婦、大学生など、多様なバックグラウンドを持つコンシェルジュが在籍しています。<br>
+          学生からアラフィフまでの幅広い視点で、大切な方に本当に喜ばれるプレゼントをご提案いたします。<br>
+          お二人の心が満たされる特別な一日となるよう、細部まで丁寧にサポートいたします。
+        </p>
+        <div class="concierge-tags animate delay-3">
+          <span class="concierge-tag">元化粧品販売員</span>
+          <span class="concierge-tag">主婦</span>
+          <span class="concierge-tag">大学生</span>
+          <span class="concierge-tag">20代〜アラフィフ</span>
+          <span class="concierge-tag">多様なバックグラウンド</span>
+        </div>
+      </div>
+      <div class="concierge-cards animate delay-2">
+        <div class="concierge-card">
+          <div class="concierge-card-role">プレゼント担当</div>
+          <div class="concierge-card-desc">元化粧品販売員のコンシェルジュが、女性目線でパートナーの好みに合ったギフトを厳選します。</div>
+        </div>
+        <div class="concierge-card">
+          <div class="concierge-card-role">レストラン担当</div>
+          <div class="concierge-card-desc">食に詳しいコンシェルジュが、お二人の雰囲気に合ったお店を丁寧にリサーチ・予約代行します。</div>
+        </div>
+        <div class="concierge-card">
+          <div class="concierge-card-role">演出担当</div>
+          <div class="concierge-card-desc">当日の流れをシナリオ化。サプライズを成功させるための細かな段取りまでサポートします。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FLOW -->
+<section id="flow">
+  <div class="section-inner">
+    <div class="section-header animate">
+      <div class="section-label">How it works</div>
+      <h2 class="section-title">申し込みから納品まで、<br>最短2日。</h2>
+    </div>
+    <div class="flow-steps">
+      <div class="flow-step animate delay-1">
+        <div class="flow-step-num">STEP 01</div>
+        <div class="flow-step-content">
+          <h3>予算を選んでメールアドレスを入力</h3>
+          <p>希望のプランを選択し、メールアドレスを入力するだけ。30秒で完了します。</p>
+        </div>
+      </div>
+      <div class="flow-step animate delay-1">
+        <div class="flow-step-num">STEP 02</div>
+        <div class="flow-step-content">
+          <h3>アンケートフォームに回答（約3分）</h3>
+          <p>パートナーの好み・記念日の詳細などをお聞きします。選択式が中心で簡単に答えられます。</p>
+        </div>
+      </div>
+      <div class="flow-step animate delay-1">
+        <div class="flow-step-num">STEP 03</div>
+        <div class="flow-step-content">
+          <h3>24時間以内にコンシェルジュからご連絡</h3>
+          <p>内容を確認次第、24時間以内にメールでご連絡します。プランの方向性を一緒に確認します。</p>
+        </div>
+      </div>
+      <div class="flow-step animate delay-1">
+        <div class="flow-step-num">STEP 04</div>
+        <div class="flow-step-content">
+          <h3>プラン確定・お支払い</h3>
+          <p>内容にご納得いただいてからお支払いいただきます。クレジットカード・PayPay に対応しています。</p>
+        </div>
+      </div>
+      <div class="flow-step animate delay-1">
+        <div class="flow-step-num">STEP 05</div>
+        <div class="flow-step-content">
+          <h3>プレゼント・指示書・予約情報をお届け</h3>
+          <p>記念日に間に合うようプレゼントを発送し、演出指示書と予約情報をお送りします。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="section-inner">
+    <div class="section-header animate">
+      <div class="section-label">Pricing</div>
+      <h2 class="section-title">料金プラン</h2>
+      <p class="section-sub">すべてのプランにプレゼント選定・手配と演出指示書が含まれます。プラン確定・ご入金前はキャンセル無料です。</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="pricing-card animate delay-1">
+        <div class="pricing-plan-name">Light</div>
+        <div class="pricing-price">¥15,000</div>
+        <div class="pricing-price-unit">プレゼント代込み・税込</div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features">
+          <li>予算に応じたプレゼント選定・直送</li>
+          <li>演出指示書</li>
+          <li>24時間以内に返信</li>
+        </ul>
+        <a href="https://tally.so/r/lbVDPB" target="_blank" rel="noopener noreferrer" class="pricing-cta">このプランで申し込む</a>
+      </div>
+      <div class="pricing-card featured animate delay-2">
+        <div class="pricing-featured-badge">人気 No.1</div>
+        <div class="pricing-plan-name">Standard</div>
+        <div class="pricing-price">¥25,000</div>
+        <div class="pricing-price-unit">プレゼント代込み・税込</div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features">
+          <li>予算に応じたプレゼント選定・直送</li>
+          <li>レストラン予約 + サプライズプレート手配</li>
+          <li>バルーンキット・フラワーギフトの手配</li>
+          <li>演出指示書</li>
+          <li>24時間以内に返信</li>
+        </ul>
+        <a href="https://tally.so/r/lbVDPB" target="_blank" rel="noopener noreferrer" class="pricing-cta">このプランで申し込む</a>
+      </div>
+      <div class="pricing-card animate delay-2">
+        <div class="pricing-plan-name">Premium</div>
+        <div class="pricing-price">¥35,000</div>
+        <div class="pricing-price-unit">プレゼント代込み・税込</div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features">
+          <li>こだわりのプレゼント選定・直送</li>
+          <li>レストラン予約 + サプライズプレート手配</li>
+          <li>バルーンキット・フラワーギフトの手配</li>
+          <li>写真・思い出を取り入れた特注アイテム</li>
+          <li>旅行プランニング</li>
+          <li>演出指示書（詳細版）</li>
+        </ul>
+        <a href="https://tally.so/r/lbVDPB" target="_blank" rel="noopener noreferrer" class="pricing-cta">このプランで申し込む</a>
+      </div>
+      <div class="pricing-card animate delay-3">
+        <div class="pricing-plan-name">Luxury</div>
+        <div class="pricing-price">¥50,000〜</div>
+        <div class="pricing-price-unit">完全オーダーメイド</div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features">
+          <li>丁寧なヒアリングをもとに完全カスタマイズ</li>
+          <li>記念日を含めた特別な体験を一貫サポート</li>
+          <li>すべてお任せ・要相談</li>
+        </ul>
+        <a href="https://tally.so/r/lbVDPB" target="_blank" rel="noopener noreferrer" class="pricing-cta">相談する</a>
+      </div>
+    </div>
+    <div class="pricing-express animate">
+      <strong>特急オプション</strong>　記念日2日前までのお申し込みは +¥3,000〜5,000 で対応可能です。
+    </div>
+  </div>
+</section>
+
+<!-- TRUST -->
+<section id="trust">
+  <div class="section-inner">
+    <div class="section-header animate">
+      <div class="section-label">安心してご利用いただけます</div>
+      <h2 class="section-title">3つのお約束</h2>
+    </div>
+    <div class="trust-grid">
+      <div class="trust-card animate delay-1">
+        <div class="trust-icon">🔒</div>
+        <h3>完全秘密厳守</h3>
+        <p>お客様の個人情報・ご相談内容は社外に一切共有しません。プライバシーポリシーに基づき適切に管理します。</p>
+      </div>
+      <div class="trust-card animate delay-2">
+        <div class="trust-icon">⚡</div>
+        <h3>24時間以内に返信</h3>
+        <p>お申し込み後、24時間以内にコンシェルジュよりご連絡します。ご不明な点はいつでもご相談ください。</p>
+      </div>
+      <div class="trust-card animate delay-3">
+        <div class="trust-icon">✓</div>
+        <h3>プラン確定・ご入金前はキャンセル無料</h3>
+        <p>プランの方向性にご納得いただいてからお支払いいただきます。ご入金前のキャンセルは無料です。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section id="cta">
+  <div class="section-inner">
+    <div class="section-label animate">大切な人に、最高の記念日を</div>
+    <h2 class="section-title animate delay-1">今すぐ、はじめましょう。</h2>
+    <p class="section-sub animate delay-2">まずはプランを選んでメールアドレスを入力するだけ。<br>あとはコンシェルジュにすべてお任せください。</p>
+    <a href="#pricing" class="btn-primary animate delay-3">
+      プランを選んで申し込む
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
+    <p class="payment-note animate">クレジットカード・PayPay 対応</p>
+  </div>
+</section>
+
+<!-- POPUP -->
+<div class="popup-overlay" id="popupOverlay">
+  <div class="popup">
+    <button class="popup-close" id="popupClose">✕</button>
+    <div class="popup-icon">💬</div>
+    <div class="popup-label">Free Consultation</div>
+    <h3 class="popup-title">何かお迷いですか？<br>お気軽にご相談ください。</h3>
+    <p class="popup-text">
+      どのプランが合うかわからない、予算感が気になるなど、<br>
+      どんなご質問でもコンシェルジュが無料でお答えします。
+    </p>
+    <a href="https://tally.so/r/lbVDPB" target="_blank" rel="noopener noreferrer" class="popup-cta">無料で相談する</a>
+    <button class="popup-skip" id="popupSkip">今は相談しない</button>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <a href="#" class="footer-logo">記念日プランナー</a>
+  <div class="footer-links">
+    <a href="tokutei.html">特定商取引法に基づく表記</a>
+    <a href="privacy.html">プライバシーポリシー</a>
+    <a href="mailto:kinenbi.planner@gmail.com">お問い合わせ</a>
+  </div>
+  <div class="footer-copy">© 2026 記念日プランナー</div>
+</footer>
+
+<script>
+  // Nav scroll
+  const navbar = document.getElementById('navbar');
+  window.addEventListener('scroll', () => {
+    navbar.classList.toggle('scrolled', window.scrollY > 20);
+  });
+
+  // Scroll animation
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) entry.target.classList.add('visible');
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.animate').forEach(el => observer.observe(el));
+
+  // Popup（45秒後・24時間以内に表示済みなら出さない）
+  const POPUP_KEY = 'popup_shown';
+  const overlay = document.getElementById('popupOverlay');
+  const closeBtn = document.getElementById('popupClose');
+  const skipBtn  = document.getElementById('popupSkip');
+
+  function showPopup() {
+    const last = localStorage.getItem(POPUP_KEY);
+    if (last && Date.now() - Number(last) < 24 * 60 * 60 * 1000) return;
+    overlay.classList.add('show');
+  }
+
+  function hidePopup() {
+    overlay.classList.remove('show');
+    localStorage.setItem(POPUP_KEY, Date.now());
+  }
+
+  setTimeout(showPopup, 45000);
+  closeBtn.addEventListener('click', hidePopup);
+  skipBtn.addEventListener('click', hidePopup);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) hidePopup(); });
+</script>
+</body>
+</html>

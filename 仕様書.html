@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>記念日サポートサービス 要件定義仕様書</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
+      font-size: 14px;
+      line-height: 1.8;
+      color: #222;
+      background: #f9f9f9;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 8px;
+      padding: 48px 56px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    h1 { font-size: 22px; font-weight: 700; border-bottom: 2px solid #222; padding-bottom: 12px; margin-bottom: 8px; }
+    .meta { font-size: 12px; color: #888; margin-bottom: 40px; }
+    h2 { font-size: 16px; font-weight: 700; background: #f0f0f0; padding: 8px 14px; border-left: 4px solid #333; margin: 40px 0 16px; }
+    h3 { font-size: 14px; font-weight: 700; margin: 20px 0 8px; color: #333; }
+    p { margin-bottom: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 13px; }
+    th { background: #f0f0f0; text-align: left; padding: 8px 12px; border: 1px solid #ddd; font-weight: 700; }
+    td { padding: 8px 12px; border: 1px solid #ddd; vertical-align: top; }
+    tr:nth-child(even) td { background: #fafafa; }
+    ul { padding-left: 20px; margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+    .badge-mvp { background: #d4edda; color: #155724; }
+    .badge-future { background: #e2e3e5; color: #555; }
+    .badge-decided { background: #cce5ff; color: #004085; }
+    .flow-box { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; align-items: center; }
+    .flow-step { background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; padding: 10px 14px; font-size: 13px; min-width: 120px; text-align: center; }
+    .flow-step .num { font-size: 11px; color: #888; display: block; margin-bottom: 2px; }
+    .arrow { color: #aaa; font-size: 18px; }
+    .note { background: #fffbea; border: 1px solid #e8d84b; border-radius: 6px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; }
+    .keyword-grid { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .keyword-tag { background: #f0f0f0; border: 1px solid #ddd; border-radius: 4px; padding: 3px 10px; font-size: 12px; }
+    .keyword-category { margin-bottom: 12px; }
+    .keyword-category-title { font-size: 12px; font-weight: 700; color: #555; margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <h1>記念日プランナー 要件定義仕様書</h1>
+  <div class="meta">作成日：2026-04-27　　バージョン：v0.6　　運用人数：2名（AI組織：ダッフィーズ）</div>
+  <div class="meta" style="margin-top:4px; margin-bottom:0;">更新履歴：v0.1 初版 → v0.2 ツール確定・キーワードチェックボックス追加 → v0.3 法的必須事項追加・運用ルール追記 → v0.4 ツール変更（Typeform→Tally・Zapier→Make） → v0.5 法務部（スティッチ）追加・ロードマップ再構築 → v0.6 サービス名確定（記念日プランナー）</div>
+
+  <!-- 1. サービス概要 -->
+  <h2>1. サービス概要</h2>
+  <p>パートナーがいる男性ユーザーに向けて、記念日・誕生日などの特別な日の準備をトータルサポートするサービス。プレゼントの選定・手配・配送から、レストラン予約、演出シナリオの提供まで、当日のストーリー全体をプロデュースする。</p>
+
+  <h3>ターゲットユーザー</h3>
+  <table>
+    <tr><th>項目</th><th>内容</th></tr>
+    <tr><td>性別・関係性</td><td>パートナーがいる男性</td></tr>
+    <tr><td>年齢層</td><td>大学生〜20代社会人</td></tr>
+    <tr><td>特徴</td><td>記念日に何かしたいが何をすればいいかわからない、手間をかけたくないが気持ちは伝えたい層</td></tr>
+  </table>
+
+  <!-- 2. 料金プラン -->
+  <h2>2. 料金プラン</h2>
+  <p>料金はプレゼント代＋サービス料の合算。ユーザーが選んだプランの総額内で調達・サービスを提供する。</p>
+  <table>
+    <tr><th>プラン</th><th>金額</th><th>備考</th></tr>
+    <tr><td>ライトプラン</td><td>15,000円</td><td>下限プラン</td></tr>
+    <tr><td>スタンダードプラン</td><td>20,000円</td><td>主力想定</td></tr>
+    <tr><td>プレミアムプラン</td><td>30,000円</td><td></td></tr>
+    <tr><td>ラグジュアリープラン</td><td>50,000円〜</td><td>要相談</td></tr>
+  </table>
+
+  <h3>特急オプション</h3>
+  <table>
+    <tr><th>通常申し込み</th><th>特急申し込み</th><th>特急追加料金</th></tr>
+    <tr><td>記念日の1週間前まで</td><td>記念日の2日前まで</td><td>+3,000〜5,000円（プランによる）</td></tr>
+  </table>
+
+  <!-- 3. ユーザーフロー -->
+  <h2>3. ユーザーフロー（カスタマージャーニー）</h2>
+  <div class="flow-box">
+    <div class="flow-step"><span class="num">STEP 1</span>SNS投稿を見る</div>
+    <div class="arrow">→</div>
+    <div class="flow-step"><span class="num">STEP 2</span>HPにアクセス</div>
+    <div class="arrow">→</div>
+    <div class="flow-step"><span class="num">STEP 3</span>プラン・予算を選択</div>
+    <div class="arrow">→</div>
+    <div class="flow-step"><span class="num">STEP 4</span>メールアドレスを入力</div>
+    <div class="arrow">→</div>
+    <div class="flow-step"><span class="num">STEP 5</span>アンケートフォームがメールに届く（自動送信）</div>
+  </div>
+  <div class="flow-box">
+    <div class="flow-step"><span class="num">STEP 6</span>アンケート回答（約3分）</div>
+    <div class="arrow">→</div>
+    <div class="flow-step"><span class="num">STEP 7</span>受付完了メール（即時自動）</div>
+    <div class="arrow">→</div>
+    <div class="flow-step"><span class="num">STEP 8</span>当日中に担当者が返信・詳細確認</div>
+    <div class="arrow">→</div>
+    <div class="flow-step"><span class="num">STEP 9</span>決済（クレカ／PayPay）</div>
+  </div>
+  <div class="flow-box">
+    <div class="flow-step"><span class="num">STEP 10</span>プランニング・プレゼント手配</div>
+    <div class="arrow">→</div>
+    <div class="flow-step"><span class="num">STEP 11</span>納品物の提供</div>
+  </div>
+
+  <!-- 4. 納品物 -->
+  <h2>4. 納品物（ユーザーが受け取るもの）</h2>
+  <table>
+    <tr><th>納品物</th><th>形式・詳細</th></tr>
+    <tr><td>演出指示書</td><td>1枚にまとめたドキュメント。プレゼントを選んだ理由・手紙の内容案・当日の段取りを記載</td></tr>
+    <tr><td>プレゼント</td><td>都度仕入れ。ブランド側でラッピング済みにして配送。ユーザー指定住所に直送。</td></tr>
+    <tr><td>レストラン予約情報</td><td>予約番号・店舗情報・注意事項を見やすくまとめた資料として共有</td></tr>
+  </table>
+
+  <!-- 5. アンケートフォーム要件 -->
+  <h2>5. アンケートフォーム要件</h2>
+  <p>回答時間：約3分以内。できる限り選択式・単語入力で完結させる設計。ツール：<strong>Tally</strong>（確定）</p>
+  <table>
+    <tr><th>設問項目</th><th>回答形式</th><th>備考</th></tr>
+    <tr><td>氏名</td><td>テキスト</td><td></td></tr>
+    <tr><td>年齢</td><td>選択または数値入力</td><td></td></tr>
+    <tr><td>パートナーの年齢</td><td>選択または数値入力</td><td></td></tr>
+    <tr><td>交際期間</td><td>選択（〜3ヶ月 / 〜1年 / 〜3年 / 3年以上）</td><td></td></tr>
+    <tr><td>記念日の種類</td><td>選択（誕生日 / 交際記念日 / その他）</td><td></td></tr>
+    <tr><td>記念日の日付</td><td>日付入力</td><td></td></tr>
+    <tr><td>申し込み種別</td><td>選択（通常 / 特急）</td><td></td></tr>
+    <tr><td>配送先住所</td><td>テキスト</td><td></td></tr>
+    <tr><td>パートナーのアレルギー</td><td>選択＋テキスト（なし / あり→記入）</td><td></td></tr>
+    <tr><td>パートナーの興味・好きなもの</td><td>チェックボックス（複数選択可）※下記キーワード一覧参照</td><td>カテゴリ別に50項目程度を並べる</td></tr>
+    <tr><td>これまでの記念日の過ごし方</td><td>選択（外食 / 家でまったり / 特になし / その他）</td><td></td></tr>
+    <tr><td>希望・こだわり（任意）</td><td>テキスト（自由記述、短文）</td><td></td></tr>
+  </table>
+
+  <h3>パートナーの興味・好きなもの キーワード一覧（チェックボックス）</h3>
+
+  <div class="keyword-category">
+    <div class="keyword-category-title">エンタメ・カルチャー</div>
+    <div class="keyword-grid">
+      <span class="keyword-tag">ディズニー</span>
+      <span class="keyword-tag">K-POP・韓国アイドル</span>
+      <span class="keyword-tag">アニメ・マンガ</span>
+      <span class="keyword-tag">映画鑑賞</span>
+      <span class="keyword-tag">ドラマ（国内）</span>
+      <span class="keyword-tag">ドラマ（海外・韓国）</span>
+      <span class="keyword-tag">音楽ライブ・フェス</span>
+      <span class="keyword-tag">舞台・ミュージカル</span>
+      <span class="keyword-tag">推し活（アイドル・俳優）</span>
+      <span class="keyword-tag">ゲーム</span>
+    </div>
+  </div>
+
+  <div class="keyword-category">
+    <div class="keyword-category-title">ファッション・ビューティー</div>
+    <div class="keyword-grid">
+      <span class="keyword-tag">ブランドファッション</span>
+      <span class="keyword-tag">プチプラ・トレンドファッション</span>
+      <span class="keyword-tag">古着・ヴィンテージ</span>
+      <span class="keyword-tag">アクセサリー・ジュエリー</span>
+      <span class="keyword-tag">バッグ・財布</span>
+      <span class="keyword-tag">コスメ・メイク</span>
+      <span class="keyword-tag">スキンケア</span>
+      <span class="keyword-tag">ネイル</span>
+      <span class="keyword-tag">ヘアケア・ヘアアレンジ</span>
+      <span class="keyword-tag">エステ・サロン</span>
+      <span class="keyword-tag">香水・フレグランス</span>
+    </div>
+  </div>
+
+  <div class="keyword-category">
+    <div class="keyword-category-title">フード・グルメ</div>
+    <div class="keyword-grid">
+      <span class="keyword-tag">カフェ巡り</span>
+      <span class="keyword-tag">スイーツ・お菓子</span>
+      <span class="keyword-tag">グルメ・食べ歩き</span>
+      <span class="keyword-tag">料理・お菓子作り</span>
+      <span class="keyword-tag">ワイン・お酒</span>
+      <span class="keyword-tag">ヘルシーフード</span>
+      <span class="keyword-tag">韓国料理</span>
+      <span class="keyword-tag">パン・ベーカリー</span>
+    </div>
+  </div>
+
+  <div class="keyword-category">
+    <div class="keyword-category-title">アウトドア・アクティビティ</div>
+    <div class="keyword-grid">
+      <span class="keyword-tag">旅行（国内）</span>
+      <span class="keyword-tag">旅行（海外）</span>
+      <span class="keyword-tag">キャンプ・アウトドア</span>
+      <span class="keyword-tag">スポーツ観戦</span>
+      <span class="keyword-tag">運動・スポーツ全般</span>
+      <span class="keyword-tag">海・マリンスポーツ</span>
+      <span class="keyword-tag">登山・ハイキング</span>
+      <span class="keyword-tag">映えスポット巡り</span>
+    </div>
+  </div>
+
+  <div class="keyword-category">
+    <div class="keyword-category-title">ライフスタイル・趣味</div>
+    <div class="keyword-grid">
+      <span class="keyword-tag">ヨガ・ピラティス</span>
+      <span class="keyword-tag">ランニング・ウォーキング</span>
+      <span class="keyword-tag">読書</span>
+      <span class="keyword-tag">写真・カメラ</span>
+      <span class="keyword-tag">アート・美術館</span>
+      <span class="keyword-tag">インテリア・部屋づくり</span>
+      <span class="keyword-tag">ハンドメイド・DIY</span>
+      <span class="keyword-tag">ガーデニング・植物</span>
+      <span class="keyword-tag">占い・スピリチュアル</span>
+      <span class="keyword-tag">ペット</span>
+      <span class="keyword-tag">SNS・インフルエンサー</span>
+      <span class="keyword-tag">サウナ・温泉</span>
+    </div>
+  </div>
+
+  <div class="note">Tallyのチェックボックス設問でカテゴリ別に表示。「その他（自由記述）」も追加する。</div>
+
+  <!-- 6. メール・通知フロー -->
+  <h2>6. メール・通知フロー</h2>
+  <table>
+    <tr><th>タイミング</th><th>送信者</th><th>内容</th></tr>
+    <tr><td>予算・メアド入力直後</td><td>システム（Make自動）</td><td>アンケートフォーム（TallyのURL）を送付</td></tr>
+    <tr><td>アンケート回答直後</td><td>システム（Tally自動返信）</td><td>「受け付けました。当日中に担当者よりご連絡します」の旨</td></tr>
+    <tr><td>当日中</td><td>担当者（人力）</td><td>詳細確認・プランの方向性共有・決済案内</td></tr>
+  </table>
+
+  <!-- 7. 決済 -->
+  <h2>7. 決済</h2>
+  <table>
+    <tr><th>項目</th><th>内容</th></tr>
+    <tr><td>決済方法</td><td>クレジットカード（Stripe）、PayPay for Business</td></tr>
+    <tr><td>決済タイミング</td><td>担当者とのやり取り後、プラン確定時点</td></tr>
+    <tr><td>決済導線</td><td>担当者がメールでStripe決済リンク or PayPay送金リクエストを送付</td></tr>
+  </table>
+
+  <!-- 8. 運用フロー（バックオフィス） -->
+  <h2>8. 運用フロー（バックオフィス）</h2>
+  <table>
+    <tr><th>工程</th><th>担当AI社員</th><th>内容</th></tr>
+    <tr><td>顧客情報の受領・管理</td><td>クッキー・アン（CS部）</td><td>Tallyの回答をNotionに転記・整理</td></tr>
+    <tr><td>プランニング</td><td>ステラ・ルー（企画部）＋AI</td><td>プレゼント選定・演出シナリオ作成</td></tr>
+    <tr><td>プレゼント発注</td><td>オル・メル（オペレーション部）</td><td>ブランドに直接発注・ラッピング依頼</td></tr>
+    <tr><td>配送手配</td><td>オル・メル（オペレーション部）</td><td>ブランドからユーザー指定住所へ直送手配</td></tr>
+    <tr><td>レストラン予約</td><td>オル・メル（オペレーション部）</td><td>ユーザー希望に合わせて予約代行</td></tr>
+    <tr><td>指示書・資料作成</td><td>ジェラトーニ（クリエイティブ部）＋ステラ・ルー</td><td>演出指示書・予約情報を見やすくまとめてユーザーへ共有</td></tr>
+    <tr><td>SNS・広報</td><td>シェリーメイ（マーケティング部）</td><td>コンテンツ制作・投稿・HP集客</td></tr>
+    <tr><td>LP制作・デザイン</td><td>ジェラトーニ（クリエイティブ部）</td><td>FramerでのLP構築・ビジュアルデザイン・素材選定・モバイル対応</td></tr>
+    <tr><td>システム管理</td><td>リーナ・ベル（テクノロジー部）</td><td>Tallyフォーム・Make連携・決済管理</td></tr>
+    <tr><td>法的書類・コンプライアンス</td><td>スティッチ（法務部）</td><td>特定商取引法・プライバシーポリシー・事業申請・規約管理</td></tr>
+  </table>
+
+  <!-- 9. HP・システム要件 -->
+  <h2>9. HP・システム要件（MVP）</h2>
+
+  <h3>技術スタック（確定）</h3>
+  <table>
+    <tr><th>用途</th><th>ツール</th><th>選定理由</th></tr>
+    <tr>
+      <td>LP制作</td>
+      <td><strong>Framer</strong> <span class="badge badge-decided">確定</span></td>
+      <td>テンプレートが豊富でデザイン性が高い。ノーコードで最速公開可能。アニメーションやインタラクションも対応。将来的な拡張も◎</td>
+    </tr>
+    <tr>
+      <td>アンケートフォーム</td>
+      <td><strong>Tally</strong> <span class="badge badge-decided">確定</span></td>
+      <td>Tallyと同等の会話式UIで無料プランが実質無制限（設問数・回答数の制限なし）。モバイル体験優秀。自動返信メール機能あり。Make連携で自動化も容易</td>
+    </tr>
+    <tr>
+      <td>フォーム→メール自動化</td>
+      <td><strong>Make</strong> <span class="badge badge-decided">確定</span></td>
+      <td>FramerフォームからTally URLをメール送信する自動化に使用。Makeより安価で高機能</td>
+    </tr>
+    <tr>
+      <td>決済（クレカ）</td>
+      <td><strong>Stripe</strong></td>
+      <td>決済リンクを発行してメールで送付する形式で最速実装</td>
+    </tr>
+    <tr>
+      <td>決済（PayPay）</td>
+      <td><strong>PayPay for Business</strong></td>
+      <td>送金リクエスト機能で対応</td>
+    </tr>
+    <tr>
+      <td>顧客情報管理</td>
+      <td><strong>Notion</strong></td>
+      <td>このフォルダと連携。Tallyの回答をMakeで自動転記</td></tr>
+  </table>
+
+  <h3>MVP機能一覧</h3>
+  <table>
+    <tr><th>機能</th><th>優先度</th><th>概要</th></tr>
+    <tr><td>LP（サービス概要ページ）</td><td><span class="badge badge-mvp">MVP</span></td><td>サービス説明・料金プラン・申し込みCTA。Framerで構築。</td></tr>
+    <tr><td>プラン選択＋メアド入力フォーム</td><td><span class="badge badge-mvp">MVP</span></td><td>FramerのフォームブロックまたはTallyの埋め込み</td></tr>
+    <tr><td>アンケートURL自動メール送信</td><td><span class="badge badge-mvp">MVP</span></td><td>Makeで自動化</td></tr>
+    <tr><td>アンケートフォーム（Tally）</td><td><span class="badge badge-mvp">MVP</span></td><td>本仕様書Section5の設問を実装</td></tr>
+    <tr><td>受付完了メール（自動返信）</td><td><span class="badge badge-mvp">MVP</span></td><td>Tallyの自動返信機能を使用</td></tr>
+    <tr><td>決済</td><td><span class="badge badge-mvp">MVP</span></td><td>Stripe決済リンク＋PayPay送金リクエスト</td></tr>
+    <tr><td>SNS連携・シェアボタン</td><td><span class="badge badge-future">将来対応</span></td><td></td></tr>
+    <tr><td>ホテル連携</td><td><span class="badge badge-future">将来対応</span></td><td>サービス拡大後に営業・連携</td></tr>
+    <tr><td>マイページ・注文履歴</td><td><span class="badge badge-future">将来対応</span></td><td></td></tr>
+  </table>
+
+  <!-- 10. SNS集客 -->
+  <h2>10. SNS集客（方針）</h2>
+  <table>
+    <tr><th>項目</th><th>内容</th></tr>
+    <tr><td>ターゲットプラットフォーム</td><td>Instagram / TikTok（大学生〜20代が主戦場）※詳細はおいおい詰める</td></tr>
+    <tr><td>集客の基本フロー</td><td>SNS投稿 → HPへ誘導 → プラン選択 → アンケート送信</td></tr>
+    <tr><td>担当</td><td>シェリーメイ（マーケティング部）</td></tr>
+    <tr><td>コンテンツ方針</td><td>TBD（おいおい詰める）</td></tr>
+  </table>
+
+  <!-- 11. 将来的な拡張 -->
+  <h2>11. 将来的な拡張（MVP後のロードマップ）</h2>
+  <ul>
+    <li>ホテルとの提携・手配代行</li>
+    <li>SNSアカウントの本格運用・コンテンツ設計</li>
+    <li>HPの品質向上（デザイン・SEO・コンバージョン最適化）</li>
+    <li>顧客管理システムの整備</li>
+    <li>リピーター向けの施策・特典</li>
+  </ul>
+
+  <!-- 12. 法的必須事項 -->
+  <h2>12. 法的必須事項（LP公開前に完了）</h2>
+  <div class="note">オンラインで金銭を受け取るサービスには以下が法律上義務。LP公開前に必ず整備すること。</div>
+  <table>
+    <tr><th>項目</th><th>内容</th><th>担当</th></tr>
+    <tr>
+      <td><strong>特定商取引法に基づく表記</strong></td>
+      <td>販売業者名・住所・電話番号・メール・価格・支払方法・サービス提供時期・キャンセルポリシーなどを記載したページをLP内に設置</td>
+      <td>スティッチ（法務部）＋リーナ・ベル</td>
+    </tr>
+    <tr>
+      <td><strong>プライバシーポリシー</strong></td>
+      <td>収集する個人情報の種類・利用目的・第三者提供の有無・問い合わせ先を記載したページをLP内に設置。Tallyで収集するデータの取り扱いも明記。</td>
+      <td>スティッチ（法務部）＋リーナ・ベル</td>
+    </tr>
+  </table>
+
+  <!-- 13. 運用ルール -->
+  <h2>13. 運用ルール</h2>
+  <table>
+    <tr><th>ルール</th><th>内容</th></tr>
+    <tr><td>ファイル更新</td><td>作業が進むたびに、関連するファイル・書類（仕様書・ロードマップ等）を最新状態にアップデートする</td></tr>
+    <tr><td>法的・グレーゾーン回避</td><td>法的にグレーな手法・ツールは採用しない。不明な場合はダッフィーに確認してから進める</td></tr>
+    <tr><td>セキュリティ</td><td>決済・個人情報を扱うツールは業界標準の信頼できるものに限定する（Stripe・PayPay・Tally・Framer・Makeで固定）</td></tr>
+    <tr><td>ダッフィーとのコミュニケーション</td><td>フランク・友達感覚でOK。進捗・問題・提案はどんどん話しかけて</td></tr>
+  </table>
+
+  <!-- 14. 未決定事項 -->
+  <h2>14. 未決定事項（TBD）</h2>
+  <table>
+    <tr><th>項目</th><th>状況</th></tr>
+    <tr><td>SNSプラットフォームとコンテンツ方針</td><td>おいおい詰める</td></tr>
+    <tr><td>指示書・資料の共有フォーマット</td><td>運用しながら決定</td></tr>
+    <tr><td>記念日プランナー・ブランディング</td><td>未定</td></tr>
+    <tr><td>特急料金の正確な設定（プラン別）</td><td>+3,000〜5,000円の範囲で運用しながら決定</td></tr>
+  </table>
+
+</div>
+</body>
+</html>
