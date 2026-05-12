@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>記念日プランナー | 記念日トータルサポート</title>
+  <title>記念日プラン | 記念日トータルサポート</title>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -422,24 +422,31 @@
       border-radius: 20px;
       white-space: nowrap;
     }
-    .pricing-plan-name {
-      font-size: 12px;
-      font-weight: 500;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--text-light);
-      margin-bottom: 12px;
-    }
-    .pricing-card.featured .pricing-plan-name { color: var(--blue-pastel); }
-    .pricing-price {
+    .pricing-budget-range {
       font-family: 'Cormorant Garamond', serif;
-      font-size: 38px;
+      font-size: 30px;
       font-weight: 400;
       color: var(--navy);
       line-height: 1;
-      margin-bottom: 4px;
+      margin-bottom: 8px;
     }
-    .pricing-card.featured .pricing-price { color: var(--white); }
+    .pricing-card.featured .pricing-budget-range { color: var(--white); }
+    .pricing-plan-name {
+      font-size: 12px;
+      font-weight: 300;
+      color: var(--text-light);
+      margin-bottom: 20px;
+    }
+    .pricing-card.featured .pricing-plan-name { color: rgba(255,255,255,0.5); }
+    .pricing-examples-label {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      color: var(--blue-mid);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .pricing-card.featured .pricing-examples-label { color: var(--blue-pastel); }
     .pricing-price-unit {
       font-size: 12px;
       color: var(--text-light);
@@ -690,7 +697,7 @@
 
 <!-- NAV -->
 <nav id="navbar">
-  <a href="#" class="nav-logo">記念日プランナー</a>
+  <a href="#" class="nav-logo">記念日プラン</a>
   <ul class="nav-links">
     <li><a href="#services">サービス</a></li>
     <li><a href="#flow">ご利用の流れ</a></li>
@@ -708,7 +715,7 @@
       <h1 class="hero-title animate delay-1">記念日を、<br>もっと<em>特別</em>に。</h1>
       <p class="hero-sub animate delay-2">
         プレゼント選びから、レストラン予約、当日の演出まで。<br>
-        あなたの代わりに、すべてプロデュースします。
+        大切な日に、外さない選択を。
       </p>
       <div class="hero-cta-wrap animate delay-3">
         <a href="#pricing" class="btn-primary">
@@ -739,7 +746,7 @@
         </div>
         <div class="hero-stat">
           <div class="hero-stat-num">24<span class="hero-stat-unit">h</span></div>
-          <div class="hero-stat-label">以内に<br>コンシェルジュが返信</div>
+          <div class="hero-stat-label">以内に<br>プランナーが返信</div>
         </div>
       </div>
     </div>
@@ -784,23 +791,23 @@
     <div class="services-grid">
       <div class="service-card animate delay-1">
         <div class="service-num">01</div>
-        <h3>プレゼント選定・手配</h3>
+        <h3>手配</h3>
         <p>パートナーの趣味・好みをもとに、ご予算の範囲内で最適なプレゼントを選定。ブランドへ発注し、ラッピング済みで直送します。</p>
       </div>
       <div class="service-card animate delay-2">
         <div class="service-num">02</div>
         <h3>レストラン予約 + 演出手配</h3>
-        <p>エリア・予算・雰囲気に合ったレストランをリサーチし、予約を代行。サプライズプレートや花などの特別なリクエストも交渉します。</p>
+        <p>エリア・予算・雰囲気に合ったレストランをリサーチし、予約を代行。サプライズプレートや花束などの特別なリクエストも交渉します。</p>
       </div>
       <div class="service-card animate delay-3">
         <div class="service-num">03</div>
         <h3>演出指示書</h3>
-        <p>当日どう動けばいいか、プレゼントを渡すタイミングから手紙の文案まで、1枚にまとめてお届けします。</p>
+        <p>当日の過ごし方や演出のタイミング、気持ちを届ける言葉まで、安心して進められるようサポートいたします。</p>
       </div>
     </div>
     <div class="service-note animate">
       <strong>お任せの度合いはお選びいただけます。</strong><br>
-      すべてお任せいただくことも、複数の提案の中からお好みのものをお選びいただくことも可能です。コンシェルジュが一緒に考えます。
+      すべてお任せいただくことも、複数の提案の中からお好みのものをお選びいただくことも可能です。プランナーが一緒に考えます。
     </div>
   </div>
 </section>
@@ -811,11 +818,12 @@
     <div class="concierge-inner">
       <div>
         <div class="section-label animate">Concierge</div>
-        <h2 class="section-title animate delay-1">多様な視点を持つ<br>コンシェルジュが担当します。</h2>
+        <h2 class="section-title animate delay-1">多様な経験を持つプランナーがあなたの想いに寄り添います。</h2>
         <p class="concierge-text animate delay-2">
-          元化粧品販売員や主婦、大学生など、多様なバックグラウンドを持つコンシェルジュが在籍しています。<br>
-          学生からアラフィフまでの幅広い視点で、大切な方に本当に喜ばれるプレゼントをご提案いたします。<br>
-          お二人の心が満たされる特別な一日となるよう、細部まで丁寧にサポートいたします。
+          元化粧品販売員や主婦、大学生など、<br>
+          さまざまな視点を持つプランナーが在籍。<br>
+          幅広い感性を活かし、<br>
+          大切な方に本当に喜ばれるご提案をお届けします。
         </p>
         <div class="concierge-tags animate delay-3">
           <span class="concierge-tag">元化粧品販売員</span>
@@ -828,11 +836,11 @@
       <div class="concierge-cards animate delay-2">
         <div class="concierge-card">
           <div class="concierge-card-role">プレゼント担当</div>
-          <div class="concierge-card-desc">元化粧品販売員のコンシェルジュが、女性目線でパートナーの好みに合ったギフトを厳選します。</div>
+          <div class="concierge-card-desc">元化粧品販売員のプランナーが、女性目線でパートナーの好みに合ったギフトを厳選します。</div>
         </div>
         <div class="concierge-card">
           <div class="concierge-card-role">レストラン担当</div>
-          <div class="concierge-card-desc">食に詳しいコンシェルジュが、お二人の雰囲気に合ったお店を丁寧にリサーチ・予約代行します。</div>
+          <div class="concierge-card-desc">食に詳しいプランナーが、お二人の雰囲気に合ったお店を丁寧にリサーチ・予約代行します。</div>
         </div>
         <div class="concierge-card">
           <div class="concierge-card-role">演出担当</div>
@@ -854,33 +862,26 @@
       <div class="flow-step animate delay-1">
         <div class="flow-step-num">STEP 01</div>
         <div class="flow-step-content">
-          <h3>予算を選んでメールアドレスを入力</h3>
-          <p>希望のプランを選択し、メールアドレスを入力するだけ。30秒で完了します。</p>
+          <h3>お申し込みフォームに回答 （約3分）</h3>
+          <p>パートナーの好み・記念日の詳細などをお聞きします。選択式が中心で簡単に答えられます。</p>
         </div>
       </div>
       <div class="flow-step animate delay-1">
         <div class="flow-step-num">STEP 02</div>
         <div class="flow-step-content">
-          <h3>アンケートフォームに回答（約3分）</h3>
-          <p>パートナーの好み・記念日の詳細などをお聞きします。選択式が中心で簡単に答えられます。</p>
+          <h3>公式LINEでプランナーからご連絡</h3>
+          <p>内容を確認次第、24時間以内にプランナーよりご連絡します。プランの方向性を一緒に確認します。</p>
         </div>
       </div>
       <div class="flow-step animate delay-1">
         <div class="flow-step-num">STEP 03</div>
-        <div class="flow-step-content">
-          <h3>24時間以内にコンシェルジュからご連絡</h3>
-          <p>内容を確認次第、24時間以内にメールでご連絡します。プランの方向性を一緒に確認します。</p>
-        </div>
-      </div>
-      <div class="flow-step animate delay-1">
-        <div class="flow-step-num">STEP 04</div>
         <div class="flow-step-content">
           <h3>プラン確定・お支払い</h3>
           <p>内容にご納得いただいてからお支払いいただきます。クレジットカード・PayPay に対応しています。</p>
         </div>
       </div>
       <div class="flow-step animate delay-1">
-        <div class="flow-step-num">STEP 05</div>
+        <div class="flow-step-num">STEP 04</div>
         <div class="flow-step-content">
           <h3>プレゼント・指示書・予約情報をお届け</h3>
           <p>記念日に間に合うようプレゼントを発送し、演出指示書と予約情報をお送りします。</p>
@@ -895,67 +896,60 @@
   <div class="section-inner">
     <div class="section-header animate">
       <div class="section-label">Pricing</div>
-      <h2 class="section-title">料金プラン</h2>
-      <p class="section-sub">すべてのプランにプレゼント選定・手配と演出指示書が含まれます。プラン確定・ご入金前はキャンセル無料です。</p>
+      <h2 class="section-title">ご予算の目安</h2>
+      <p class="section-sub">ご要望とご予算をお伺いしながら、プランナーが一人ひとりに合ったプランをご提案します。以下はサービス例の参考です。</p>
     </div>
     <div class="pricing-grid">
       <div class="pricing-card animate delay-1">
-        <div class="pricing-plan-name">Light</div>
-        <div class="pricing-price">¥15,000</div>
-        <div class="pricing-price-unit">プレゼント代込み・税込</div>
+        <div class="pricing-budget-range">〜¥20,000</div>
+        <div class="pricing-plan-name">プレゼント代込みの目安</div>
         <div class="pricing-divider"></div>
+        <div class="pricing-examples-label">サービス例</div>
         <ul class="pricing-features">
-          <li>予算に応じたプレゼント選定・直送</li>
-          <li>演出指示書</li>
-          <li>24時間以内に返信</li>
+          <li>プレゼント選定・直送</li>
+          <li>演出指示書（渡し方・タイミング・言葉の提案）</li>
         </ul>
-        <a href="https://tally.so/r/lbVDPB" target="_blank" rel="noopener noreferrer" class="pricing-cta">このプランで申し込む</a>
       </div>
       <div class="pricing-card featured animate delay-2">
-        <div class="pricing-featured-badge">人気 No.1</div>
-        <div class="pricing-plan-name">Standard</div>
-        <div class="pricing-price">¥25,000</div>
-        <div class="pricing-price-unit">プレゼント代込み・税込</div>
+        <div class="pricing-featured-badge">よく選ばれる予算帯</div>
+        <div class="pricing-budget-range">〜¥35,000</div>
+        <div class="pricing-plan-name">プレゼント代込みの目安</div>
         <div class="pricing-divider"></div>
+        <div class="pricing-examples-label">サービス例</div>
         <ul class="pricing-features">
-          <li>予算に応じたプレゼント選定・直送</li>
-          <li>レストラン予約 + サプライズプレート手配</li>
-          <li>バルーンキット・フラワーギフトの手配</li>
+          <li>プレゼント選定・直送</li>
+          <li>レストラン予約・サプライズプレート手配</li>
+          <li>バルーンキットやフラワーギフトの手配も可能</li>
           <li>演出指示書</li>
-          <li>24時間以内に返信</li>
         </ul>
-        <a href="https://tally.so/r/lbVDPB" target="_blank" rel="noopener noreferrer" class="pricing-cta">このプランで申し込む</a>
       </div>
       <div class="pricing-card animate delay-2">
-        <div class="pricing-plan-name">Premium</div>
-        <div class="pricing-price">¥35,000</div>
-        <div class="pricing-price-unit">プレゼント代込み・税込</div>
+        <div class="pricing-budget-range">〜¥50,000</div>
+        <div class="pricing-plan-name">プレゼント代込みの目安</div>
         <div class="pricing-divider"></div>
+        <div class="pricing-examples-label">サービス例</div>
         <ul class="pricing-features">
           <li>こだわりのプレゼント選定・直送</li>
-          <li>レストラン予約 + サプライズプレート手配</li>
-          <li>バルーンキット・フラワーギフトの手配</li>
-          <li>写真・思い出を取り入れた特注アイテム</li>
+          <li>レストラン・演出フル手配</li>
+          <li>思い出を取り入れた特注アイテム</li>
           <li>旅行プランニング</li>
           <li>演出指示書（詳細版）</li>
         </ul>
-        <a href="https://tally.so/r/lbVDPB" target="_blank" rel="noopener noreferrer" class="pricing-cta">このプランで申し込む</a>
       </div>
       <div class="pricing-card animate delay-3">
-        <div class="pricing-plan-name">Luxury</div>
-        <div class="pricing-price">¥50,000〜</div>
-        <div class="pricing-price-unit">完全オーダーメイド</div>
+        <div class="pricing-budget-range">¥50,000〜</div>
+        <div class="pricing-plan-name">完全オーダーメイド</div>
         <div class="pricing-divider"></div>
+        <div class="pricing-examples-label">サービス例</div>
         <ul class="pricing-features">
           <li>丁寧なヒアリングをもとに完全カスタマイズ</li>
           <li>記念日を含めた特別な体験を一貫サポート</li>
-          <li>すべてお任せ・要相談</li>
+          <li>ご要望に応じてすべて対応・要相談</li>
         </ul>
-        <a href="https://tally.so/r/lbVDPB" target="_blank" rel="noopener noreferrer" class="pricing-cta">相談する</a>
       </div>
     </div>
     <div class="pricing-express animate">
-      <strong>特急オプション</strong>　記念日2日前までのお申し込みは +¥3,000〜5,000 で対応可能です。
+      <strong>スピード対応オプション</strong>　記念日2日前までのお申し込みは +¥3,000〜5,000 で対応可能です。
     </div>
   </div>
 </section>
@@ -976,7 +970,7 @@
       <div class="trust-card animate delay-2">
         <div class="trust-icon">⚡</div>
         <h3>24時間以内に返信</h3>
-        <p>お申し込み後、24時間以内にコンシェルジュよりご連絡します。ご不明な点はいつでもご相談ください。</p>
+        <p>お申し込み後、24時間以内にプランナーよりご連絡します。ご不明な点はいつでもご相談ください。</p>
       </div>
       <div class="trust-card animate delay-3">
         <div class="trust-icon">✓</div>
@@ -990,16 +984,14 @@
 <!-- FINAL CTA -->
 <section id="cta">
   <div class="section-inner">
-    <div class="section-label animate">大切な人に、最高の記念日を</div>
-    <h2 class="section-title animate delay-1">今すぐ、はじめましょう。</h2>
-    <p class="section-sub animate delay-2">まずはプランを選んでメールアドレスを入力するだけ。<br>あとはコンシェルジュにすべてお任せください。</p>
-    <a href="#pricing" class="btn-primary animate delay-3">
-      プランを選んで申し込む
+    <h2 class="section-title animate delay-1">一緒に、忘れられない一日を。</h2>
+    <p class="section-sub animate delay-2">フォームにご回答いただくだけで、想いに寄り添ったご提案をお届けします。</p>
+    <a href="https://tally.so/r/lbVDPB" target="_blank" rel="noopener noreferrer" class="btn-primary animate delay-3">
+      無料で相談する
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
         <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </a>
-    <p class="payment-note animate">クレジットカード・PayPay 対応</p>
   </div>
 </section>
 
@@ -1012,7 +1004,7 @@
     <h3 class="popup-title">何かお迷いですか？<br>お気軽にご相談ください。</h3>
     <p class="popup-text">
       どのプランが合うかわからない、予算感が気になるなど、<br>
-      どんなご質問でもコンシェルジュが無料でお答えします。
+      どんなご質問でもプランナーが無料でお答えします。
     </p>
     <a href="https://tally.so/r/lbVDPB" target="_blank" rel="noopener noreferrer" class="popup-cta">無料で相談する</a>
     <button class="popup-skip" id="popupSkip">今は相談しない</button>
@@ -1021,13 +1013,13 @@
 
 <!-- FOOTER -->
 <footer>
-  <a href="#" class="footer-logo">記念日プランナー</a>
+  <a href="#" class="footer-logo">記念日プラン</a>
   <div class="footer-links">
     <a href="tokutei.html">特定商取引法に基づく表記</a>
     <a href="privacy.html">プライバシーポリシー</a>
     <a href="mailto:kinenbi.planner@gmail.com">お問い合わせ</a>
   </div>
-  <div class="footer-copy">© 2026 記念日プランナー</div>
+  <div class="footer-copy">© 2026 記念日プラン</div>
 </footer>
 
 <script>

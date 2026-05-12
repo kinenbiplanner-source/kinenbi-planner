@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>実装状況 | 記念日プラン</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
+      font-size: 14px;
+      line-height: 1.8;
+      color: #222;
+      background: #f5f5f5;
+      padding: 40px 20px;
+    }
+    .page {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 8px;
+      padding: 48px 56px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    .page-header {
+      border-bottom: 3px solid #1a2840;
+      padding-bottom: 20px;
+      margin-bottom: 40px;
+    }
+    .service-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: #4a8ab5;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1a2840;
+      margin-bottom: 6px;
+    }
+    .meta { font-size: 12px; color: #888; }
+
+    /* ステータスバッジ */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 12px;
+      white-space: nowrap;
+    }
+    .badge-done    { background: #d4edda; color: #155724; }
+    .badge-partial { background: #fff3cd; color: #856404; }
+    .badge-todo    { background: #f8d7da; color: #721c24; }
+    .badge-blocked { background: #e2e3e5; color: #555; }
+
+    /* フローセクション */
+    h2 {
+      font-size: 15px;
+      font-weight: 700;
+      background: #f0f4f8;
+      padding: 8px 16px;
+      border-left: 4px solid #1a2840;
+      margin: 40px 0 20px;
+      color: #1a2840;
+    }
+
+    /* フロー */
+    .flow {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .flow-step {
+      display: grid;
+      grid-template-columns: 56px 1fr auto;
+      align-items: start;
+      gap: 16px;
+      padding: 18px 20px;
+      border-bottom: 1px solid #e8e8e8;
+      background: #fff;
+      transition: background 0.15s;
+    }
+    .flow-step:last-child { border-bottom: none; }
+    .flow-step.done    { background: #f8fff9; }
+    .flow-step.partial { background: #fffdf0; }
+    .flow-step.todo    { background: #fff8f8; }
+    .flow-step.blocked { background: #f8f8f8; }
+    .flow-step-num {
+      font-size: 11px;
+      font-weight: 700;
+      color: #4a8ab5;
+      letter-spacing: 0.1em;
+      padding-top: 3px;
+    }
+    .flow-step-body h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1a2840;
+      margin-bottom: 4px;
+    }
+    .flow-step-body p {
+      font-size: 12px;
+      color: #555;
+      line-height: 1.7;
+    }
+    .flow-step-body .tools {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .tool-tag {
+      font-size: 11px;
+      background: #eef4fb;
+      color: #2a6496;
+      border: 1px solid #c5dff5;
+      border-radius: 4px;
+      padding: 2px 8px;
+    }
+    .flow-step-status {
+      padding-top: 2px;
+      flex-shrink: 0;
+    }
+    .blocker-note {
+      font-size: 11px;
+      color: #721c24;
+      background: #f8d7da;
+      border-radius: 4px;
+      padding: 4px 10px;
+      margin-top: 8px;
+      display: inline-block;
+    }
+    .warn-note {
+      font-size: 11px;
+      color: #856404;
+      background: #fff3cd;
+      border-radius: 4px;
+      padding: 4px 10px;
+      margin-top: 8px;
+      display: inline-block;
+    }
+
+    /* サマリーテーブル */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 4px;
+    }
+    th {
+      background: #f0f4f8;
+      text-align: left;
+      padding: 10px 14px;
+      border: 1px solid #ddd;
+      font-weight: 700;
+      color: #1a2840;
+      font-size: 12px;
+    }
+    td {
+      padding: 10px 14px;
+      border: 1px solid #e8e8e8;
+      vertical-align: top;
+      line-height: 1.7;
+    }
+    tr:nth-child(even) td { background: #fafafa; }
+    td.status { text-align: center; white-space: nowrap; }
+
+    /* 優先リスト */
+    .priority-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .priority-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 14px 18px;
+      border-radius: 6px;
+      border: 1px solid #e0e0e0;
+    }
+    .priority-item.p1 { border-left: 4px solid #c82333; background: #fff8f8; }
+    .priority-item.p2 { border-left: 4px solid #e67e22; background: #fff9f0; }
+    .priority-item.p3 { border-left: 4px solid #4a8ab5; background: #f0f7fc; }
+    .priority-rank {
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      background: #1a2840;
+      border-radius: 4px;
+      padding: 2px 8px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .priority-item h3 { font-size: 13px; font-weight: 700; color: #1a2840; margin-bottom: 3px; }
+    .priority-item p  { font-size: 12px; color: #555; }
+    .owner-tag {
+      font-size: 11px;
+      background: #e9ecef;
+      color: #495057;
+      border-radius: 4px;
+      padding: 1px 8px;
+      margin-left: 6px;
+      font-weight: 400;
+    }
+    .owner-tag.owner { background: #fff3cd; color: #856404; }
+    .owner-tag.delegate { background: #d4edda; color: #155724; }
+
+    .legend {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+      font-size: 12px;
+      color: #555;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <div class="service-label">記念日プラン</div>
+    <h1>実装状況 &amp; フロー管理</h1>
+    <div class="meta">最終更新：2026-05-01　　Phase 1 進行中</div>
+  </div>
+
+  <!-- 凡例 -->
+  <div class="legend">
+    <span class="legend-item"><span class="badge badge-done">完了</span> 稼働中</span>
+    <span class="legend-item"><span class="badge badge-partial">要対応</span> 実装済みだが修正・更新が必要</span>
+    <span class="legend-item"><span class="badge badge-todo">未着手</span> これから実装</span>
+    <span class="legend-item"><span class="badge badge-blocked">待機中</span> 別タスクの完了待ち</span>
+  </div>
+
+  <!-- ユーザー体験フロー -->
+  <h2>ユーザー体験フロー（申し込み → 納品）</h2>
+
+  <div class="flow">
+
+    <div class="flow-step partial">
+      <div class="flow-step-num">STEP 01</div>
+      <div class="flow-step-body">
+        <h3>LPを閲覧する</h3>
+        <p>ユーザーがLPを見て、サービス内容・料金・流れを確認する。</p>
+        <div class="tools">
+          <span class="tool-tag">HTML / Vercel</span>
+        </div>
+        <span class="warn-note">今日の変更（サービス名・LINE文言・ヒーロー修正）がローカルのみ。GitHub pushでVercelに反映が必要。</span>
+      </div>
+      <div class="flow-step-status"><span class="badge badge-partial">要対応</span></div>
+    </div>
+
+    <div class="flow-step done">
+      <div class="flow-step-num">STEP 02</div>
+      <div class="flow-step-body">
+        <h3>申し込みボタンを押してTallyフォームへ</h3>
+        <p>CTAボタンを押すとTallyフォームが開く。名前・メールアドレス・希望内容などを入力して送信。</p>
+        <div class="tools">
+          <span class="tool-tag">Tally</span>
+        </div>
+      </div>
+      <div class="flow-step-status"><span class="badge badge-done">完了</span></div>
+    </div>
+
+    <div class="flow-step todo">
+      <div class="flow-step-num">STEP 03</div>
+      <div class="flow-step-body">
+        <h3>サンクスページでLINE公式アカウントを友だち追加</h3>
+        <p>Tally送信後のサンクスページに「友だち追加してください」と案内＋LINEボタンを設置する。</p>
+        <div class="tools">
+          <span class="tool-tag">Tally（サンクスページ設定）</span>
+          <span class="tool-tag">LINE公式アカウント</span>
+        </div>
+        <span class="blocker-note">ブロッカー：LINE公式アカウントが未作成（専用SIM待ち）</span>
+      </div>
+      <div class="flow-step-status"><span class="badge badge-todo">未着手</span></div>
+    </div>
+
+    <div class="flow-step partial">
+      <div class="flow-step-num">STEP 04</div>
+      <div class="flow-step-body">
+        <h3>受付確認メールが届く（自動）</h3>
+        <p>Tally送信と同時にMakeが起動し、ユーザーのメールアドレスへ受付確認メールを自動送信。</p>
+        <div class="tools">
+          <span class="tool-tag">Make</span>
+          <span class="tool-tag">Gmail</span>
+        </div>
+        <span class="warn-note">稼働中だがメール本文にLINE追加の案内が未記載。文言の更新が必要。</span>
+      </div>
+      <div class="flow-step-status"><span class="badge badge-partial">要対応</span></div>
+    </div>
+
+    <div class="flow-step todo">
+      <div class="flow-step-num">STEP 05</div>
+      <div class="flow-step-body">
+        <h3>コンシェルジュがLINEでヒアリング・プラン提案</h3>
+        <p>LINE公式アカウントの管理画面からユーザーへDM。詳細をヒアリングし、最適なプランを提案する。</p>
+        <div class="tools">
+          <span class="tool-tag">LINE公式アカウント</span>
+          <span class="tool-tag">Notion（顧客情報参照）</span>
+        </div>
+        <span class="blocker-note">ブロッカー：LINE公式アカウントが未作成</span>
+      </div>
+      <div class="flow-step-status"><span class="badge badge-todo">未着手</span></div>
+    </div>
+
+    <div class="flow-step blocked">
+      <div class="flow-step-num">STEP 06</div>
+      <div class="flow-step-body">
+        <h3>プラン確定 → 決済リンクをLINEで送付</h3>
+        <p>ユーザーがプランに納得したら、StripeまたはPayPayの決済リンクをLINEで送る。</p>
+        <div class="tools">
+          <span class="tool-tag">Stripe</span>
+          <span class="tool-tag">PayPay for Business</span>
+          <span class="tool-tag">LINE公式アカウント</span>
+        </div>
+        <span class="blocker-note">ブロッカー：銀行口座未開設 → Stripe本番未設定 → PayPay未申請</span>
+      </div>
+      <div class="flow-step-status"><span class="badge badge-blocked">待機中</span></div>
+    </div>
+
+    <div class="flow-step blocked">
+      <div class="flow-step-num">STEP 07</div>
+      <div class="flow-step-body">
+        <h3>決済完了 → プレゼント手配・レストラン予約・指示書作成</h3>
+        <p>入金確認後、コンシェルジュが手配を開始。記念日に間に合うよう手配・作成する。</p>
+        <div class="tools">
+          <span class="tool-tag">Notion（作業管理）</span>
+          <span class="tool-tag">各ブランド・予約サイト</span>
+        </div>
+        <span class="blocker-note">ブロッカー：STEP 06が完了していないと開始できない</span>
+      </div>
+      <div class="flow-step-status"><span class="badge badge-blocked">待機中</span></div>
+    </div>
+
+    <div class="flow-step blocked">
+      <div class="flow-step-num">STEP 08</div>
+      <div class="flow-step-body">
+        <h3>納品（プレゼント発送 / 指示書・予約情報をLINEで送付）</h3>
+        <p>プレゼントを直送。演出指示書と予約情報をLINEで送る。</p>
+        <div class="tools">
+          <span class="tool-tag">LINE公式アカウント</span>
+          <span class="tool-tag">各配送業者</span>
+        </div>
+      </div>
+      <div class="flow-step-status"><span class="badge badge-blocked">待機中</span></div>
+    </div>
+
+  </div>
+
+  <!-- 実装状況サマリー -->
+  <h2>ツール・機能 実装状況サマリー</h2>
+  <table>
+    <tr>
+      <th>機能</th>
+      <th>ツール</th>
+      <th style="width:120px; text-align:center;">状態</th>
+      <th>備考</th>
+    </tr>
+    <tr>
+      <td>LP公開</td>
+      <td>HTML + Vercel</td>
+      <td class="status"><span class="badge badge-partial">要対応</span></td>
+      <td>今日の変更をGitHub pushでVercelに反映する必要あり</td>
+    </tr>
+    <tr>
+      <td>申し込みフォーム</td>
+      <td>Tally</td>
+      <td class="status"><span class="badge badge-done">完了</span></td>
+      <td>LP → Tally URL接続済み</td>
+    </tr>
+    <tr>
+      <td>受付確認メール（自動）</td>
+      <td>Make + Gmail</td>
+      <td class="status"><span class="badge badge-partial">要対応</span></td>
+      <td>稼働中。LINE追加案内の文言を追記する必要あり</td>
+    </tr>
+    <tr>
+      <td>顧客管理DB</td>
+      <td>Notion</td>
+      <td class="status"><span class="badge badge-done">完了</span></td>
+      <td>Tally連携で自動転記済み</td>
+    </tr>
+    <tr>
+      <td>サンクスページ LINE案内</td>
+      <td>Tally（設定）</td>
+      <td class="status"><span class="badge badge-todo">未着手</span></td>
+      <td>LINE公式アカウント作成後に設定</td>
+    </tr>
+    <tr>
+      <td>LINE公式アカウント</td>
+      <td>LINE</td>
+      <td class="status"><span class="badge badge-todo">未着手</span></td>
+      <td>専用SIM・スマホ準備後に作成</td>
+    </tr>
+    <tr>
+      <td>銀行口座</td>
+      <td>ネット銀行</td>
+      <td class="status"><span class="badge badge-todo">未着手</span></td>
+      <td>Stripe本番化・PayPayの前提</td>
+    </tr>
+    <tr>
+      <td>Stripe本番化</td>
+      <td>Stripe</td>
+      <td class="status"><span class="badge badge-blocked">待機中</span></td>
+      <td>銀行口座開設後に本人確認・口座登録</td>
+    </tr>
+    <tr>
+      <td>PayPay for Business</td>
+      <td>PayPay</td>
+      <td class="status"><span class="badge badge-blocked">待機中</span></td>
+      <td>銀行口座開設後に申請</td>
+    </tr>
+    <tr>
+      <td>特定商取引法・PP 空欄</td>
+      <td>lp/tokutei.html 他</td>
+      <td class="status"><span class="badge badge-todo">未着手</span></td>
+      <td>電話番号・住所・事業者名を記入（SIM・銀行口座後）</td>
+    </tr>
+    <tr>
+      <td>LP正式公開・告知</td>
+      <td>Vercel + SNS</td>
+      <td class="status"><span class="badge badge-blocked">待機中</span></td>
+      <td>法的ページ・決済・LINE が揃ってから</td>
+    </tr>
+  </table>
+
+  <!-- 優先タスク -->
+  <h2>今やるべきこと（優先順）</h2>
+  <div class="priority-list">
+
+    <div class="priority-item p1">
+      <span class="priority-rank">P1</span>
+      <div>
+        <h3>GitHub push → Vercelに今日の変更を反映 <span class="owner-tag delegate">任せられる</span></h3>
+        <p>LP修正（サービス名・LINE文言・ヒーロー削除・料金ボタン削除）を公開サイトに反映する。</p>
+      </div>
+    </div>
+
+    <div class="priority-item p1">
+      <span class="priority-rank">P1</span>
+      <div>
+        <h3>銀行口座開設 <span class="owner-tag owner">本人のみ</span></h3>
+        <p>PayPay銀行 or 住信SBIで申請。Stripe本番化・PayPay申請の前提。これが最大のボトルネック。</p>
+      </div>
+    </div>
+
+    <div class="priority-item p1">
+      <span class="priority-rank">P1</span>
+      <div>
+        <h3>専用SIM・スマホ準備 <span class="owner-tag owner">本人のみ</span></h3>
+        <p>LINE公式アカウント作成の前提。これが揃えばLINE周りが一気に進む。</p>
+      </div>
+    </div>
+
+    <div class="priority-item p2">
+      <span class="priority-rank">P2</span>
+      <div>
+        <h3>LINE公式アカウント作成 <span class="owner-tag delegate">任せられる</span></h3>
+        <p>専用SIM準備後。アカウント作成 → 友だち追加URL取得 → Tallyサンクスページに設置。</p>
+      </div>
+    </div>
+
+    <div class="priority-item p2">
+      <span class="priority-rank">P2</span>
+      <div>
+        <h3>Makeの受付メールにLINE案内を追記 <span class="owner-tag delegate">任せられる</span></h3>
+        <p>LINE公式アカウント作成後。メール本文に「公式LINEを友だち追加してください」＋URLを追記。</p>
+      </div>
+    </div>
+
+    <div class="priority-item p2">
+      <span class="priority-rank">P2</span>
+      <div>
+        <h3>Stripe本番化 + PayPay for Business申請 <span class="owner-tag owner">本人のみ</span></h3>
+        <p>銀行口座開設後に実施。本人確認書類が必要。</p>
+      </div>
+    </div>
+
+    <div class="priority-item p3">
+      <span class="priority-rank">P3</span>
+      <div>
+        <h3>法的ページの空欄を埋める <span class="owner-tag owner">本人のみ</span></h3>
+        <p>電話番号（新SIM）・住所・事業者名を記入。LP正式公開の直前でよい。</p>
+      </div>
+    </div>
+
+    <div class="priority-item p3">
+      <span class="priority-rank">P3</span>
+      <div>
+        <h3>LP正式公開 → 知人・友人への告知 <span class="owner-tag owner">本人のみ</span></h3>
+        <p>決済・LINE・法的ページがすべて揃ったら告知。初受注を目指す。</p>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="margin-top: 48px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #aaa; text-align: right;">
+    記念日プラン — 実装状況ドキュメント　最終更新：2026-05-01
+  </div>
+
+</div>
+</body>
+</html>

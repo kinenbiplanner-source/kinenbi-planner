@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>作業報告書 Phase 0 | 記念日プラン</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
+      font-size: 13px;
+      line-height: 1.8;
+      color: #222;
+      background: #f5f5f5;
+      padding: 40px 20px;
+    }
+    .page {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 8px;
+      padding: 56px 64px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    .header { margin-bottom: 40px; border-bottom: 3px solid #1a2840; padding-bottom: 20px; }
+    .header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .service-name { font-size: 11px; font-weight: 700; letter-spacing: 0.15em; color: #4a8ab5; text-transform: uppercase; }
+    .doc-title { font-size: 26px; font-weight: 700; color: #1a2840; margin: 8px 0 4px; }
+    .doc-meta { font-size: 12px; color: #888; }
+    .phase-badge {
+      background: #1a2840;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 16px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+    }
+
+    h2 {
+      font-size: 14px;
+      font-weight: 700;
+      background: #f0f4f8;
+      padding: 7px 14px;
+      border-left: 4px solid #1a2840;
+      margin: 32px 0 14px;
+      color: #1a2840;
+    }
+    h3 { font-size: 13px; font-weight: 700; color: #333; margin: 18px 0 8px; }
+
+    table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 12px; }
+    th { background: #f0f4f8; text-align: left; padding: 7px 12px; border: 1px solid #d0dce8; font-weight: 700; color: #1a2840; }
+    td { padding: 7px 12px; border: 1px solid #d0dce8; vertical-align: top; }
+    tr:nth-child(even) td { background: #fafbfd; }
+
+    .check { color: #2d6a4f; font-weight: 700; }
+    .alert { color: #c0392b; font-weight: 700; }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 8px;
+    }
+    .summary-card {
+      border: 1px solid #d0dce8;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      background: #fafbfd;
+    }
+    .summary-card .num { font-size: 28px; font-weight: 700; color: #1a2840; line-height: 1; margin-bottom: 4px; }
+    .summary-card .label { font-size: 11px; color: #888; }
+
+    .system-box {
+      background: #f8f9fb;
+      border: 1px solid #d0dce8;
+      border-radius: 6px;
+      padding: 16px 20px;
+      font-family: monospace;
+      font-size: 12px;
+      line-height: 2;
+      color: #333;
+      margin-bottom: 12px;
+    }
+
+    .note {
+      background: #fffbea;
+      border: 1px solid #e8d84b;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #555;
+      margin-top: 12px;
+    }
+
+    ul { padding-left: 18px; margin-bottom: 8px; }
+    li { font-size: 12px; margin-bottom: 3px; }
+
+    .footer {
+      margin-top: 40px;
+      padding-top: 16px;
+      border-top: 1px solid #ddd;
+      font-size: 11px;
+      color: #aaa;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    @media print {
+      body { background: #fff; padding: 0; }
+      .page { box-shadow: none; border-radius: 0; padding: 40px 48px; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="service-name">記念日プラン</div>
+        <div class="doc-title">作業報告書 — Phase 0</div>
+        <div class="doc-meta">報告日：2026年4月30日　　作成：ダッフィーズ（AI組織）</div>
+      </div>
+      <div class="phase-badge">Phase 0 完了</div>
+    </div>
+  </div>
+
+  <!-- サマリー -->
+  <h2>Phase 0 サマリー</h2>
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="num">100<span style="font-size:16px">%</span></div>
+      <div class="label">Phase 0 達成率</div>
+    </div>
+    <div class="summary-card">
+      <div class="num">12</div>
+      <div class="label">完了タスク数</div>
+    </div>
+    <div class="summary-card">
+      <div class="num">¥0</div>
+      <div class="label">フェーズ内コスト</div>
+    </div>
+  </div>
+  <div class="note">Phase 0 完了条件「LP公開・フォーム→Notion自動連携が動いている」を達成。すべて無料ツールのみで構築。</div>
+
+  <!-- 完了タスク一覧 -->
+  <h2>完了タスク一覧</h2>
+  <table>
+    <tr><th>カテゴリ</th><th>タスク</th><th>担当</th><th>完了日</th></tr>
+    <tr><td>サービス設計</td><td>サービス名確定（記念日プラン）</td><td>ダッフィー</td><td>2026-04-30</td></tr>
+    <tr><td>サービス設計</td><td>全ファイルのサービス名統一更新</td><td>ダッフィー</td><td>2026-04-30</td></tr>
+    <tr><td>アカウント</td><td>Gmail作成（kinenbi.planner@gmail.com）</td><td>オーナー</td><td>2026-04-30</td></tr>
+    <tr><td>アカウント</td><td>GitHubリポジトリ作成・push設定完了</td><td>オーナー</td><td>2026-04-30</td></tr>
+    <tr><td>LP</td><td>LP制作・Vercelデプロイ・公開</td><td>ジェラトーニ</td><td>2026-04-30</td></tr>
+    <tr><td>LP</td><td>CTAボタンをTally URLに接続</td><td>リーナ・ベル</td><td>2026-04-30</td></tr>
+    <tr><td>LP</td><td>スマホ表示確認</td><td>オーナー</td><td>2026-04-30</td></tr>
+    <tr><td>フォーム</td><td>Tallyアカウント作成・アンケートフォーム完成</td><td>リーナ・ベル</td><td>2026-04-30</td></tr>
+    <tr><td>自動化</td><td>Makeアカウント作成・Tally→Gmail自動返信フロー設定・有効化</td><td>リーナ・ベル</td><td>2026-04-30</td></tr>
+    <tr><td>顧客管理</td><td>Notionアカウント・顧客管理DB作成・Tally直接連携設定</td><td>クッキー・アン</td><td>2026-04-30</td></tr>
+    <tr><td>決済</td><td>Stripeアカウント作成（サンドボックス）</td><td>リーナ・ベル</td><td>2026-04-30</td></tr>
+    <tr><td>法務</td><td>特定商取引法に基づく表記 草案作成・LP設置</td><td>スティッチ</td><td>2026-04-30</td></tr>
+    <tr><td>法務</td><td>プライバシーポリシー 草案作成・LP設置</td><td>スティッチ</td><td>2026-04-30</td></tr>
+  </table>
+
+  <!-- 確定技術スタック -->
+  <h2>確定技術スタック</h2>
+  <table>
+    <tr><th>用途</th><th>ツール</th><th>コスト</th><th>状態</th></tr>
+    <tr><td>LP</td><td>HTML/CSS + Vercel</td><td>無料</td><td><span class="check">✓ 稼働中</span></td></tr>
+    <tr><td>アンケートフォーム</td><td>Tally</td><td>無料</td><td><span class="check">✓ 稼働中</span></td></tr>
+    <tr><td>自動化</td><td>Make</td><td>無料（月1,000オペレーション）</td><td><span class="check">✓ 稼働中</span></td></tr>
+    <tr><td>顧客管理</td><td>Notion</td><td>無料</td><td><span class="check">✓ 稼働中</span></td></tr>
+    <tr><td>決済（クレカ）</td><td>Stripe</td><td>手数料3.6%〜</td><td>サンドボックスのみ（Phase 1で本番化）</td></tr>
+    <tr><td>決済（PayPay）</td><td>PayPay for Business</td><td>手数料1.98%</td><td>Phase 1で申請</td></tr>
+    <tr><td>ソース管理</td><td>GitHub</td><td>無料</td><td><span class="check">✓ Vercel自動デプロイ連携済み</span></td></tr>
+  </table>
+
+  <!-- システム構成 -->
+  <h2>現在のシステム構成</h2>
+  <div class="system-box">
+LP（Vercel: kinenbi-planner.vercel.app）<br>
+  ↓ CTAボタン → Tally フォーム（https://tally.so/r/lbVDPB）<br>
+Tally フォーム回答受信<br>
+  ├─ Notion 顧客管理DB（Tally直接連携・自動転記）<br>
+  └─ Make → Gmail自動返信（顧客のメールアドレスへ受付確認メール）<br>
+<br>
+決済（Phase 1以降）<br>
+  ├─ Stripe 決済リンク（メールで送付）<br>
+  └─ PayPay for Business（送金リクエスト）
+  </div>
+
+  <!-- アカウント一覧 -->
+  <h2>アカウント・URL一覧</h2>
+  <table>
+    <tr><th>サービス</th><th>アカウント / URL</th></tr>
+    <tr><td>LP公開URL</td><td>https://kinenbi-planner.vercel.app/</td></tr>
+    <tr><td>Tallyフォーム</td><td>https://tally.so/r/lbVDPB</td></tr>
+    <tr><td>GitHub</td><td>https://github.com/kinenbiplanner-source/kinenbi-planner</td></tr>
+    <tr><td>Gmail（事業用）</td><td>kinenbi.planner@gmail.com</td></tr>
+    <tr><td>Notion</td><td>kinenbi.planner@gmail.com</td></tr>
+    <tr><td>Make</td><td>kinenbi.planner@gmail.com</td></tr>
+    <tr><td>Stripe</td><td>kinenbi.planner@gmail.com（サンドボックス）</td></tr>
+  </table>
+
+  <!-- 法的ページ -->
+  <h2>法的ページ（草案）</h2>
+  <table>
+    <tr><th>ページ</th><th>状態</th><th>残作業</th></tr>
+    <tr><td>特定商取引法に基づく表記</td><td><span class="check">✓ 草案作成・LP設置済み</span></td><td>住所・電話番号・事業者名を記入（Phase 1）</td></tr>
+    <tr><td>プライバシーポリシー</td><td><span class="check">✓ 草案作成・LP設置済み</span></td><td>事業者名を記入（Phase 1）</td></tr>
+  </table>
+
+  <!-- Phase 1 予告 -->
+  <h2>次フェーズ：Phase 1（お金を受け取れる状態にする）</h2>
+  <table>
+    <tr><th>タスク</th><th>担当</th><th>目安コスト</th></tr>
+    <tr><td>ネット銀行口座開設申請（PayPay銀行 or 住信SBI）</td><td>オーナー</td><td>無料</td></tr>
+    <tr><td>050電話番号取得（SMARTalk等）</td><td>オーナー</td><td>月200〜300円</td></tr>
+    <tr><td>Stripe本番環境：本人確認・銀行口座登録</td><td>リーナ・ベル</td><td>手数料のみ</td></tr>
+    <tr><td>PayPay for Business申請・設定</td><td>リーナ・ベル</td><td>無料</td></tr>
+    <tr><td>Stripe決済リンク（各プラン分）作成・テスト</td><td>リーナ・ベル</td><td>—</td></tr>
+    <tr><td>特定商取引法・プライバシーポリシーの空欄を埋めてLP正式公開</td><td>スティッチ＋リーナ・ベル</td><td>—</td></tr>
+    <tr><td>知人・友人への告知 → 初受注</td><td>オーナー</td><td>—</td></tr>
+  </table>
+  <div class="note">Phase 1 完了条件：LP正式公開・初受注・初納品が完了している</div>
+
+  <div class="footer">
+    <span>記念日プラン — ダッフィーズ（AI組織）</span>
+    <span>2026年4月30日</span>
+  </div>
+
+</div>
+</body>
+</html>
