@@ -406,7 +406,7 @@
       <div class="flow-step-status"><span class="badge badge-done">完了</span></div>
     </div>
 
-    <div class="flow-step partial">
+    <div class="flow-step done">
       <div class="flow-step-num">STEP 06</div>
       <div class="flow-step-body">
         <h3>プラン確定 → Stripe Invoiceの決済リンクをLINEで送付</h3>
@@ -416,9 +416,9 @@
           <span class="tool-tag">LINE公式アカウント</span>
           <span class="tool-tag">PayPay for Business（補助）</span>
         </div>
-        <span class="warn-note">Stripe本番化進行中（個人情報・銀行口座登録・PCIセキュリティ質問入力中）。PayPay for Businessは未申請。</span>
+        <span class="done-note">2026-05-28：Stripe本番化完了。Invoice発行可能。PayPay for Businessは別途申請予定。</span>
       </div>
-      <div class="flow-step-status"><span class="badge badge-partial">要対応</span></div>
+      <div class="flow-step-status"><span class="badge badge-done">完了</span></div>
     </div>
 
     <div class="flow-step blocked">
@@ -546,8 +546,8 @@
     <tr>
       <td>PayPay for Business</td>
       <td>PayPay</td>
-      <td class="status"><span class="badge badge-todo">未着手</span></td>
-      <td>Stripe本番化が完了してから申請予定</td>
+      <td class="status"><span class="badge badge-blocked">Phase 1では断念</span></td>
+      <td>個人事業主+LINE運用ではAPI統合のハードルが高い（決済サーバーIPアドレスが必要等）。Phase 1ではStripeのみで運用。Phase 2以降でニーズが出たら再検討</td>
     </tr>
     <tr>
       <td>特商法・PP 空欄</td>
@@ -599,11 +599,11 @@
       </div>
     </div>
 
-    <div class="priority-item p2">
-      <span class="priority-rank">P2</span>
+    <div class="priority-item p3">
+      <span class="priority-rank">P3</span>
       <div>
-        <h3>PayPay for Business申請 <span class="owner-tag owner">本人のみ</span></h3>
-        <p>Stripe完了後の補助決済として。本人確認書類が必要。</p>
+        <h3>PayPay for Business申請 <span class="owner-tag owner">本人のみ</span><span class="owner-tag">Phase 2以降</span></h3>
+        <p>Phase 1 では断念。個人事業主+LINE運用ではAPI統合のハードルが高いため。Phase 2 以降でPayPay派の顧客が複数出てきたら再検討。</p>
       </div>
     </div>
 
@@ -894,9 +894,10 @@
       <h4>PayPay for Business</h4>
       <span class="tool-cost cost-mixed">手数料約2%</span>
     </div>
-    <div class="tool-purpose">補助決済手段。PayPay派の顧客向けにオプションで提供。</div>
+    <div class="tool-purpose">補助決済手段（補欠）。Phase 1では導入を断念。</div>
     <table class="tool-table">
-      <tr><th>状態</th><td>未申請（Stripe完了後に着手）</td></tr>
+      <tr><th>状態</th><td><strong>Phase 1 では断念</strong>（個人事業主+LINE運用ではAPI統合のハードルが高い。決済サーバーIPアドレスが必要等）</td></tr>
+      <tr><th>方針</th><td>Phase 2 以降でPayPay派の顧客が複数出てきたら再検討。当面は Stripe Invoicing のみで運用</td></tr>
       <tr><th>申込サイト</th><td><a href="https://paypay.ne.jp/business/" target="_blank">https://paypay.ne.jp/business/</a></td></tr>
       <tr><th>手数料</th><td>約1.98%（オンライン送金）</td></tr>
     </table>
