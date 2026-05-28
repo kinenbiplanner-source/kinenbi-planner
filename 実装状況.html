@@ -363,47 +363,47 @@
       <div class="flow-step-status"><span class="badge badge-done">完了</span></div>
     </div>
 
-    <div class="flow-step todo">
+    <div class="flow-step done">
       <div class="flow-step-num">STEP 03</div>
       <div class="flow-step-body">
         <h3>サンクスページでLINE公式アカウントを友だち追加</h3>
-        <p>Tally送信後のサンクスページに「友だち追加してください」と案内＋LINEボタンを設置する。</p>
+        <p>Tally送信後、Redirect on completion機能で LINE 友だち追加URL（https://lin.ee/WLgydmi）に自動リダイレクト。</p>
         <div class="tools">
-          <span class="tool-tag">Tally（サンクスページ設定）</span>
+          <span class="tool-tag">Tally（Redirect設定済み）</span>
           <span class="tool-tag">LINE公式アカウント</span>
         </div>
-        <span class="blocker-note">ブロッカー：LINE公式アカウント未作成（当面手元SIMで開設検討）</span>
+        <span class="done-note">2026-05-28：Tally Redirect設定完了。送信後にLINE追加画面に直接遷移する流れが動作中。</span>
       </div>
-      <div class="flow-step-status"><span class="badge badge-todo">未着手</span></div>
+      <div class="flow-step-status"><span class="badge badge-done">完了</span></div>
     </div>
 
-    <div class="flow-step partial">
+    <div class="flow-step done">
       <div class="flow-step-num">STEP 04</div>
       <div class="flow-step-body">
         <h3>受付確認メールが届く（自動）</h3>
-        <p>Tally送信と同時にMakeが起動し、ユーザーのメールアドレスへ受付確認メールを自動送信。</p>
+        <p>Tally送信と同時にMakeが起動し、ユーザーのメールアドレスへ受付確認メール（LINE追加URL含む）を自動送信。</p>
         <div class="tools">
           <span class="tool-tag">Make</span>
           <span class="tool-tag">Gmail</span>
         </div>
-        <span class="warn-note">稼働中だがメール本文にLINE追加の案内が未記載。LINE公式アカウント開設後に文言更新が必要。</span>
+        <span class="done-note">2026-05-28：メール本文にLINE案内URLを追記完了。本番稼働中。</span>
       </div>
-      <div class="flow-step-status"><span class="badge badge-partial">要対応</span></div>
+      <div class="flow-step-status"><span class="badge badge-done">完了</span></div>
     </div>
 
-    <div class="flow-step todo">
+    <div class="flow-step done">
       <div class="flow-step-num">STEP 05</div>
       <div class="flow-step-body">
-        <h3>コンシェルジュがLINEでヒアリング・プラン提案</h3>
-        <p>LINE公式アカウントの管理画面からユーザーへDM。応答テンプレ.html の C-D セクションを使ってヒアリング・プラン提案を行う。</p>
+        <h3>プランナーがLINEでヒアリング・プラン提案</h3>
+        <p>LINE公式アカウントの管理画面からユーザーへDM。応答テンプレ.html の C-D セクションを使ってヒアリング・プラン提案を行う。応答モードは「チャット（手動応答）」に設定済み。</p>
         <div class="tools">
           <span class="tool-tag">LINE公式アカウント</span>
           <span class="tool-tag">Notion（顧客情報・案件管理）</span>
           <span class="tool-tag">応答テンプレ.html</span>
         </div>
-        <span class="blocker-note">ブロッカー：LINE公式アカウント未作成</span>
+        <span class="done-note">2026-05-28：LINE公式アカウント開設・応答モード設定完了。本番受信できる状態。</span>
       </div>
-      <div class="flow-step-status"><span class="badge badge-todo">未着手</span></div>
+      <div class="flow-step-status"><span class="badge badge-done">完了</span></div>
     </div>
 
     <div class="flow-step partial">
@@ -861,10 +861,12 @@
     </div>
     <div class="tool-purpose">顧客とのコミュニケーション窓口。Tally送信後にユーザーに友だち追加してもらい、ヒアリング→プラン提案→決済→納品まで全てLINE上で完結。</div>
     <table class="tool-table">
-      <tr><th>状態</th><td>未開設（手元SIMで近日開設予定）</td></tr>
-      <tr><th>管理画面</th><td><a href="https://account.line.biz/" target="_blank">https://account.line.biz/</a></td></tr>
+      <tr><th>状態</th><td>開設完了（2026-05-28）。応答モード＝チャット手動応答。あいさつメッセージ＝応答テンプレB-1反映済み</td></tr>
+      <tr><th>友だち追加URL</th><td>https://lin.ee/WLgydmi</td></tr>
+      <tr><th>管理画面</th><td><a href="https://manager.line.biz/" target="_blank">https://manager.line.biz/</a></td></tr>
       <tr><th>料金</th><td>フリープラン（月200通まで・1対1チャット無制限）</td></tr>
       <tr><th>事業者向けアプリ</th><td>「LINE公式アカウント」スマホアプリ（App Store / Google Play）</td></tr>
+      <tr><th>将来タスク</th><td>Phase 2 で <strong>公式認証アカウント（緑バッジ）</strong> 申請予定。受注実績・LP運用実績が揃った段階で申請（無料）</td></tr>
     </table>
   </div>
 
