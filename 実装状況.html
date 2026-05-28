@@ -233,6 +233,87 @@
       color: #555;
     }
     .legend-item { display: flex; align-items: center; gap: 6px; }
+
+    /* ツール詳細カード */
+    .tool-category {
+      font-size: 13px;
+      font-weight: 700;
+      color: #4a8ab5;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin: 28px 0 14px;
+      padding-left: 4px;
+      border-left: 3px solid #4a8ab5;
+      padding-left: 12px;
+    }
+    .tool-card {
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin-bottom: 14px;
+      background: #fff;
+    }
+    .tool-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .tool-card h4 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a2840;
+      margin: 0;
+    }
+    .tool-purpose {
+      font-size: 13px;
+      color: #444;
+      margin-bottom: 12px;
+      line-height: 1.7;
+    }
+    .tool-table {
+      width: 100%;
+      font-size: 12px;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+    .tool-table th {
+      background: #fafbfc;
+      text-align: left;
+      padding: 6px 10px;
+      width: 110px;
+      color: #666;
+      font-weight: 700;
+      border: 1px solid #ececec;
+      font-size: 11px;
+      vertical-align: top;
+    }
+    .tool-table td {
+      padding: 6px 10px;
+      border: 1px solid #ececec;
+      color: #333;
+      font-size: 12px;
+      word-break: break-all;
+    }
+    .tool-table a {
+      color: #4a8ab5;
+      text-decoration: none;
+      word-break: break-all;
+    }
+    .tool-table a:hover { text-decoration: underline; }
+    .tool-cost {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 6px;
+    }
+    .cost-free { background: #d4edda; color: #155724; }
+    .cost-paid { background: #fff3cd; color: #856404; }
+    .cost-mixed { background: #cce5ff; color: #004085; }
   </style>
 </head>
 <body>
@@ -559,6 +640,293 @@
     </div>
 
   </div>
+
+  <!-- 使用ツール・サービス一覧 -->
+  <h2>使用ツール・サービス一覧</h2>
+
+  <p style="font-size: 12px; color: #666; margin-bottom: 12px;">
+    このサービスを運営するために使用しているすべてのアプリ・SaaS・サイト。各ツールの用途・URL・契約情報・コストを記録。
+  </p>
+
+  <!-- LP・公開関係 -->
+  <div class="tool-category">LP・公開関係</div>
+
+  <div class="tool-card">
+    <div class="tool-card-header">
+      <h4>Vercel</h4>
+      <span class="tool-cost cost-free">無料</span>
+    </div>
+    <div class="tool-purpose">LP（ランディングページ）のホスティング。GitHubリポジトリと連携して push 時に自動デプロイ。</div>
+    <table class="tool-table">
+      <tr><th>公開URL</th><td><a href="https://kinenbi-planner.vercel.app/" target="_blank">https://kinenbi-planner.vercel.app/</a></td></tr>
+      <tr><th>管理画面</th><td><a href="https://vercel.com/dashboard" target="_blank">https://vercel.com/dashboard</a></td></tr>
+      <tr><th>アカウント</th><td>kinenbi.planner@gmail.com</td></tr>
+      <tr><th>プラン</th><td>Hobby（個人プラン）</td></tr>
+    </table>
+  </div>
+
+  <div class="tool-card">
+    <div class="tool-card-header">
+      <h4>GitHub</h4>
+      <span class="tool-cost cost-free">無料</span>
+    </div>
+    <div class="tool-purpose">LP・各種ドキュメントのバージョン管理。Vercelへ自動デプロイ連携。</div>
+    <table class="tool-table">
+      <tr><th>リポジトリ</th><td><a href="https://github.com/kinenbiplanner-source/kinenbi-planner" target="_blank">https://github.com/kinenbiplanner-source/kinenbi-planner</a></td></tr>
+      <tr><th>アカウント</th><td>kinenbiplanner-source</td></tr>
+      <tr><th>認証方式</th><td>Personal Access Token をリモートURLに埋め込み</td></tr>
+      <tr><th>ブランチ</th><td>master（mainブランチ運用）</td></tr>
+    </table>
+  </div>
+
+  <!-- フォーム・顧客対応 -->
+  <div class="tool-category">フォーム・顧客対応</div>
+
+  <div class="tool-card">
+    <div class="tool-card-header">
+      <h4>Tally</h4>
+      <span class="tool-cost cost-free">無料</span>
+    </div>
+    <div class="tool-purpose">申し込みフォーム。LPのCTAから誘導してパートナーの好み・記念日情報を回答してもらう。</div>
+    <table class="tool-table">
+      <tr><th>フォームURL</th><td><a href="https://tally.so/r/lbVDPB" target="_blank">https://tally.so/r/lbVDPB</a></td></tr>
+      <tr><th>管理画面</th><td><a href="https://tally.so/" target="_blank">https://tally.so/</a></td></tr>
+      <tr><th>アカウント</th><td>kinenbi.planner@gmail.com</td></tr>
+      <tr><th>連携先</th><td>Notion（自動転記）・Make（自動メール）</td></tr>
+    </table>
+  </div>
+
+  <div class="tool-card">
+    <div class="tool-card-header">
+      <h4>Make</h4>
+      <span class="tool-cost cost-free">無料</span>
+    </div>
+    <div class="tool-purpose">自動化ツール。Tally フォーム送信を起点に Gmail で受付確認メールを自動送信。今後、LINE連携の自動化追加予定。</div>
+    <table class="tool-table">
+      <tr><th>管理画面</th><td><a href="https://www.make.com/" target="_blank">https://www.make.com/</a></td></tr>
+      <tr><th>アカウント</th><td>kinenbi.planner@gmail.com</td></tr>
+      <tr><th>有効シナリオ</th><td>Tally → Gmail（受付確認メール送信）</td></tr>
+      <tr><th>無料枠</th><td>月1,000オペレーションまで無料</td></tr>
+    </table>
+  </div>
+
+  <div class="tool-card">
+    <div class="tool-card-header">
+      <h4>Gmail（事業用）</h4>
+      <span class="tool-cost cost-free">無料</span>
+    </div>
+    <div class="tool-purpose">事業用メールアドレス。受付確認メールの送信元・お客様からの問い合わせ受信・各種SaaSのアカウントメールアドレスとして使用。</div>
+    <table class="tool-table">
+      <tr><th>アドレス</th><td>kinenbi.planner@gmail.com</td></tr>
+      <tr><th>用途</th><td>事業用窓口メール・各種アカウント登録メール</td></tr>
+      <tr><th>サイト</th><td><a href="https://mail.google.com/" target="_blank">https://mail.google.com/</a></td></tr>
+    </table>
+  </div>
+
+  <div class="tool-card">
+    <div class="tool-card-header">
+      <h4>Notion</h4>
+      <span class="tool-cost cost-free">無料</span>
+    </div>
+    <div class="tool-purpose">顧客管理DB（Tally直接連携）と案件管理DB（手動管理）の2つのDBを運用。お客様情報・進行ステータス・各案件の手配状況を一元管理。</div>
+    <table class="tool-table">
+      <tr><th>管理画面</th><td><a href="https://www.notion.so/" target="_blank">https://www.notion.so/</a></td></tr>
+      <tr><th>アカウント</th><td>kinenbi.planner@gmail.com</td></tr>
+      <tr><th>顧客管理DB</th><td>Tally直接連携・自動転記稼働中</td></tr>
+      <tr><th>案件管理DB</th><td>notion_案件管理DB.csv からインポート（20カラム）</td></tr>
+    </table>
+  </div>
+
+  <div class="tool-card">
+    <div class="tool-card-header">
+      <h4>LINE公式アカウント</h4>
+      <span class="tool-cost cost-free">無料（フリープラン）</span>
+    </div>
+    <div class="tool-purpose">顧客とのコミュニケーション窓口。Tally送信後にユーザーに友だち追加してもらい、ヒアリング→プラン提案→決済→納品まで全てLINE上で完結。</div>
+    <table class="tool-table">
+      <tr><th>状態</th><td>未開設（手元SIMで近日開設予定）</td></tr>
+      <tr><th>管理画面</th><td><a href="https://account.line.biz/" target="_blank">https://account.line.biz/</a></td></tr>
+      <tr><th>料金</th><td>フリープラン（月200通まで・1対1チャット無制限）</td></tr>
+      <tr><th>事業者向けアプリ</th><td>「LINE公式アカウント」スマホアプリ（App Store / Google Play）</td></tr>
+    </table>
+  </div>
+
+  <!-- 決済 -->
+  <div class="tool-category">決済</div>
+
+  <div class="tool-card">
+    <div class="tool-card-header">
+      <h4>Stripe</h4>
+      <span class="tool-cost cost-mixed">手数料3.6%</span>
+    </div>
+    <div class="tool-purpose">クレジットカード決済のメイン手段。Invoicing機能を使い、案件ごとに見積もり額で請求書を発行 → URLをLINEで送付して支払いを受け付ける。</div>
+    <table class="tool-table">
+      <tr><th>状態</th><td>本番化申請中（審査1〜3営業日）</td></tr>
+      <tr><th>管理画面</th><td><a href="https://dashboard.stripe.com/" target="_blank">https://dashboard.stripe.com/</a></td></tr>
+      <tr><th>アカウント</th><td>kinenbi.planner@gmail.com</td></tr>
+      <tr><th>手数料</th><td>3.6%（カード決済）</td></tr>
+      <tr><th>主機能</th><td>Invoicing（請求書発行）・Payment Links（補助）</td></tr>
+      <tr><th>振込先銀行</th><td>PayPay銀行</td></tr>
+    </table>
+  </div>
+
+  <div class="tool-card">
+    <div class="tool-card-header">
+      <h4>PayPay for Business</h4>
+      <span class="tool-cost cost-mixed">手数料約2%</span>
+    </div>
+    <div class="tool-purpose">補助決済手段。PayPay派の顧客向けにオプションで提供。</div>
+    <table class="tool-table">
+      <tr><th>状態</th><td>未申請（Stripe完了後に着手）</td></tr>
+      <tr><th>申込サイト</th><td><a href="https://paypay.ne.jp/business/" target="_blank">https://paypay.ne.jp/business/</a></td></tr>
+      <tr><th>手数料</th><td>約1.98%（オンライン送金）</td></tr>
+    </table>
+  </div>
+
+  <!-- 事業基盤 -->
+  <div class="tool-category">事業基盤・公的手続き</div>
+
+  <div class="tool-card">
+    <div class="tool-card-header">
+      <h4>PayPay銀行</h4>
+      <span class="tool-cost cost-free">無料</span>
+    </div>
+    <div class="tool-purpose">事業用の銀行口座。Stripe・PayPay for Businessの振込先として使う。</div>
+    <table class="tool-table">
+      <tr><th>状態</th><td>口座開設完了（2026-05-28）</td></tr>
+      <tr><th>銀行コード</th><td>0033</td></tr>
+      <tr><th>管理サイト</th><td><a href="https://www.paypay-bank.co.jp/" target="_blank">https://www.paypay-bank.co.jp/</a></td></tr>
+      <tr><th>口座種別</th><td>個人口座（屋号付き口座は開業届後に追加申請可能）</td></tr>
+      <tr><th>月額</th><td>無料</td></tr>
+    </table>
+  </div>
+
+  <div class="tool-card">
+    <div class="tool-card-header">
+      <h4>GMOオフィスサポート（バーチャルオフィス）</h4>
+      <span class="tool-cost cost-paid">月660円</span>
+    </div>
+    <div class="tool-purpose">事業所所在地。特定商取引法ページの住所欄に使用し、自宅住所の公開を回避する。</div>
+    <table class="tool-table">
+      <tr><th>状態</th><td>審査中（最短当日〜3営業日）</td></tr>
+      <tr><th>拠点</th><td>大阪・梅田</td></tr>
+      <tr><th>プラン</th><td>転送なしプラン（月660円）</td></tr>
+      <tr><th>申込サイト</th><td><a href="https://www.gmo-office.com/" target="_blank">https://www.gmo-office.com/</a></td></tr>
+      <tr><th>屋号宛名</th><td>記念日プラン</td></tr>
+    </table>
+  </div>
+
+  <div class="tool-card">
+    <div class="tool-card-header">
+      <h4>freee開業</h4>
+      <span class="tool-cost cost-free">無料</span>
+    </div>
+    <div class="tool-purpose">開業届・青色申告承認申請書の作成 → e-Tax提出までをオンラインで完結。今後の異動届出書（住所変更）もここで作成。</div>
+    <table class="tool-table">
+      <tr><th>サイト</th><td><a href="https://www.freee.co.jp/kaigyou/" target="_blank">https://www.freee.co.jp/kaigyou/</a></td></tr>
+      <tr><th>管理画面</th><td><a href="https://app.secure.freee.co.jp/founder" target="_blank">https://app.secure.freee.co.jp/founder</a></td></tr>
+      <tr><th>提出済み書類</th><td>個人事業の開業・廃業等届出書／所得税の青色申告承認申請書（共に2026-05-28提出）</td></tr>
+      <tr><th>屋号</th><td>記念日プラン</td></tr>
+    </table>
+  </div>
+
+  <div class="tool-card">
+    <div class="tool-card-header">
+      <h4>e-Tax</h4>
+      <span class="tool-cost cost-free">無料</span>
+    </div>
+    <div class="tool-purpose">国税電子申告・納税システム。freee開業で作成した書類をマイナンバーカード連携で電子提出。</div>
+    <table class="tool-table">
+      <tr><th>サイト</th><td><a href="https://www.e-tax.nta.go.jp/" target="_blank">https://www.e-tax.nta.go.jp/</a></td></tr>
+      <tr><th>必要なもの</th><td>マイナンバーカード・読み取りアプリ（マイナポータルAP等）</td></tr>
+      <tr><th>受付番号</th><td>申請ごとに発行される（freee開業からの提出記録が残る）</td></tr>
+    </table>
+  </div>
+
+  <!-- 補助ファイル -->
+  <div class="tool-category">補助ファイル・ドキュメント</div>
+
+  <div class="tool-card">
+    <div class="tool-card-header">
+      <h4>応答テンプレ.html</h4>
+    </div>
+    <div class="tool-purpose">コンシェルジュ対応の標準文言集。9セクション15テンプレ。受付確認・LINE初回対応・ヒアリング・プラン提案・決済案内・指示書納品・キャンセル対応など全てカバー。</div>
+    <table class="tool-table">
+      <tr><th>場所</th><td>c:\Users\sansh\OneDrive\記念日サポート\応答テンプレ.html</td></tr>
+    </table>
+  </div>
+
+  <div class="tool-card">
+    <div class="tool-card-header">
+      <h4>notion_案件管理DB.csv</h4>
+    </div>
+    <div class="tool-purpose">Notion案件管理DB用のスキーマ＋サンプルデータ。20カラム（案件ID・顧客名・プラン・ステータス・決済情報など）＋3件のサンプルレコード。</div>
+    <table class="tool-table">
+      <tr><th>場所</th><td>c:\Users\sansh\OneDrive\記念日サポート\notion_案件管理DB.csv</td></tr>
+      <tr><th>インポート手順</th><td>Notionにドラッグ＆ドロップ → カラム型を変換</td></tr>
+    </table>
+  </div>
+
+  <div class="tool-card">
+    <div class="tool-card-header">
+      <h4>仕様書.html / ロードマップ.html / 進捗メモ.md / 作業報告_Phase0.html</h4>
+    </div>
+    <div class="tool-purpose">事業のドキュメント類。仕様・進捗・ロードマップを記録。</div>
+    <table class="tool-table">
+      <tr><th>場所</th><td>c:\Users\sansh\OneDrive\記念日サポート\ 配下</td></tr>
+      <tr><th>運用ルール</th><td>作業を進めるたびに最新の状態に更新する</td></tr>
+    </table>
+  </div>
+
+  <!-- 開発・運用ツール -->
+  <div class="tool-category">開発・運用ツール</div>
+
+  <div class="tool-card">
+    <div class="tool-card-header">
+      <h4>Git（PowerShell）</h4>
+      <span class="tool-cost cost-free">無料</span>
+    </div>
+    <div class="tool-purpose">バージョン管理。LP・各種ドキュメントの変更履歴を記録し、GitHubにpush → Vercelへ自動デプロイ。</div>
+    <table class="tool-table">
+      <tr><th>運用</th><td>git add . → git commit -m "メッセージ" → git push origin master</td></tr>
+      <tr><th>認証</th><td>Personal Access Token（リモートURLに埋め込み）</td></tr>
+      <tr><th>ローカル作業場所</th><td>c:\Users\sansh\OneDrive\記念日サポート</td></tr>
+    </table>
+  </div>
+
+  <div class="tool-card">
+    <div class="tool-card-header">
+      <h4>Claude Code</h4>
+      <span class="tool-cost cost-paid">サブスク</span>
+    </div>
+    <div class="tool-purpose">実装・編集・運用サポート用AIアシスタント。ファイル編集・Git操作・調査・ドキュメント作成・手順案内に活用。</div>
+    <table class="tool-table">
+      <tr><th>用途</th><td>LP実装・ドキュメント作成・手続きガイド・進捗管理</td></tr>
+    </table>
+  </div>
+
+  <!-- コスト合計 -->
+  <h2>月額コスト合計（2026-05-28時点）</h2>
+  <table>
+    <tr>
+      <th>項目</th>
+      <th style="width:120px; text-align:right;">月額</th>
+      <th>備考</th>
+    </tr>
+    <tr><td>Vercel（Hobby）</td><td style="text-align:right;">¥0</td><td>無料枠で運用</td></tr>
+    <tr><td>GitHub</td><td style="text-align:right;">¥0</td><td>無料枠</td></tr>
+    <tr><td>Tally</td><td style="text-align:right;">¥0</td><td>無料枠</td></tr>
+    <tr><td>Make</td><td style="text-align:right;">¥0</td><td>月1,000オペレーション無料</td></tr>
+    <tr><td>Gmail</td><td style="text-align:right;">¥0</td><td>個人用Gmail</td></tr>
+    <tr><td>Notion</td><td style="text-align:right;">¥0</td><td>無料プラン</td></tr>
+    <tr><td>PayPay銀行</td><td style="text-align:right;">¥0</td><td>口座維持費なし</td></tr>
+    <tr><td>GMOオフィスサポート</td><td style="text-align:right;">¥660</td><td>転送なしプラン</td></tr>
+    <tr><td>Stripe（基本料金）</td><td style="text-align:right;">¥0</td><td>決済時に手数料3.6%のみ</td></tr>
+    <tr style="font-weight:700; background:#f0f4f8;"><td>合計</td><td style="text-align:right;">¥660</td><td>受注ゼロでも発生</td></tr>
+  </table>
+  <p style="font-size: 12px; color: #666; margin-top: 8px;">
+    ※ 上記は固定費。決済時のStripe手数料（3.6%）・PayPay手数料（1.98%）は売上発生時に変動。
+  </p>
 
   <div style="margin-top: 48px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #aaa; text-align: right;">
     記念日プラン — 実装状況ドキュメント　最終更新：2026-05-28

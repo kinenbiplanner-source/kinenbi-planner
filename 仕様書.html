@@ -52,8 +52,8 @@
 <div class="container">
 
   <h1>記念日プラン 要件定義仕様書</h1>
-  <div class="meta">作成日：2026-04-27　　バージョン：v0.6　　運用人数：2名（AI組織：ダッフィーズ）</div>
-  <div class="meta" style="margin-top:4px; margin-bottom:0;">更新履歴：v0.1 初版 → v0.2 ツール確定・キーワードチェックボックス追加 → v0.3 法的必須事項追加・運用ルール追記 → v0.4 ツール変更（Typeform→Tally・Zapier→Make） → v0.5 法務部（スティッチ）追加・ロードマップ再構築 → v0.6 サービス名確定（記念日プラン）</div>
+  <div class="meta">作成日：2026-04-27　　バージョン：v0.7　　運用人数：2名（AI組織：ダッフィーズ）　　最終更新：2026-05-28</div>
+  <div class="meta" style="margin-top:4px; margin-bottom:0;">更新履歴：v0.1 初版 → v0.2 ツール確定・キーワードチェックボックス追加 → v0.3 法的必須事項追加・運用ルール追記 → v0.4 ツール変更（Typeform→Tally・Zapier→Make） → v0.5 法務部（スティッチ）追加・ロードマップ再構築 → v0.6 サービス名確定（記念日プラン） → v0.7 方針更新：LP=HTML/CSS+Vercel・料金=見積もり制・決済=Stripe Invoicing・顧客対応=LINE中心・住所=バーチャルオフィス</div>
 
   <!-- 1. サービス概要 -->
   <h2>1. サービス概要</h2>
@@ -67,49 +67,67 @@
     <tr><td>特徴</td><td>記念日に何かしたいが何をすればいいかわからない、手間をかけたくないが気持ちは伝えたい層</td></tr>
   </table>
 
-  <!-- 2. 料金プラン -->
-  <h2>2. 料金プラン</h2>
-  <p>料金はプレゼント代＋サービス料の合算。ユーザーが選んだプランの総額内で調達・サービスを提供する。</p>
+  <!-- 2. 料金（見積もり制） -->
+  <h2>2. 料金（見積もり制）</h2>
+  <p>固定プランは設けず、<strong>ヒアリング後にプランナーが個別見積もりを提示する見積もり制</strong>で運用する。LP上は「予算の目安」としてレンジを提示するのみ。</p>
+
+  <h3>ご予算の目安（LPに掲載）</h3>
   <table>
-    <tr><th>プラン</th><th>金額</th><th>備考</th></tr>
-    <tr><td>ライトプラン</td><td>15,000円</td><td>下限プラン</td></tr>
-    <tr><td>スタンダードプラン</td><td>20,000円</td><td>主力想定</td></tr>
-    <tr><td>プレミアムプラン</td><td>30,000円</td><td></td></tr>
-    <tr><td>ラグジュアリープラン</td><td>50,000円〜</td><td>要相談</td></tr>
+    <tr><th>予算帯</th><th>サービス例</th></tr>
+    <tr><td>〜20,000円</td><td>プレゼント＋演出指示書</td></tr>
+    <tr><td>〜35,000円</td><td>プレゼント＋レストラン予約＋演出指示書（よく選ばれる予算帯）</td></tr>
+    <tr><td>〜50,000円</td><td>上記＋特注アイテム・旅行プランニング等</td></tr>
+    <tr><td>50,000円〜</td><td>完全オーダーメイド（要相談）</td></tr>
   </table>
+
+  <h3>料金算出のルール</h3>
+  <ul>
+    <li>プレゼント代＋サービス料＋手配費（必要に応じて）の合算で算出</li>
+    <li>顧客のヒアリング内容（パートナーの好み・予算感・希望サービス）を踏まえてプランナーが最適な内容と見積もり額を提示</li>
+    <li>顧客の承認後に Stripe Invoice で請求書を発行し、LINEでURLを送付</li>
+  </ul>
 
   <h3>特急オプション</h3>
   <table>
     <tr><th>通常申し込み</th><th>特急申し込み</th><th>特急追加料金</th></tr>
-    <tr><td>記念日の1週間前まで</td><td>記念日の2日前まで</td><td>+3,000〜5,000円（プランによる）</td></tr>
+    <tr><td>記念日の1週間前まで</td><td>記念日の2日前まで</td><td>+3,000〜5,000円程度（見積もりに含めて提示）</td></tr>
   </table>
 
   <!-- 3. ユーザーフロー -->
   <h2>3. ユーザーフロー（カスタマージャーニー）</h2>
+  <p style="margin-bottom:12px;">顧客対応は <strong>LINE公式アカウント</strong> 中心。メールは受付確認のみ。</p>
+
   <div class="flow-box">
-    <div class="flow-step"><span class="num">STEP 1</span>SNS投稿を見る</div>
+    <div class="flow-step"><span class="num">STEP 1</span>SNS / 知人経由でLPを知る</div>
     <div class="arrow">→</div>
-    <div class="flow-step"><span class="num">STEP 2</span>HPにアクセス</div>
+    <div class="flow-step"><span class="num">STEP 2</span>LPで予算目安・サービス例を確認</div>
     <div class="arrow">→</div>
-    <div class="flow-step"><span class="num">STEP 3</span>プラン・予算を選択</div>
+    <div class="flow-step"><span class="num">STEP 3</span>「申し込む」ボタン → Tally フォームに直接遷移</div>
     <div class="arrow">→</div>
-    <div class="flow-step"><span class="num">STEP 4</span>メールアドレスを入力</div>
-    <div class="arrow">→</div>
-    <div class="flow-step"><span class="num">STEP 5</span>アンケートフォームがメールに届く（自動送信）</div>
+    <div class="flow-step"><span class="num">STEP 4</span>フォーム回答（約3分・約12設問）</div>
   </div>
   <div class="flow-box">
-    <div class="flow-step"><span class="num">STEP 6</span>アンケート回答（約3分）</div>
+    <div class="flow-step"><span class="num">STEP 5</span>サンクスページで LINE 友だち追加</div>
     <div class="arrow">→</div>
-    <div class="flow-step"><span class="num">STEP 7</span>受付完了メール（即時自動）</div>
+    <div class="flow-step"><span class="num">STEP 6</span>Make自動返信メール届く（受付確認＋LINE追加案内）</div>
     <div class="arrow">→</div>
-    <div class="flow-step"><span class="num">STEP 8</span>当日中に担当者が返信・詳細確認</div>
-    <div class="arrow">→</div>
-    <div class="flow-step"><span class="num">STEP 9</span>決済（クレカ／PayPay）</div>
+    <div class="flow-step"><span class="num">STEP 7</span>24時間以内にプランナーからLINEで連絡（応答テンプレB-2）</div>
   </div>
   <div class="flow-box">
-    <div class="flow-step"><span class="num">STEP 10</span>プランニング・プレゼント手配</div>
+    <div class="flow-step"><span class="num">STEP 8</span>LINE上で追加ヒアリング（応答テンプレC-1）</div>
     <div class="arrow">→</div>
-    <div class="flow-step"><span class="num">STEP 11</span>納品物の提供</div>
+    <div class="flow-step"><span class="num">STEP 9</span>プラン提案＋見積もり額の提示（応答テンプレD-1）</div>
+    <div class="arrow">→</div>
+    <div class="flow-step"><span class="num">STEP 10</span>顧客が承認 → Stripe Invoice URLをLINEで送付</div>
+    <div class="arrow">→</div>
+    <div class="flow-step"><span class="num">STEP 11</span>顧客がリンクから決済 → 自動で領収書メール</div>
+  </div>
+  <div class="flow-box">
+    <div class="flow-step"><span class="num">STEP 12</span>プランニング・プレゼント手配・レストラン予約</div>
+    <div class="arrow">→</div>
+    <div class="flow-step"><span class="num">STEP 13</span>演出指示書をLINEで納品</div>
+    <div class="arrow">→</div>
+    <div class="flow-step"><span class="num">STEP 14</span>記念日翌日にフォローLINE（応答テンプレH-2）</div>
   </div>
 
   <!-- 4. 納品物 -->
@@ -236,9 +254,11 @@
   <h2>7. 決済</h2>
   <table>
     <tr><th>項目</th><th>内容</th></tr>
-    <tr><td>決済方法</td><td>クレジットカード（Stripe）、PayPay for Business</td></tr>
-    <tr><td>決済タイミング</td><td>担当者とのやり取り後、プラン確定時点</td></tr>
-    <tr><td>決済導線</td><td>担当者がメールでStripe決済リンク or PayPay送金リクエストを送付</td></tr>
+    <tr><td>決済方法</td><td>クレジットカード（Stripe Invoicing・メイン）、PayPay for Business（補助）</td></tr>
+    <tr><td>決済タイミング</td><td>LINEでのプラン提案 → 顧客承認後にInvoice発行</td></tr>
+    <tr><td>決済方式</td><td><strong>Stripe Invoice（請求書）を案件ごとに発行</strong>。プラン固定のPayment Linksは作らない。見積もり額に応じて毎回新規発行する。</td></tr>
+    <tr><td>導線</td><td>プランナーがStripeダッシュボードでInvoice作成 → URLが発行される → LINEで顧客に送付 → 顧客がURLから支払い → 自動で領収書メール送信</td></tr>
+    <tr><td>振込先口座</td><td>PayPay銀行（個人口座・屋号付き口座は開業届完了後に追加申請可）</td></tr>
   </table>
 
   <!-- 8. 運用フロー（バックオフィス） -->
@@ -252,9 +272,10 @@
     <tr><td>レストラン予約</td><td>オル・メル（オペレーション部）</td><td>ユーザー希望に合わせて予約代行</td></tr>
     <tr><td>指示書・資料作成</td><td>ジェラトーニ（クリエイティブ部）＋ステラ・ルー</td><td>演出指示書・予約情報を見やすくまとめてユーザーへ共有</td></tr>
     <tr><td>SNS・広報</td><td>シェリーメイ（マーケティング部）</td><td>コンテンツ制作・投稿・HP集客</td></tr>
-    <tr><td>LP制作・デザイン</td><td>ジェラトーニ（クリエイティブ部）</td><td>FramerでのLP構築・ビジュアルデザイン・素材選定・モバイル対応</td></tr>
-    <tr><td>システム管理</td><td>リーナ・ベル（テクノロジー部）</td><td>Tallyフォーム・Make連携・決済管理</td></tr>
-    <tr><td>法的書類・コンプライアンス</td><td>スティッチ（法務部）</td><td>特定商取引法・プライバシーポリシー・事業申請・規約管理</td></tr>
+    <tr><td>LP制作・デザイン</td><td>ジェラトーニ（クリエイティブ部）</td><td>HTML/CSS+VercelでのLP構築・ビジュアルデザイン・モバイル対応</td></tr>
+    <tr><td>システム管理</td><td>リーナ・ベル（テクノロジー部）</td><td>Tally・Make・Stripe・LINE公式アカウント・Notion DBの管理</td></tr>
+    <tr><td>顧客対応（LINE）</td><td>クッキー・アン（CS部）</td><td>応答テンプレ.htmlを使ってLINE上でヒアリング・プラン提案・決済案内・納品まで担当</td></tr>
+    <tr><td>法的書類・コンプライアンス</td><td>スティッチ（法務部）</td><td>特定商取引法・プライバシーポリシー・開業届・異動届・規約管理</td></tr>
   </table>
 
   <!-- 9. HP・システム要件 -->
@@ -265,44 +286,65 @@
     <tr><th>用途</th><th>ツール</th><th>選定理由</th></tr>
     <tr>
       <td>LP制作</td>
-      <td><strong>Framer</strong> <span class="badge badge-decided">確定</span></td>
-      <td>テンプレートが豊富でデザイン性が高い。ノーコードで最速公開可能。アニメーションやインタラクションも対応。将来的な拡張も◎</td>
+      <td><strong>HTML/CSS + Vercel</strong> <span class="badge badge-decided">確定</span></td>
+      <td>カスタム実装。GitHub連携でVercel自動デプロイ。固定費0円。デザイン・構造を自由に変更可能。</td>
+    </tr>
+    <tr>
+      <td>ソース管理</td>
+      <td><strong>GitHub</strong> <span class="badge badge-decided">確定</span></td>
+      <td>kinenbiplanner-source/kinenbi-planner。push 時にVercelが自動でデプロイ。</td>
     </tr>
     <tr>
       <td>アンケートフォーム</td>
       <td><strong>Tally</strong> <span class="badge badge-decided">確定</span></td>
-      <td>Tallyと同等の会話式UIで無料プランが実質無制限（設問数・回答数の制限なし）。モバイル体験優秀。自動返信メール機能あり。Make連携で自動化も容易</td>
+      <td>会話式UIで無料プランが実質無制限（設問数・回答数の制限なし）。モバイル体験優秀。Make連携・Notion連携で自動化も容易</td>
     </tr>
     <tr>
       <td>フォーム→メール自動化</td>
       <td><strong>Make</strong> <span class="badge badge-decided">確定</span></td>
-      <td>FramerフォームからTally URLをメール送信する自動化に使用。Makeより安価で高機能</td>
+      <td>Tally送信を起点にGmailで受付確認メールを自動送信。月1,000オペレーション無料</td>
     </tr>
     <tr>
-      <td>決済（クレカ）</td>
-      <td><strong>Stripe</strong></td>
-      <td>決済リンクを発行してメールで送付する形式で最速実装</td>
+      <td>顧客とのコミュニケーション</td>
+      <td><strong>LINE公式アカウント</strong> <span class="badge badge-decided">確定</span></td>
+      <td>申し込み後の追加ヒアリング・プラン提案・決済案内・納品・フォローまで全てLINE上で行う。無料プラン（フリープラン）で運用</td>
     </tr>
     <tr>
-      <td>決済（PayPay）</td>
+      <td>決済（クレカ・メイン）</td>
+      <td><strong>Stripe（Invoicing機能）</strong> <span class="badge badge-decided">確定</span></td>
+      <td>案件ごとに見積もり額で請求書（Invoice）を発行 → URLをLINEで送付 → 顧客が支払い。プラン固定リンクは作らない</td>
+    </tr>
+    <tr>
+      <td>決済（PayPay・補助）</td>
       <td><strong>PayPay for Business</strong></td>
-      <td>送金リクエスト機能で対応</td>
+      <td>PayPay派の顧客向け補助手段として提供</td>
     </tr>
     <tr>
-      <td>顧客情報管理</td>
-      <td><strong>Notion</strong></td>
-      <td>このフォルダと連携。Tallyの回答をMakeで自動転記</td></tr>
+      <td>顧客・案件管理</td>
+      <td><strong>Notion</strong> <span class="badge badge-decided">確定</span></td>
+      <td>顧客管理DB（Tally直接連携で自動転記）＋案件管理DB（手動更新）の2つのDBで管理</td></tr>
+    <tr>
+      <td>事業所所在地</td>
+      <td><strong>GMOバーチャルオフィス（大阪・梅田）</strong> <span class="badge badge-decided">確定</span></td>
+      <td>月660円。特商法ページの所在地表示用。自宅住所の公開を回避</td>
+    </tr>
+    <tr>
+      <td>銀行口座</td>
+      <td><strong>PayPay銀行</strong> <span class="badge badge-decided">確定</span></td>
+      <td>Stripe・PayPay for Business の振込先口座</td>
+    </tr>
   </table>
 
   <h3>MVP機能一覧</h3>
   <table>
     <tr><th>機能</th><th>優先度</th><th>概要</th></tr>
-    <tr><td>LP（サービス概要ページ）</td><td><span class="badge badge-mvp">MVP</span></td><td>サービス説明・料金プラン・申し込みCTA。Framerで構築。</td></tr>
-    <tr><td>プラン選択＋メアド入力フォーム</td><td><span class="badge badge-mvp">MVP</span></td><td>FramerのフォームブロックまたはTallyの埋め込み</td></tr>
-    <tr><td>アンケートURL自動メール送信</td><td><span class="badge badge-mvp">MVP</span></td><td>Makeで自動化</td></tr>
-    <tr><td>アンケートフォーム（Tally）</td><td><span class="badge badge-mvp">MVP</span></td><td>本仕様書Section5の設問を実装</td></tr>
-    <tr><td>受付完了メール（自動返信）</td><td><span class="badge badge-mvp">MVP</span></td><td>Tallyの自動返信機能を使用</td></tr>
-    <tr><td>決済</td><td><span class="badge badge-mvp">MVP</span></td><td>Stripe決済リンク＋PayPay送金リクエスト</td></tr>
+    <tr><td>LP（サービス概要ページ）</td><td><span class="badge badge-mvp">MVP</span></td><td>サービス説明・予算目安・申し込みCTA。HTML/CSS+Vercelで構築・公開済み</td></tr>
+    <tr><td>Tallyフォーム（アンケート）</td><td><span class="badge badge-mvp">MVP</span></td><td>本仕様書Section5の設問を実装・公開済み</td></tr>
+    <tr><td>Make自動返信メール</td><td><span class="badge badge-mvp">MVP</span></td><td>受付確認＋LINE追加案内の文面で稼働中（LINE案内追記は実装中）</td></tr>
+    <tr><td>LINE公式アカウント</td><td><span class="badge badge-mvp">MVP</span></td><td>友だち追加URL → サンクスページに設置。あいさつメッセージ＋手動対応で運用</td></tr>
+    <tr><td>Stripe Invoicing</td><td><span class="badge badge-mvp">MVP</span></td><td>案件ごとに請求書発行。本番化申請中</td></tr>
+    <tr><td>Notion 顧客管理DB</td><td><span class="badge badge-mvp">MVP</span></td><td>Tally直接連携で自動転記・稼働中</td></tr>
+    <tr><td>Notion 案件管理DB</td><td><span class="badge badge-mvp">MVP</span></td><td>20カラムのスキーマで構築済み。案件ごとに進行状況を手動更新</td></tr>
     <tr><td>SNS連携・シェアボタン</td><td><span class="badge badge-future">将来対応</span></td><td></td></tr>
     <tr><td>ホテル連携</td><td><span class="badge badge-future">将来対応</span></td><td>サービス拡大後に営業・連携</td></tr>
     <tr><td>マイページ・注文履歴</td><td><span class="badge badge-future">将来対応</span></td><td></td></tr>
@@ -351,7 +393,7 @@
     <tr><th>ルール</th><th>内容</th></tr>
     <tr><td>ファイル更新</td><td>作業が進むたびに、関連するファイル・書類（仕様書・ロードマップ等）を最新状態にアップデートする</td></tr>
     <tr><td>法的・グレーゾーン回避</td><td>法的にグレーな手法・ツールは採用しない。不明な場合はダッフィーに確認してから進める</td></tr>
-    <tr><td>セキュリティ</td><td>決済・個人情報を扱うツールは業界標準の信頼できるものに限定する（Stripe・PayPay・Tally・Framer・Makeで固定）</td></tr>
+    <tr><td>セキュリティ</td><td>決済・個人情報を扱うツールは業界標準の信頼できるものに限定する（Stripe・PayPay・Tally・Make・Notion・LINE公式アカウント・Vercel・GitHubで固定）</td></tr>
     <tr><td>ダッフィーとのコミュニケーション</td><td>フランク・友達感覚でOK。進捗・問題・提案はどんどん話しかけて</td></tr>
   </table>
 
@@ -359,11 +401,30 @@
   <h2>14. 未決定事項（TBD）</h2>
   <table>
     <tr><th>項目</th><th>状況</th></tr>
-    <tr><td>SNSプラットフォームとコンテンツ方針</td><td>おいおい詰める</td></tr>
-    <tr><td>指示書・資料の共有フォーマット</td><td>運用しながら決定</td></tr>
-    <tr><td>記念日プラン・ブランディング</td><td>未定</td></tr>
-    <tr><td>特急料金の正確な設定（プラン別）</td><td>+3,000〜5,000円の範囲で運用しながら決定</td></tr>
+    <tr><td>SNSプラットフォームとコンテンツ方針</td><td>Phase 2 で着手予定（Instagram/TikTok候補）</td></tr>
+    <tr><td>演出指示書テンプレートのフォーマット</td><td>ステラ・ルー＋ジェラトーニで設計予定（Phase 1試運転までに）</td></tr>
+    <tr><td>ロゴ・ブランディング</td><td>Phase 2 で着手予定</td></tr>
+    <tr><td>カスタムドメイン</td><td>Phase 2 で取得・Vercelに紐付け</td></tr>
+    <tr><td>プレゼント仕入れ先・レストランリストの整備</td><td>Phase 1試運転までにオル・メル担当で整備</td></tr>
   </table>
+
+  <!-- 15. フロー試運転（自己テスト計画） -->
+  <h2>15. フロー試運転（Phase 1の自己テスト計画）</h2>
+  <p>初受注前に、運営側でフル工程を1回通してみる試運転を必須とする。詳細は ロードマップ.html Phase 1 内の「フロー試運転」セクション参照。</p>
+  <table>
+    <tr><th>テスト工程</th><th>確認内容</th></tr>
+    <tr><td>① Tallyフォーム送信</td><td>テスト用Gmail or 友人のメアドで送信 → 自動返信メールが届くか</td></tr>
+    <tr><td>② LINE友だち追加</td><td>サンクスページ→ LINE追加が機能するか</td></tr>
+    <tr><td>③ あいさつメッセージ</td><td>応答テンプレB-1が自動配信されるか</td></tr>
+    <tr><td>④ 手動メッセージ</td><td>応答テンプレB-2・C-1・D-1を実際に送ってやり取りできるか</td></tr>
+    <tr><td>⑤ Stripe Invoice</td><td>少額（¥500等）でInvoice発行 → LINE送付 → 支払い → 領収書確認</td></tr>
+    <tr><td>⑥ Notion案件管理DB</td><td>テスト案件を入力し、進行ステータスを更新できるか</td></tr>
+    <tr><td>⑦ プレゼント手配</td><td>実際にECで1点購入・自宅 or 友人宅に発送</td></tr>
+    <tr><td>⑧ レストラン予約</td><td>実際に1件電話予約 or オンライン予約代行（模擬テストでも可）</td></tr>
+    <tr><td>⑨ 演出指示書納品</td><td>フォーマットを作成・LINE送付</td></tr>
+    <tr><td>⑩ フォロー</td><td>応答テンプレH-2を送り、返答を確認</td></tr>
+  </table>
+  <p style="margin-top:8px;">試運転後、所要時間・詰まりポイントをメモして即改善。これが完了して初めてLP正式公開＆告知に進む。</p>
 
 </div>
 </body>
