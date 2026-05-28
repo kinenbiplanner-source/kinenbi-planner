@@ -148,6 +148,15 @@
       margin-top: 8px;
       display: inline-block;
     }
+    .done-note {
+      font-size: 11px;
+      color: #155724;
+      background: #d4edda;
+      border-radius: 4px;
+      padding: 4px 10px;
+      margin-top: 8px;
+      display: inline-block;
+    }
 
     /* サマリーテーブル */
     table {
@@ -232,7 +241,7 @@
   <div class="page-header">
     <div class="service-label">記念日プラン</div>
     <h1>実装状況 &amp; フロー管理</h1>
-    <div class="meta">最終更新：2026-05-01　　Phase 1 進行中</div>
+    <div class="meta">最終更新：2026-05-28　　Phase 1 進行中（進捗50%）</div>
   </div>
 
   <!-- 凡例 -->
@@ -248,17 +257,17 @@
 
   <div class="flow">
 
-    <div class="flow-step partial">
+    <div class="flow-step done">
       <div class="flow-step-num">STEP 01</div>
       <div class="flow-step-body">
         <h3>LPを閲覧する</h3>
-        <p>ユーザーがLPを見て、サービス内容・料金・流れを確認する。</p>
+        <p>ユーザーがLPを見て、サービス内容・料金の目安・流れを確認する。</p>
         <div class="tools">
           <span class="tool-tag">HTML / Vercel</span>
         </div>
-        <span class="warn-note">今日の変更（サービス名・LINE文言・ヒーロー修正）がローカルのみ。GitHub pushでVercelに反映が必要。</span>
+        <span class="done-note">2026-05-28：LP最新版を反映済み（料金は見積もり制・予算目安表示）。</span>
       </div>
-      <div class="flow-step-status"><span class="badge badge-partial">要対応</span></div>
+      <div class="flow-step-status"><span class="badge badge-done">完了</span></div>
     </div>
 
     <div class="flow-step done">
@@ -282,7 +291,7 @@
           <span class="tool-tag">Tally（サンクスページ設定）</span>
           <span class="tool-tag">LINE公式アカウント</span>
         </div>
-        <span class="blocker-note">ブロッカー：LINE公式アカウントが未作成（専用SIM待ち）</span>
+        <span class="blocker-note">ブロッカー：LINE公式アカウント未作成（当面手元SIMで開設検討）</span>
       </div>
       <div class="flow-step-status"><span class="badge badge-todo">未着手</span></div>
     </div>
@@ -296,7 +305,7 @@
           <span class="tool-tag">Make</span>
           <span class="tool-tag">Gmail</span>
         </div>
-        <span class="warn-note">稼働中だがメール本文にLINE追加の案内が未記載。文言の更新が必要。</span>
+        <span class="warn-note">稼働中だがメール本文にLINE追加の案内が未記載。LINE公式アカウント開設後に文言更新が必要。</span>
       </div>
       <div class="flow-step-status"><span class="badge badge-partial">要対応</span></div>
     </div>
@@ -305,38 +314,39 @@
       <div class="flow-step-num">STEP 05</div>
       <div class="flow-step-body">
         <h3>コンシェルジュがLINEでヒアリング・プラン提案</h3>
-        <p>LINE公式アカウントの管理画面からユーザーへDM。詳細をヒアリングし、最適なプランを提案する。</p>
+        <p>LINE公式アカウントの管理画面からユーザーへDM。応答テンプレ.html の C-D セクションを使ってヒアリング・プラン提案を行う。</p>
         <div class="tools">
           <span class="tool-tag">LINE公式アカウント</span>
-          <span class="tool-tag">Notion（顧客情報参照）</span>
+          <span class="tool-tag">Notion（顧客情報・案件管理）</span>
+          <span class="tool-tag">応答テンプレ.html</span>
         </div>
-        <span class="blocker-note">ブロッカー：LINE公式アカウントが未作成</span>
+        <span class="blocker-note">ブロッカー：LINE公式アカウント未作成</span>
       </div>
       <div class="flow-step-status"><span class="badge badge-todo">未着手</span></div>
     </div>
 
-    <div class="flow-step blocked">
+    <div class="flow-step partial">
       <div class="flow-step-num">STEP 06</div>
       <div class="flow-step-body">
-        <h3>プラン確定 → 決済リンクをLINEで送付</h3>
-        <p>ユーザーがプランに納得したら、StripeまたはPayPayの決済リンクをLINEで送る。</p>
+        <h3>プラン確定 → Stripe Invoiceの決済リンクをLINEで送付</h3>
+        <p>案件ごとに金額をカスタムしてStripe Invoiceを発行し、LINEでURLを送付。固定プランPayment Linkは作らず、見積もり制で運用。</p>
         <div class="tools">
-          <span class="tool-tag">Stripe</span>
-          <span class="tool-tag">PayPay for Business</span>
+          <span class="tool-tag">Stripe Invoicing</span>
           <span class="tool-tag">LINE公式アカウント</span>
+          <span class="tool-tag">PayPay for Business（補助）</span>
         </div>
-        <span class="blocker-note">ブロッカー：銀行口座未開設 → Stripe本番未設定 → PayPay未申請</span>
+        <span class="warn-note">Stripe本番化進行中（個人情報・銀行口座登録・PCIセキュリティ質問入力中）。PayPay for Businessは未申請。</span>
       </div>
-      <div class="flow-step-status"><span class="badge badge-blocked">待機中</span></div>
+      <div class="flow-step-status"><span class="badge badge-partial">要対応</span></div>
     </div>
 
     <div class="flow-step blocked">
       <div class="flow-step-num">STEP 07</div>
       <div class="flow-step-body">
         <h3>決済完了 → プレゼント手配・レストラン予約・指示書作成</h3>
-        <p>入金確認後、コンシェルジュが手配を開始。記念日に間に合うよう手配・作成する。</p>
+        <p>入金確認後、Notion案件管理DBで進捗を管理しながら手配を進める。</p>
         <div class="tools">
-          <span class="tool-tag">Notion（作業管理）</span>
+          <span class="tool-tag">Notion（案件管理DB）</span>
           <span class="tool-tag">各ブランド・予約サイト</span>
         </div>
         <span class="blocker-note">ブロッカー：STEP 06が完了していないと開始できない</span>
@@ -371,8 +381,8 @@
     <tr>
       <td>LP公開</td>
       <td>HTML + Vercel</td>
-      <td class="status"><span class="badge badge-partial">要対応</span></td>
-      <td>今日の変更をGitHub pushでVercelに反映する必要あり</td>
+      <td class="status"><span class="badge badge-done">完了</span></td>
+      <td>2026-05-28：見積もり制対応の最新版を反映</td>
     </tr>
     <tr>
       <td>申し込みフォーム</td>
@@ -393,6 +403,18 @@
       <td>Tally連携で自動転記済み</td>
     </tr>
     <tr>
+      <td>案件管理DB</td>
+      <td>Notion</td>
+      <td class="status"><span class="badge badge-todo">未着手</span></td>
+      <td>notion_案件管理DB.csv インポート＋型変換</td>
+    </tr>
+    <tr>
+      <td>応答テンプレ集</td>
+      <td>応答テンプレ.html</td>
+      <td class="status"><span class="badge badge-done">完了</span></td>
+      <td>9セクション15テンプレ完備</td>
+    </tr>
+    <tr>
       <td>サンクスページ LINE案内</td>
       <td>Tally（設定）</td>
       <td class="status"><span class="badge badge-todo">未着手</span></td>
@@ -402,31 +424,55 @@
       <td>LINE公式アカウント</td>
       <td>LINE</td>
       <td class="status"><span class="badge badge-todo">未着手</span></td>
-      <td>専用SIM・スマホ準備後に作成</td>
+      <td>当面は手元SIMで開設を検討</td>
     </tr>
     <tr>
       <td>銀行口座</td>
-      <td>ネット銀行</td>
-      <td class="status"><span class="badge badge-todo">未着手</span></td>
-      <td>Stripe本番化・PayPayの前提</td>
+      <td>PayPay銀行</td>
+      <td class="status"><span class="badge badge-done">完了</span></td>
+      <td>2026-05-28 開設完了</td>
+    </tr>
+    <tr>
+      <td>開業届</td>
+      <td>freee開業 → e-Tax</td>
+      <td class="status"><span class="badge badge-done">完了</span></td>
+      <td>2026-05-28 提出・受付完了。屋号「記念日プラン」登録済み</td>
+    </tr>
+    <tr>
+      <td>青色申告承認申請</td>
+      <td>freee開業 → e-Tax</td>
+      <td class="status"><span class="badge badge-done">完了</span></td>
+      <td>2026-05-28 提出・受付完了</td>
+    </tr>
+    <tr>
+      <td>バーチャルオフィス</td>
+      <td>GMOオフィスサポート</td>
+      <td class="status"><span class="badge badge-partial">審査中</span></td>
+      <td>大阪・梅田／月660円／屋号「記念日プラン」</td>
+    </tr>
+    <tr>
+      <td>異動届出書（住所変更）</td>
+      <td>freee開業 → e-Tax</td>
+      <td class="status"><span class="badge badge-blocked">待機中</span></td>
+      <td>バーチャル審査完了後に提出</td>
     </tr>
     <tr>
       <td>Stripe本番化</td>
       <td>Stripe</td>
-      <td class="status"><span class="badge badge-blocked">待機中</span></td>
-      <td>銀行口座開設後に本人確認・口座登録</td>
+      <td class="status"><span class="badge badge-partial">申請中</span></td>
+      <td>個人情報・銀行口座登録・PCIセキュリティ質問入力中</td>
     </tr>
     <tr>
       <td>PayPay for Business</td>
       <td>PayPay</td>
-      <td class="status"><span class="badge badge-blocked">待機中</span></td>
-      <td>銀行口座開設後に申請</td>
+      <td class="status"><span class="badge badge-todo">未着手</span></td>
+      <td>Stripe本番化が完了してから申請予定</td>
     </tr>
     <tr>
-      <td>特定商取引法・PP 空欄</td>
+      <td>特商法・PP 空欄</td>
       <td>lp/tokutei.html 他</td>
-      <td class="status"><span class="badge badge-todo">未着手</span></td>
-      <td>電話番号・住所・事業者名を記入（SIM・銀行口座後）</td>
+      <td class="status"><span class="badge badge-blocked">待機中</span></td>
+      <td>バーチャル住所確定後に記入（料金欄は更新済み）</td>
     </tr>
     <tr>
       <td>LP正式公開・告知</td>
@@ -443,56 +489,64 @@
     <div class="priority-item p1">
       <span class="priority-rank">P1</span>
       <div>
-        <h3>GitHub push → Vercelに今日の変更を反映 <span class="owner-tag delegate">任せられる</span></h3>
-        <p>LP修正（サービス名・LINE文言・ヒーロー削除・料金ボタン削除）を公開サイトに反映する。</p>
+        <h3>Stripe本番化を完了させる <span class="owner-tag owner">本人のみ</span></h3>
+        <p>現在進行中。PCIセキュリティ質問・銀行口座登録・本人確認書類アップロードを完了させて審査に出す（1〜3営業日）。</p>
       </div>
     </div>
 
     <div class="priority-item p1">
       <span class="priority-rank">P1</span>
       <div>
-        <h3>銀行口座開設 <span class="owner-tag owner">本人のみ</span></h3>
-        <p>PayPay銀行 or 住信SBIで申請。Stripe本番化・PayPay申請の前提。これが最大のボトルネック。</p>
-      </div>
-    </div>
-
-    <div class="priority-item p1">
-      <span class="priority-rank">P1</span>
-      <div>
-        <h3>専用SIM・スマホ準備 <span class="owner-tag owner">本人のみ</span></h3>
-        <p>LINE公式アカウント作成の前提。これが揃えばLINE周りが一気に進む。</p>
+        <h3>GMOバーチャルオフィスの審査結果を待つ <span class="owner-tag owner">外部待ち</span></h3>
+        <p>最短当日〜3営業日。承認されたら住所が確定する。</p>
       </div>
     </div>
 
     <div class="priority-item p2">
       <span class="priority-rank">P2</span>
       <div>
-        <h3>LINE公式アカウント作成 <span class="owner-tag delegate">任せられる</span></h3>
-        <p>専用SIM準備後。アカウント作成 → 友だち追加URL取得 → Tallyサンクスページに設置。</p>
+        <h3>バーチャル住所確定 → 異動届出書を提出 <span class="owner-tag owner">本人のみ</span></h3>
+        <p>freee開業で異動届を作成 → e-Taxで提出。Stripeの事業所住所も更新。</p>
       </div>
     </div>
 
     <div class="priority-item p2">
       <span class="priority-rank">P2</span>
       <div>
-        <h3>Makeの受付メールにLINE案内を追記 <span class="owner-tag delegate">任せられる</span></h3>
-        <p>LINE公式アカウント作成後。メール本文に「公式LINEを友だち追加してください」＋URLを追記。</p>
+        <h3>特商法ページの空欄を埋めてpush <span class="owner-tag delegate">任せられる</span></h3>
+        <p>販売業者名・代表者氏名・電話番号・住所をlp/tokutei.htmlに記入してcommit&push。</p>
       </div>
     </div>
 
     <div class="priority-item p2">
       <span class="priority-rank">P2</span>
       <div>
-        <h3>Stripe本番化 + PayPay for Business申請 <span class="owner-tag owner">本人のみ</span></h3>
-        <p>銀行口座開設後に実施。本人確認書類が必要。</p>
+        <h3>PayPay for Business申請 <span class="owner-tag owner">本人のみ</span></h3>
+        <p>Stripe完了後の補助決済として。本人確認書類が必要。</p>
+      </div>
+    </div>
+
+    <div class="priority-item p2">
+      <span class="priority-rank">P2</span>
+      <div>
+        <h3>Notion案件管理DBを構築 <span class="owner-tag delegate">任せられる</span></h3>
+        <p>notion_案件管理DB.csvをNotionにインポート → カラム型を変換。</p>
       </div>
     </div>
 
     <div class="priority-item p3">
       <span class="priority-rank">P3</span>
       <div>
-        <h3>法的ページの空欄を埋める <span class="owner-tag owner">本人のみ</span></h3>
-        <p>電話番号（新SIM）・住所・事業者名を記入。LP正式公開の直前でよい。</p>
+        <h3>LINE公式アカウント作成 <span class="owner-tag delegate">任せられる</span></h3>
+        <p>当面は手元のSIMで開設。アカウント作成 → 友だち追加URL取得 → Tallyサンクスページに設置。</p>
+      </div>
+    </div>
+
+    <div class="priority-item p3">
+      <span class="priority-rank">P3</span>
+      <div>
+        <h3>Makeの受付メールにLINE案内を追記 <span class="owner-tag delegate">任せられる</span></h3>
+        <p>LINE公式アカウント作成後。メール本文に「公式LINEを友だち追加してください」＋URLを追記。</p>
       </div>
     </div>
 
@@ -507,7 +561,7 @@
   </div>
 
   <div style="margin-top: 48px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #aaa; text-align: right;">
-    記念日プラン — 実装状況ドキュメント　最終更新：2026-05-01
+    記念日プラン — 実装状況ドキュメント　最終更新：2026-05-28
   </div>
 
 </div>
