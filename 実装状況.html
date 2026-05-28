@@ -486,8 +486,8 @@
     <tr>
       <td>案件管理DB</td>
       <td>Notion</td>
-      <td class="status"><span class="badge badge-todo">未着手</span></td>
-      <td>notion_案件管理DB.csv インポート＋型変換</td>
+      <td class="status"><span class="badge badge-done">完了</span></td>
+      <td>2026-05-28 CSVインポート・型変換完了（20カラム）</td>
     </tr>
     <tr>
       <td>応答テンプレ集</td>
@@ -636,6 +636,123 @@
       <div>
         <h3>LP正式公開 → 知人・友人への告知 <span class="owner-tag owner">本人のみ</span></h3>
         <p>決済・LINE・法的ページがすべて揃ったら告知。初受注を目指す。</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 導線最適化TODO -->
+  <h2>導線最適化TODO（2026-05-28 追加）</h2>
+  <p style="font-size: 12px; color: #666; margin-bottom: 16px;">
+    既存ロードマップに乗っていない最適化項目をレビュー結果から抽出。受注フロー全体の離脱率・CVR・信頼性を改善する施策を優先度別に管理。
+  </p>
+  <div class="priority-list">
+
+    <!-- 最優先（初受注前に必須） -->
+    <div class="priority-item p1">
+      <span class="priority-rank">P1</span>
+      <div>
+        <h3>LPヒーローの実績数字を削除 <span class="owner-tag delegate">対応済み</span></h3>
+        <p>「満足度98%」「累計サポート実績100+」は初受注ゼロの状態では景品表示法・特商法上の優良誤認に該当する恐れ。「24h返信」「相談無料」「入金前キャンセル無料」「秘密厳守100%」の実行可能な約束ベースに置換済み（2026-05-28）。flowセクションの「最短2日」は対応可能スピード（実績ではなくオペレーション最短値）として維持。</p>
+      </div>
+    </div>
+
+    <div class="priority-item p1">
+      <span class="priority-rank">P1</span>
+      <div>
+        <h3>Tally→LINE追加リマインドの自動フロー構築 <span class="owner-tag delegate">リーナ・ベル＋クッキー・アン</span></h3>
+        <p>Tally送信→LINE未追加で離脱するのが最大の漏れポイント。Make で①Tally送信24h後、②48h後 にLINE追加URL付きリマインドメールを自動送信する仕組みを追加。受付確認メール（A-1）のLINE追加URLも件名・冒頭に格上げ。Tallyサンクスページも「LINE追加しないと連絡できません」を強める文言に修正。</p>
+      </div>
+    </div>
+
+    <div class="priority-item p1">
+      <span class="priority-rank">P1</span>
+      <div>
+        <h3>TallyヒアリングとLINE C-1ヒアリングの設問仕分け <span class="owner-tag delegate">ダッフィー＋クッキー・アン</span></h3>
+        <p>応答テンプレC-1で6問一括ヒアリングは離脱要因。Tallyで取る情報（記念日・予算上限・パートナー基本情報・サプライズ度合い）とLINEで深掘りする情報（好み詳細・苦手なもの・当日の動き）を仕分け、LINE側は1〜2問ずつのチャット型UXに分割。応答テンプレを更新する。</p>
+      </div>
+    </div>
+
+    <!-- 高優先（自己テスト前に整備） -->
+    <div class="priority-item p2">
+      <span class="priority-rank">P2</span>
+      <div>
+        <h3>Stripe URL と PayPay URL を最初から両方送る運用に <span class="owner-tag delegate">リーナ・ベル</span></h3>
+        <p>応答テンプレE-1の「PayPay希望ならお返事ください」を廃止。Invoice発行時にPayPayリンクもセットで作成し、決済案内メッセージに両方並べて掲載。1往復削減で離脱低下。</p>
+      </div>
+    </div>
+
+    <div class="priority-item p2">
+      <span class="priority-rank">P2</span>
+      <div>
+        <h3>「相談しても断れる・無料」の心理障壁緩和をLPに追加 <span class="owner-tag delegate">ジェラトーニ</span></h3>
+        <p>Final CTA直前に「相談だけでも歓迎・強引な提案はしません」のテキスト追加。trust-cardだけでは弱い。CVR改善目的。</p>
+      </div>
+    </div>
+
+    <div class="priority-item p2">
+      <span class="priority-rank">P2</span>
+      <div>
+        <h3>顧客の記念日DB化 → 次回記念日の自動リマインド設計 <span class="owner-tag delegate">クッキー・アン＋リーナ・ベル</span></h3>
+        <p>パートナーの誕生日・結婚記念日・付き合った日をNotion案件管理DBで保持。Make で次の記念日の3〜4週間前にLINE自動リマインド送信する仕組みを構築。受注ゼロのうちにDBスキーマと自動化シナリオだけ整備（LTVに大きく効く）。</p>
+      </div>
+    </div>
+
+    <div class="priority-item p2">
+      <span class="priority-rank">P2</span>
+      <div>
+        <h3>演出指示書フォーマットの確定（PDFテンプレ作成） <span class="owner-tag delegate">ジェラトーニ＋ステラ・ルー</span></h3>
+        <p>自己テスト前に確定が必須。CanvaでA4・ブランドカラーのPDFテンプレを1枚作成。応答テンプレG-1の「PDF」記載と整合させる。</p>
+      </div>
+    </div>
+
+    <div class="priority-item p2">
+      <span class="priority-rank">P2</span>
+      <div>
+        <h3>GA4・Tally離脱率計測の導入 <span class="owner-tag delegate">リーナ・ベル</span></h3>
+        <p>初受注前にLP→Tally CVR、Tally送信→LINE追加 CVR を計測できる状態にしないと何が悪くて離脱したか永久に不明。GA4設置・Tally Conversion Analytics有効化・Make経由でスプレッドシート集計フローを整える。</p>
+      </div>
+    </div>
+
+    <!-- 中優先（Phase 2前に整備） -->
+    <div class="priority-item p3">
+      <span class="priority-rank">P3</span>
+      <div>
+        <h3>プランナーの「人感」を強化 <span class="owner-tag delegate">ジェラトーニ＋シェリーメイ</span></h3>
+        <p>concierge-cardが役割説明だけで誰が対応するか見えない。代行業者特有の「顔の見えない不安」を解消するため、ニックネーム＋イラスト or 似顔絵を追加。Phase 2のSNS開設と合わせると相乗効果。</p>
+      </div>
+    </div>
+
+    <div class="priority-item p3">
+      <span class="priority-rank">P3</span>
+      <div>
+        <h3>キャンセルポリシーの内規明文化 <span class="owner-tag delegate">スティッチ</span></h3>
+        <p>応答テンプレI-3「個別判断」のままだと案件ごとに揉める。フェーズ別の返金率（プレゼント発注前は全額返金／発注後は●%／レストラン予約後は●%）を内規ドキュメント化し、特商法ページ・応答テンプレに反映。</p>
+      </div>
+    </div>
+
+    <div class="priority-item p3">
+      <span class="priority-rank">P3</span>
+      <div>
+        <h3>SNS（Instagram）の早期アカウント開設 <span class="owner-tag delegate">シェリーメイ</span></h3>
+        <p>Phase 2扱いだが、初受注前から世界観発信を始めて検索流入の信用補強。投稿が無くてもアカウント開設＋LPフッターからのリンク設置だけでも効果あり。</p>
+      </div>
+    </div>
+
+    <!-- 検討余地 -->
+    <div class="priority-item p3" style="border-left-color: #888;">
+      <span class="priority-rank" style="background:#888;">検討</span>
+      <div>
+        <h3>「3組限定モニター価格」での初受注加速 <span class="owner-tag owner">ダッフィー＋オーナー</span></h3>
+        <p>通常価格より20〜30%OFFで体験談取得を条件にする。実績ゼロの壁を一気に超える施策。LP常時掲載ではなくモニター枠が埋まったら撤去する期間限定運用。</p>
+      </div>
+    </div>
+
+    <div class="priority-item p3" style="border-left-color: #888;">
+      <span class="priority-rank" style="background:#888;">検討</span>
+      <div>
+        <h3>クイック診断ページの追加（3問診断） <span class="owner-tag delegate">ジェラトーニ＋ダッフィー</span></h3>
+        <p>「あなたの記念日に合うプランは？」3問の診断 → 結果ページからTallyへ。フォーム重い問題を緩和。運用負荷増えるため自己テスト後の改善余地として温存。</p>
       </div>
     </div>
 
