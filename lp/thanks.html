@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
+  <title>お申し込みありがとうございます | 記念日プラン</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --white: #ffffff;
+      --blue-pale: #f0f7fc;
+      --blue-light: #d6eaf8;
+      --blue-pastel: #a8c8e0;
+      --blue-mid: #4a8ab5;
+      --navy: #1a2840;
+      --navy-soft: #243550;
+      --text: #2d3748;
+      --text-light: #64748b;
+      --border: #d1e8f5;
+      --line-green: #06C755;
+      --line-green-dark: #05a847;
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-weight: 400;
+      color: var(--text);
+      background: var(--white);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── NAV ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 60px;
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--navy);
+      letter-spacing: 0.05em;
+      text-decoration: none;
+    }
+
+    /* ── MAIN ── */
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 24px;
+      position: relative;
+      overflow: hidden;
+      background: var(--white);
+    }
+    .main-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 70% 40%, rgba(168,200,224,0.20) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 20% 80%, rgba(168,200,224,0.10) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    .container {
+      position: relative;
+      max-width: 640px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .check-icon {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 32px;
+      border-radius: 50%;
+      background: var(--blue-pale);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--blue-pastel);
+    }
+    .check-icon svg {
+      width: 36px;
+      height: 36px;
+      stroke: var(--navy);
+      stroke-width: 2.5;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 500;
+      color: var(--navy);
+      letter-spacing: 0.02em;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+    .lead {
+      font-size: 15px;
+      font-weight: 400;
+      color: var(--text-light);
+      line-height: 1.9;
+      margin-bottom: 48px;
+    }
+
+    .next-step-card {
+      background: var(--blue-pale);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 36px 32px;
+      margin-bottom: 32px;
+      text-align: left;
+    }
+    .next-step-label {
+      display: inline-block;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      color: var(--blue-mid);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .next-step-title {
+      font-size: 19px;
+      font-weight: 500;
+      color: var(--navy);
+      margin-bottom: 14px;
+      line-height: 1.6;
+    }
+    .next-step-desc {
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--text);
+      line-height: 1.9;
+      margin-bottom: 24px;
+    }
+    .next-step-desc strong {
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    .line-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      background: var(--line-green);
+      color: var(--white);
+      font-size: 16px;
+      font-weight: 700;
+      text-decoration: none;
+      padding: 18px 32px;
+      border-radius: 10px;
+      letter-spacing: 0.03em;
+      transition: background 0.2s, transform 0.1s;
+      box-shadow: 0 4px 12px rgba(6,199,85,0.25);
+    }
+    .line-btn:hover {
+      background: var(--line-green-dark);
+      transform: translateY(-1px);
+    }
+    .line-btn:active {
+      transform: translateY(0);
+    }
+    .line-btn svg {
+      width: 22px;
+      height: 22px;
+      fill: var(--white);
+    }
+
+    .note-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      text-align: left;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    .note-list li {
+      font-size: 13px;
+      color: var(--text-light);
+      line-height: 1.8;
+      padding-left: 22px;
+      position: relative;
+      margin-bottom: 10px;
+    }
+    .note-list li::before {
+      content: '';
+      position: absolute;
+      left: 6px;
+      top: 11px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--blue-pastel);
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 40px;
+      font-size: 13px;
+      color: var(--text-light);
+      text-decoration: none;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 2px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .back-link:hover {
+      color: var(--navy);
+      border-color: var(--navy);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      padding: 32px 24px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-light);
+      border-top: 1px solid var(--border);
+      background: var(--white);
+    }
+    footer a {
+      color: var(--text-light);
+      text-decoration: none;
+      margin: 0 8px;
+      transition: color 0.2s;
+    }
+    footer a:hover { color: var(--navy); }
+
+    /* ── MOBILE ── */
+    @media (max-width: 640px) {
+      nav { padding: 20px 24px; }
+      main { padding: 56px 20px; }
+      h1 { font-size: 24px; }
+      .lead { font-size: 14px; margin-bottom: 36px; }
+      .next-step-card { padding: 28px 22px; }
+      .next-step-title { font-size: 17px; }
+      .next-step-desc { font-size: 13px; }
+      .line-btn { font-size: 15px; padding: 16px 24px; }
+      .check-icon { width: 60px; height: 60px; margin-bottom: 24px; }
+      .check-icon svg { width: 30px; height: 30px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="/" class="nav-logo">Kinenbi Plan</a>
+  </nav>
+
+  <main>
+    <div class="main-bg"></div>
+
+    <div class="container">
+
+      <div class="check-icon">
+        <svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"></polyline></svg>
+      </div>
+
+      <h1>お申し込みありがとうございます</h1>
+      <p class="lead">
+        お申し込みフォームのご回答を受け付けました。<br>
+        ここから先のご連絡は、すべて <strong style="color: var(--navy); font-weight: 700;">LINE公式アカウント</strong> でお送りします。
+      </p>
+
+      <div class="next-step-card">
+        <div class="next-step-label">Next Step</div>
+        <div class="next-step-title">LINEで友だち追加してください</div>
+        <p class="next-step-desc">
+          <strong>担当からのご連絡・プラン提案・お見積もりはすべて LINE 経由</strong> でお送りします。<br>
+          下のボタンから友だち追加していただかないと、こちらからご連絡ができません。
+        </p>
+
+        <a href="https://lin.ee/WLgydmi" class="line-btn" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24"><path d="M19.365 9.863c.349 0 .63.285.631.631 0 .345-.282.63-.631.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.282.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
+          LINEで友だち追加する
+        </a>
+      </div>
+
+      <ul class="note-list">
+        <li>追加が完了したら、当日中〜翌営業日に担当よりメッセージをお送りします</li>
+        <li>受付確認メールも同時にお送りしています（迷惑メールフォルダもご確認ください）</li>
+        <li>ご相談だけでも歓迎です。プラン確定までキャンセル無料・料金は一切発生しません</li>
+      </ul>
+
+      <a href="/" class="back-link">トップページに戻る</a>
+
+    </div>
+  </main>
+
+  <footer>
+    <div>
+      <a href="/tokutei.html">特定商取引法に基づく表記</a>　｜　<a href="/privacy.html">プライバシーポリシー</a>
+    </div>
+    <div style="margin-top: 10px;">© 2026 記念日プラン</div>
+  </footer>
+
+</body>
+</html>
