@@ -322,7 +322,7 @@
   <div class="page-header">
     <div class="service-label">記念日プラン</div>
     <h1>実装状況 &amp; フロー管理</h1>
-    <div class="meta">最終更新：2026-05-28　　Phase 1 進行中（進捗50%）</div>
+    <div class="meta">最終更新：2026-05-28（夜：フォーム導線改善・案件DB自動転記・メール強化まで完了）　　Phase 1 進行中（進捗80%・残り試運転のみ）</div>
   </div>
 
   <!-- 凡例 -->
@@ -367,12 +367,13 @@
       <div class="flow-step-num">STEP 03</div>
       <div class="flow-step-body">
         <h3>サンクスページでLINE公式アカウントを友だち追加</h3>
-        <p>Tally送信後、Redirect on completion機能で LINE 友だち追加URL（https://lin.ee/WLgydmi）に自動リダイレクト。</p>
+        <p>Tally送信後、自前サンクスページ（lp/thanks.html）に遷移し、「ご連絡はLINEで」の説明＋LINE友だち追加CTA を提示。そこから LINE 公式アカウントへ。</p>
         <div class="tools">
-          <span class="tool-tag">Tally（Redirect設定済み）</span>
+          <span class="tool-tag">lp/thanks.html（Vercel）</span>
+          <span class="tool-tag">Tally（Redirect設定）</span>
           <span class="tool-tag">LINE公式アカウント</span>
         </div>
-        <span class="done-note">2026-05-28：Tally Redirect設定完了。送信後にLINE追加画面に直接遷移する流れが動作中。</span>
+        <span class="done-note">2026-05-28夜：lp/thanks.html を実装・Vercel公開・Tally Redirect先切り替え完了。直リダイレクト方式から「説明＋動機づけあり」のサンクスページ経由に切り替え。</span>
       </div>
       <div class="flow-step-status"><span class="badge badge-done">完了</span></div>
     </div>
@@ -474,20 +475,38 @@
     <tr>
       <td>受付確認メール（自動）</td>
       <td>Make + Gmail</td>
-      <td class="status"><span class="badge badge-partial">要対応</span></td>
-      <td>稼働中。LINE追加案内の文言を追記する必要あり</td>
+      <td class="status"><span class="badge badge-done">完了</span></td>
+      <td>2026-05-28夜 件名を「LINE友だち追加で担当からご連絡します」に変更、本文最上部にLINE URL格上げ完了</td>
     </tr>
     <tr>
-      <td>顧客管理DB</td>
+      <td>顧客管理DB（フォーム回答ログ）</td>
       <td>Notion</td>
       <td class="status"><span class="badge badge-done">完了</span></td>
-      <td>Tally連携で自動転記済み</td>
+      <td>Tally直接連携①で自動転記済み。役割＝生ログ保存</td>
     </tr>
     <tr>
-      <td>案件管理DB</td>
+      <td>案件管理DB（DB本体）</td>
       <td>Notion</td>
       <td class="status"><span class="badge badge-done">完了</span></td>
       <td>2026-05-28 CSVインポート・型変換完了（20カラム）</td>
+    </tr>
+    <tr>
+      <td>案件管理DBへの自動転記</td>
+      <td>Tally → Notion 直接連携②</td>
+      <td class="status"><span class="badge badge-done">完了</span></td>
+      <td>2026-05-28夜 完了。Tally Integrationsで Notion 連携をもう1つ追加し案件管理DB に連携。テスト送信OK。当初Make経由設計だったがTally直接連携の方がシンプル＆Makeオペレーション消費なしのため方針変更</td>
+    </tr>
+    <tr>
+      <td>自前サンクスページ</td>
+      <td>HTML + Vercel</td>
+      <td class="status"><span class="badge badge-done">完了</span></td>
+      <td>2026-05-28夜 lp/thanks.html 実装・Vercel公開・Tally Redirect先切替完了。`https://kinenbi-planner.vercel.app/thanks.html` で稼働中</td>
+    </tr>
+    <tr>
+      <td>Vercel デプロイ設定</td>
+      <td>Vercel</td>
+      <td class="status"><span class="badge badge-done">完了</span></td>
+      <td>2026-05-28夜 Production Branch を `main` → `master` に、Root Directory を `./` → `lp` に修正。lp/配下のみが公開される本来の構成に統一</td>
     </tr>
     <tr>
       <td>応答テンプレ集</td>
@@ -647,6 +666,47 @@
     既存ロードマップに乗っていない最適化項目をレビュー結果から抽出。受注フロー全体の離脱率・CVR・信頼性を改善する施策を優先度別に管理。
   </p>
   <div class="priority-list">
+
+    <!-- 2026-05-28 夜：実装中タスク -->
+    <div class="priority-item p1">
+      <span class="priority-rank">P1</span>
+      <div>
+        <h3>案件管理DBへの自動転記 <span class="owner-tag delegate">対応済み</span></h3>
+        <p>2026-05-28夜 完了。当初Make経由で設計したが、Tally直接連携の方がシンプル＆Makeオペレーション消費なしのため方針変更。Tally Integrationsで Notion 連携をもう1つ追加し、案件管理DB に連携。テスト送信で正常転記を確認。役割分離：顧客管理DB＝フォーム回答の生ログ／案件管理DB＝進行中案件の管理用。</p>
+      </div>
+    </div>
+
+    <div class="priority-item p1">
+      <span class="priority-rank">P1</span>
+      <div>
+        <h3>自前サンクスページ作成（lp/thanks.html） <span class="owner-tag delegate">対応済み・切替待ち</span></h3>
+        <p>2026-05-28夜 実装・git push完了。Vercel自動デプロイで `https://kinenbi-planner.vercel.app/thanks.html` で公開。LPと同じ世界観でメインCTAだけ LINE 緑ボタン。残作業：Tally管理画面の Redirect on completion を `lin.ee/WLgydmi` から thanks.html に差し替え（5分）。</p>
+      </div>
+    </div>
+
+    <div class="priority-item p2">
+      <span class="priority-rank">P2</span>
+      <div>
+        <h3>受付メール件名・冒頭のLINE誘導強化 <span class="owner-tag delegate">対応済み</span></h3>
+        <p>2026-05-28夜 完了。件名を「【記念日プラン】LINE友だち追加で担当からご連絡します」に変更、本文最上部に LINE URL を格上げ。</p>
+      </div>
+    </div>
+
+    <div class="priority-item p2">
+      <span class="priority-rank">P2</span>
+      <div>
+        <h3>LINE未追加リマインドシナリオ（Make新規） <span class="owner-tag delegate">残作業・後回しOK</span></h3>
+        <p>Tally送信から24h/48h後にLINE追加URL付きリマインドメールを自動送信。未追加判定はできないので「もしまだ追加していなければ」と前置きで全員に送る。試運転完了後にLP正式公開と並行して検討。</p>
+      </div>
+    </div>
+
+    <div class="priority-item p1">
+      <span class="priority-rank">P1</span>
+      <div>
+        <h3>フロー試運転（自己テスト）— 次回最優先 <span class="owner-tag owner">本人</span></h3>
+        <p>テスト用メアドで全工程通す：①Tally送信 → ②thanks.html遷移 → ③LINE追加 → ④受付確認メール（新件名・LINE URL格上げ）→ ⑤顧客管理DB行追加 → ⑥案件管理DB行追加（カラム値確認）→ ⑦LINE手動応答テスト。スマホでも同じ流れを確認。</p>
+      </div>
+    </div>
 
     <!-- 最優先（初受注前に必須） -->
     <div class="priority-item p1">
