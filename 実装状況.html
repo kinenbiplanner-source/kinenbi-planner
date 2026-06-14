@@ -322,7 +322,7 @@
   <div class="page-header">
     <div class="service-label">記念日プラン</div>
     <h1>実装状況 &amp; フロー管理</h1>
-    <div class="meta">最終更新：2026-05-28（夜：フォーム導線改善・案件DB自動転記・メール強化まで完了）　　Phase 1 進行中（進捗80%・残り試運転のみ）</div>
+    <div class="meta">最終更新：2026-06-14（Google Search Console所有権確認・インデックス登録リクエスト・Git認証のセキュリティ改善まで完了）　　Phase 1 進行中（進捗85%・残り試運転と告知）</div>
   </div>
 
   <!-- 凡例 -->
@@ -509,6 +509,18 @@
       <td>2026-05-28夜 Production Branch を `main` → `master` に、Root Directory を `./` → `lp` に修正。lp/配下のみが公開される本来の構成に統一</td>
     </tr>
     <tr>
+      <td>Google Search Console（SEO初期設定）</td>
+      <td>Search Console + LP head metaタグ</td>
+      <td class="status"><span class="badge badge-done">完了</span></td>
+      <td>2026-06-14 所有権確認用 google-site-verification メタタグを lp/index.html の head に追加→本番反映→所有権確認OK。URL検査からインデックス登録もリクエスト済み（実際の登録は数日〜2週間後。site:検索で確認）。sitemap未作成（LP1枚なので任意）</td>
+    </tr>
+    <tr>
+      <td>Git認証のセキュリティ改善</td>
+      <td>Git Credential Manager</td>
+      <td class="status"><span class="badge badge-done">完了</span></td>
+      <td>2026-06-14 リモートURLに平文埋め込みされていたPATを除去→GCM（Windows資格情報マネージャー）認証へ移行。漏洩した旧トークンはGitHubで無効化（Revoke）済み</td>
+    </tr>
+    <tr>
       <td>応答テンプレ集</td>
       <td>応答テンプレ.html</td>
       <td class="status"><span class="badge badge-done">完了</span></td>
@@ -583,9 +595,9 @@
   </table>
 
   <!-- 優先タスク -->
-  <h2>今やるべきこと（優先順）— 2026-05-28夜 更新</h2>
+  <h2>今やるべきこと（優先順）— 2026-06-14 更新</h2>
   <p style="font-size: 12px; color: #666; margin-bottom: 16px;">
-    Stripe本番化・バーチャルオフィス取得・特商法ページ記入・Notion案件管理DB構築・LINE公式アカウント開設・Make受付メール強化はすべて完了。残りは試運転と告知のみ。
+    Stripe本番化・バーチャルオフィス取得・特商法ページ記入・Notion案件管理DB構築・LINE公式アカウント開設・Make受付メール強化・Google Search Console所有権確認＆インデックス登録リクエスト・Git認証のセキュリティ改善はすべて完了。<strong>収益化の最大の残課題は「フロー試運転 → 知人・友人への告知 → 初受注」</strong>。SEO（検索流入）はvercel.appサブドメインでは上位表示が難しく、カスタムドメイン取得（Phase 2）後に本格化するため当面は補助的位置づけ。
   </p>
   <div class="priority-list">
 
@@ -610,6 +622,14 @@
       <div>
         <h3>LP正式公開 → 知人・友人への告知 → 初受注 <span class="owner-tag owner">本人</span></h3>
         <p>試運転で問題なければ告知開始。SNSや個別連絡で知人・友人に共有 → 初受注を目指す。LP本体は既にVercelで公開済み（kinenbi-planner.vercel.app）。カスタムドメインはPhase 2で対応。</p>
+      </div>
+    </div>
+
+    <div class="priority-item p3">
+      <span class="priority-rank">P3</span>
+      <div>
+        <h3>インデックス登録の確認（SEO follow-up） <span class="owner-tag owner">本人</span></h3>
+        <p>2026-06-14にインデックス登録をリクエスト済み。数日〜2週間後に <code>site:kinenbi-planner.vercel.app</code> でGoogle検索 → ヒットすれば登録完了。Search ConsoleのURL検査でも「URLはGoogleに登録されています」を確認できる。登録されない場合は再リクエスト。カスタムドメイン取得後はそちらで再登録が必要。</p>
       </div>
     </div>
 
@@ -838,8 +858,24 @@
     <table class="tool-table">
       <tr><th>リポジトリ</th><td><a href="https://github.com/kinenbiplanner-source/kinenbi-planner" target="_blank">https://github.com/kinenbiplanner-source/kinenbi-planner</a></td></tr>
       <tr><th>アカウント</th><td>kinenbiplanner-source</td></tr>
-      <tr><th>認証方式</th><td>Personal Access Token をリモートURLに埋め込み</td></tr>
+      <tr><th>認証方式</th><td>Git Credential Manager（Windows資格情報マネージャーに保存）。2026-06-14に平文PATのURL埋め込みを廃止しGCMへ移行・旧トークンは無効化済み</td></tr>
       <tr><th>ブランチ</th><td>master（mainブランチ運用）</td></tr>
+    </table>
+  </div>
+
+  <div class="tool-card">
+    <div class="tool-card-header">
+      <h4>Google Search Console</h4>
+      <span class="tool-cost cost-free">無料</span>
+    </div>
+    <div class="tool-purpose">LPの検索パフォーマンス計測・インデックス管理。所有権確認後、URL検査でインデックス登録のリクエストやクロール状況の確認ができる。</div>
+    <table class="tool-table">
+      <tr><th>状態</th><td>2026-06-14 所有権確認完了（lp/index.html head の google-site-verification メタタグ方式）。インデックス登録リクエスト済み</td></tr>
+      <tr><th>登録プロパティ</th><td>https://kinenbi-planner.vercel.app/</td></tr>
+      <tr><th>管理画面</th><td><a href="https://search.google.com/search-console" target="_blank">https://search.google.com/search-console</a></td></tr>
+      <tr><th>アカウント</th><td>kinenbi.planner@gmail.com</td></tr>
+      <tr><th>確認方法</th><td>HTMLメタタグ（コードに常設。削除すると確認が外れる）</td></tr>
+      <tr><th>登録確認</th><td>Google検索で <code>site:kinenbi-planner.vercel.app</code> がヒットすればインデックス済み（数日〜2週間目安）</td></tr>
     </table>
   </div>
 
@@ -1019,7 +1055,7 @@
     </div>
     <div class="tool-purpose">コンシェルジュ対応の標準文言集。9セクション15テンプレ。受付確認・LINE初回対応・ヒアリング・プラン提案・決済案内・指示書納品・キャンセル対応など全てカバー。</div>
     <table class="tool-table">
-      <tr><th>場所</th><td>c:\Users\sansh\OneDrive\記念日サポート\応答テンプレ.html</td></tr>
+      <tr><th>場所</th><td>c:\dev\kinenbi-planner\応答テンプレ.html</td></tr>
     </table>
   </div>
 
@@ -1029,7 +1065,7 @@
     </div>
     <div class="tool-purpose">Notion案件管理DB用のスキーマ＋サンプルデータ。20カラム（案件ID・顧客名・プラン・ステータス・決済情報など）＋3件のサンプルレコード。</div>
     <table class="tool-table">
-      <tr><th>場所</th><td>c:\Users\sansh\OneDrive\記念日サポート\notion_案件管理DB.csv</td></tr>
+      <tr><th>場所</th><td>c:\dev\kinenbi-planner\notion_案件管理DB.csv</td></tr>
       <tr><th>インポート手順</th><td>Notionにドラッグ＆ドロップ → カラム型を変換</td></tr>
     </table>
   </div>
@@ -1040,7 +1076,7 @@
     </div>
     <div class="tool-purpose">事業のドキュメント類。仕様・進捗・ロードマップを記録。</div>
     <table class="tool-table">
-      <tr><th>場所</th><td>c:\Users\sansh\OneDrive\記念日サポート\ 配下</td></tr>
+      <tr><th>場所</th><td>c:\dev\kinenbi-planner\ 配下</td></tr>
       <tr><th>運用ルール</th><td>作業を進めるたびに最新の状態に更新する</td></tr>
     </table>
   </div>
@@ -1056,8 +1092,8 @@
     <div class="tool-purpose">バージョン管理。LP・各種ドキュメントの変更履歴を記録し、GitHubにpush → Vercelへ自動デプロイ。</div>
     <table class="tool-table">
       <tr><th>運用</th><td>git add . → git commit -m "メッセージ" → git push origin master</td></tr>
-      <tr><th>認証</th><td>Personal Access Token（リモートURLに埋め込み）</td></tr>
-      <tr><th>ローカル作業場所</th><td>c:\Users\sansh\OneDrive\記念日サポート</td></tr>
+      <tr><th>認証</th><td>Git Credential Manager（GCM）。2026-06-14 平文トークンのURL埋め込みを廃止し、初回pushでブラウザ認証→Windows資格情報マネージャーに安全保存する方式へ変更</td></tr>
+      <tr><th>ローカル作業場所</th><td>c:\dev\kinenbi-planner</td></tr>
     </table>
   </div>
 
@@ -1096,7 +1132,7 @@
   </p>
 
   <div style="margin-top: 48px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #aaa; text-align: right;">
-    記念日プラン — 実装状況ドキュメント　最終更新：2026-05-28
+    記念日プラン — 実装状況ドキュメント　最終更新：2026-06-14
   </div>
 
 </div>
