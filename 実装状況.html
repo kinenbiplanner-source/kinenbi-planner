@@ -322,7 +322,7 @@
   <div class="page-header">
     <div class="service-label">記念日プラン</div>
     <h1>実装状況 &amp; フロー管理</h1>
-    <div class="meta">最終更新：2026-06-14（Google Search Console所有権確認・インデックス登録リクエスト・Git認証のセキュリティ改善まで完了）　　Phase 1 進行中（進捗85%・残り試運転と告知）</div>
+    <div class="meta">最終更新：2026-06-15（フロー試運転 全工程クリア。Phase 1の主要構築は完了）　　Phase 1 進行中（進捗90%・残りは告知→初受注と事務手続き）</div>
   </div>
 
   <!-- 凡例 -->
@@ -475,8 +475,8 @@
     <tr>
       <td>受付確認メール（自動）</td>
       <td>Make + Gmail</td>
-      <td class="status"><span class="badge badge-done">完了</span></td>
-      <td>2026-05-28夜 件名を「LINE友だち追加で担当からご連絡します」に変更、本文最上部にLINE URL格上げ完了</td>
+      <td class="status"><span class="badge badge-partial">要対応</span></td>
+      <td>送信自体は稼働中。ただし2026-06-15の試運転で<strong>Gmail受信側の迷惑メールに振り分けられる</strong>ことを確認。gmail.com送信＋送信実績ゼロが原因。LINEが主導線・メールは保険のため<strong>当面は許容（先送り）</strong>。本質対策は独自ドメイン取得＋SPF/DKIM/DMARC認証（Phase 2）</td>
     </tr>
     <tr>
       <td>顧客管理DB（フォーム回答ログ）</td>
@@ -589,23 +589,23 @@
     <tr>
       <td>LP正式公開・告知</td>
       <td>Vercel + SNS</td>
-      <td class="status"><span class="badge badge-partial">準備完了・告知前</span></td>
-      <td>LP自体は kinenbi-planner.vercel.app で公開済み。試運転完了後に知人・友人へ告知 → 初受注</td>
+      <td class="status"><span class="badge badge-partial">告知開始可能</span></td>
+      <td>LP自体は kinenbi-planner.vercel.app で公開済み。2026-06-15に試運転完了したので、<strong>あとは知人・友人へ告知 → 初受注に進める状態</strong></td>
     </tr>
   </table>
 
   <!-- 優先タスク -->
   <h2>今やるべきこと（優先順）— 2026-06-14 更新</h2>
   <p style="font-size: 12px; color: #666; margin-bottom: 16px;">
-    Stripe本番化・バーチャルオフィス取得・特商法ページ記入・Notion案件管理DB構築・LINE公式アカウント開設・Make受付メール強化・Google Search Console所有権確認＆インデックス登録リクエスト・Git認証のセキュリティ改善はすべて完了。<strong>収益化の最大の残課題は「フロー試運転 → 知人・友人への告知 → 初受注」</strong>。SEO（検索流入）はvercel.appサブドメインでは上位表示が難しく、カスタムドメイン取得（Phase 2）後に本格化するため当面は補助的位置づけ。
+    各種構築（LP・フォーム・自動転記・LINE・Stripe・各種手続き・Search Console・Git改善）に加え、<strong>2026-06-15にフロー試運転（自己テスト）も全工程クリア</strong>。これでPhase 1の構築フェーズは実質完了し、<strong>残る収益化の最大課題は「知人・友人への告知 → 初受注」</strong>。並行して異動届出書とサービス供給準備を進める。SEO（検索流入）はvercel.appサブドメインでは上位表示が難しく、カスタムドメイン取得（Phase 2）後に本格化するため当面は補助的位置づけ。
   </p>
   <div class="priority-list">
 
     <div class="priority-item p1">
       <span class="priority-rank">P1</span>
       <div>
-        <h3>フロー試運転（自己テスト） <span class="owner-tag owner">本人</span></h3>
-        <p>テスト用メアドで全工程通す：①Tallyフォーム送信 → ②サンクスページ（thanks.html）遷移 → ③LINE公式アカウント友だち追加 → ④受付確認メール受信（新件名・LINE URL格上げ確認）→ ⑤顧客管理DBに行が追加 → ⑥案件管理DBに行が追加（顧客名・メール・記念日・特急オプション・メモが正しく入っているか）→ ⑦LINE応答テンプレで手動応答 → ⑧Stripe Invoice少額発行 → ⑨LINEで送付 → ⑩決済→領収書確認。スマホでも同じ流れを確認。詰まりポイント・所要時間をメモして改善。</p>
+        <h3>フロー試運転（自己テスト） <span class="owner-tag delegate">対応済み</span></h3>
+        <p><strong>2026-06-15 完了。全工程をPC・スマホ両方で通し、スムーズに動作することを確認。</strong>Tallyフォーム送信 → thanks.html遷移 → LINE友だち追加 → 顧客管理DB・案件管理DB自動転記（カラム値正常）→ LINE手動応答 → Stripe Invoice発行→LINE送付→決済→返金まで問題なし。唯一、受付確認メールがGmailの迷惑メールに振り分けられる課題のみ確認したが、LINE主導線のため当面許容（到達性改善はPhase 2）。これでPhase 1の最大関門クリア＝実受注可能な状態。</p>
       </div>
     </div>
 
@@ -665,6 +665,14 @@
       </div>
     </div>
 
+    <div class="priority-item p3" style="border-left-color: #888;">
+      <span class="priority-rank" style="background:#888;">Phase 2以降</span>
+      <div>
+        <h3>受付メールの到達性改善（迷惑メール対策） <span class="owner-tag owner">本人</span></h3>
+        <p>2026-06-15の試運転で受付確認メールがGmailの迷惑メールに振り分けられることを確認。当面は許容（LINE主導線・メールは保険のため）。カスタムドメイン取得とセットで、独自ドメイン送信＋SPF/DKIM/DMARC認証を設定して受信箱到達率を改善する。必要に応じてResend/Brevo等のトランザクションメール送信に切り替え。</p>
+      </div>
+    </div>
+
   </div>
 
   <!-- 導線最適化TODO -->
@@ -710,8 +718,8 @@
     <div class="priority-item p1">
       <span class="priority-rank">P1</span>
       <div>
-        <h3>フロー試運転（自己テスト）— 次回最優先 <span class="owner-tag owner">本人</span></h3>
-        <p>テスト用メアドで全工程通す：①Tally送信 → ②thanks.html遷移 → ③LINE追加 → ④受付確認メール（新件名・LINE URL格上げ）→ ⑤顧客管理DB行追加 → ⑥案件管理DB行追加（カラム値確認）→ ⑦LINE手動応答テスト。スマホでも同じ流れを確認。</p>
+        <h3>フロー試運転（自己テスト） <span class="owner-tag delegate">対応済み</span></h3>
+        <p>2026-06-15 完了。PC・スマホ両方で全工程をスムーズに通過（上の「今やるべきこと」欄に詳細）。</p>
       </div>
     </div>
 
@@ -1132,7 +1140,7 @@
   </p>
 
   <div style="margin-top: 48px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #aaa; text-align: right;">
-    記念日プラン — 実装状況ドキュメント　最終更新：2026-06-14
+    記念日プラン — 実装状況ドキュメント　最終更新：2026-06-15
   </div>
 
 </div>
