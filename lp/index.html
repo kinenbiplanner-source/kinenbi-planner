@@ -167,16 +167,30 @@
       padding: 150px 60px 90px;
       position: relative;
       overflow: hidden;
-      background: linear-gradient(180deg, #fbfdff 0%, #eef6fc 100%);
+      background: linear-gradient(180deg,
+        #2f6f9e 0%,
+        #4f93bd 24%,
+        #8fbcd9 44%,
+        #c7d4c2 58%,
+        #e4d4ac 76%,
+        #f4ecd6 100%);
     }
     .hero-bg {
       position: absolute;
       inset: 0;
-      background:
-        radial-gradient(ellipse 70% 55% at 72% 35%, rgba(168,200,224,0.30) 0%, transparent 60%),
-        radial-gradient(ellipse 45% 45% at 18% 78%, rgba(168,200,224,0.16) 0%, transparent 55%);
-      animation: bgPulse 9s ease-in-out infinite alternate;
+      z-index: 0;
+      background: url('assets/sea.jpg') center / cover no-repeat;
+      animation: kenburns 30s ease-in-out infinite alternate;
     }
+    #hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: linear-gradient(95deg, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.6) 30%, rgba(255,255,255,0.12) 56%, rgba(255,255,255,0) 78%);
+      pointer-events: none;
+    }
+    .hero-aurora, .hero-orb, .hero-glow, .hero-grain { display: none; }
     @keyframes bgPulse {
       from { opacity: 0.65; }
       to   { opacity: 1; }
@@ -201,6 +215,32 @@
     }
     @keyframes float1 { from { transform: translate(0,0); } to { transform: translate(-30px, 26px); } }
     @keyframes float2 { from { transform: translate(0,0); } to { transform: translate(24px, -22px); } }
+    /* セクション背景写真（暗く沈めてゆっくり動かす） */
+    .sec-photo {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      opacity: 0.32;
+      z-index: 0;
+      pointer-events: none;
+      animation: kenburns 28s ease-in-out infinite alternate;
+    }
+    #cta .sec-photo { background-image: url('assets/venue.jpg'); }
+    #flow { position: relative; overflow: hidden; }
+    #flow .sec-photo { background-image: url('assets/flow.jpg'); background-position: right center; opacity: 0.6; }
+    #flow::before {
+      content: '';
+      position: absolute; inset: 0; z-index: 1;
+      background: linear-gradient(95deg, var(--blue-pale) 0%, rgba(240,247,252,0.85) 34%, rgba(240,247,252,0.35) 62%, rgba(240,247,252,0) 100%);
+      pointer-events: none;
+    }
+    #flow .section-inner { position: relative; z-index: 2; }
+    @keyframes kenburns {
+      from { transform: scale(1.06) translate3d(-1%, -1%, 0); }
+      to   { transform: scale(1.16) translate3d(1.5%, 1%, 0); }
+    }
+
     /* オーロラ状のゆっくり回る光 */
     .hero-aurora {
       position: absolute;
@@ -579,6 +619,7 @@
     .gallery-item {
       position: relative;
       margin: 0;
+      border: 6px solid #fff;
       border-radius: var(--radius);
       overflow: hidden;
       box-shadow: var(--shadow-md);
@@ -1200,7 +1241,7 @@
       <div class="hero-stats">
         <div class="hero-stat">
           <div>
-            <div class="hero-stat-num"><span class="count" data-target="24">0</span><span class="hero-stat-unit">h</span></div>
+            <div class="hero-stat-num"><span class="count" data-target="12">0</span><span class="hero-stat-unit">h</span></div>
           </div>
           <div class="hero-stat-divider"></div>
           <div class="hero-stat-label">以内にプランナーより<br>ご返信いたします</div>
@@ -1361,6 +1402,7 @@
 
 <!-- FLOW -->
 <section id="flow">
+  <div class="sec-photo"></div>
   <div class="section-inner">
     <div class="section-header animate">
       <div class="section-label">How it works</div>
@@ -1380,7 +1422,7 @@
         <div class="flow-step-content">
           <span class="flow-step-num">STEP 02</span>
           <h3>公式LINEでプランナーからご連絡</h3>
-          <p>内容を確認次第、24時間以内にプランナーよりご連絡します。プランの方向性を一緒に確認します。</p>
+          <p>内容を確認次第、12時間以内にプランナーよりご連絡します。プランの方向性を一緒に確認します。</p>
         </div>
       </div>
       <div class="flow-step animate delay-1">
@@ -1488,8 +1530,8 @@
             <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
           </svg>
         </div>
-        <h3>24時間以内に返信</h3>
-        <p>お申し込み後、24時間以内にプランナーよりご連絡します。ご不明な点はいつでもご相談ください。</p>
+        <h3>12時間以内に返信</h3>
+        <p>お申し込み後、12時間以内にプランナーよりご連絡します。ご不明な点はいつでもご相談ください。</p>
       </div>
       <div class="trust-card animate delay-3">
         <div class="trust-icon" aria-hidden="true">
@@ -1506,6 +1548,7 @@
 
 <!-- FINAL CTA -->
 <section id="cta">
+  <div class="sec-photo"></div>
   <div class="section-inner">
     <h2 class="section-title animate delay-1">一緒に、忘れられない一日を。</h2>
     <p class="section-sub animate delay-2">フォームにご回答いただくだけで、想いに寄り添ったご提案をお届けします。</p>
@@ -1618,10 +1661,6 @@
     start: 'top 86%',
     onEnter: (els) => gsap.to(els, { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out', stagger: 0.1, overwrite: true }),
   });
-
-  /* ---------- 背景パララックス（hero、奥行き） ---------- */
-  gsap.to('.hero-bg', { yPercent: 18, ease: 'none', scrollTrigger: { trigger: '#hero', start: 'top top', end: 'bottom top', scrub: true } });
-  gsap.to('.hero-grain', { yPercent: 30, ease: 'none', scrollTrigger: { trigger: '#hero', start: 'top top', end: 'bottom top', scrub: true } });
 
   /* ---------- マウス追従グロー ---------- */
   const hero = document.getElementById('hero');
