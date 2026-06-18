@@ -322,7 +322,7 @@
   <div class="page-header">
     <div class="service-label">Anniv</div>
     <h1>実装状況 &amp; フロー管理</h1>
-    <div class="meta">最終更新：2026-06-16（STEP A ブランド名を「Anniv」継続で確定。次はドメイン取得）　　Phase 1 進行中（進捗90%・残りは告知→初受注と事務手続き）</div>
+    <div class="meta">最終更新：2026-06-18（記念日プラン→Annivに改名、独自ドメイン anniv.gift を取得・公開、外部サービス移行まで完了）　　Phase 1 進行中（進捗92%・残りは告知→初受注）</div>
   </div>
 
   <!-- 凡例 -->
@@ -548,7 +548,7 @@
       <td>開業届</td>
       <td>freee開業 → e-Tax</td>
       <td class="status"><span class="badge badge-done">完了</span></td>
-      <td>2026-05-28 提出・受付完了。屋号「Anniv」登録済み</td>
+      <td>2026-05-28 当初「記念日プラン」で提出・受付完了。2026-06-18 屋号「Anniv」で再提出済み</td>
     </tr>
     <tr>
       <td>青色申告承認申請</td>
@@ -560,7 +560,7 @@
       <td>バーチャルオフィス</td>
       <td>GMOオフィスサポート</td>
       <td class="status"><span class="badge badge-done">完了</span></td>
-      <td>大阪・梅田／月660円／屋号「Anniv」。住所：〒530-0001 大阪府大阪市北区梅田1丁目2番2号 大阪駅前第2ビル12-12</td>
+      <td>大阪・梅田／月660円／屋号は「記念日プラン」で契約中、Annivへの変更を申請済み（先方手続き待ち）。住所：〒530-0001 大阪府大阪市北区梅田1丁目2番2号 大阪駅前第2ビル12-12</td>
     </tr>
     <tr>
       <td>異動届出書（事業所住所をバーチャルに変更）</td>
@@ -688,23 +688,23 @@
       <div class="flow-step-body">
         <h3>ブランド名の最終決定 → 「記念日プラン」から「Anniv」へ改名</h3>
         <p><strong>2026-06-18 決定：「記念日プラン」→「Anniv（アニブ）」に改名。</strong>当初は記念日プラン継続（記述的でSEOに強くドメイン取得済み）の方針だったが、一般名詞すぎて指名検索・ブランド性が弱く、ターゲットである男性に響くスマートさに欠けるため改名を決定。AnnivはAnniversary由来で短くスマート、記念日と察せられ、分かりやすさはタグライン「記念日サポート」で担保する。ドメインは anniv.gift / anniv.day / anniv.me 等が空き（.com/.jp/.app/.co は他者取得済み）、「Anniv」単体の競合サービスは現時点で未確認。LP・特商法・プライバシーポリシー・応答テンプレの表記はAnniv化済み。</p>
-        <span class="done-note">記念日プラン → Anniv に改名（2026-06-18）。残りは外部サービスの屋号変更とドメイン取得</span>
+        <span class="done-note">記念日プラン → Anniv に改名（2026-06-18）。ドメイン取得・外部サービス移行まで完了</span>
       </div>
       <div class="flow-step-status"><span class="badge badge-done">完了</span></div>
     </div>
 
-    <div class="flow-step todo">
+    <div class="flow-step done">
       <div class="flow-step-num">STEP B</div>
       <div class="flow-step-body">
-        <h3>独自ドメイン取得・設定</h3>
-        <p>ブランド名確定後に進める。第一候補は <strong>kinenbi-planner.com</strong>（現サブドメインと一致）。取得先はVercel Domainsが最も設定がラク（DNS自動）。流れ：①レジストラで取得 → ②Vercelにドメイン追加・DNS設定 → ③SSL自動 → ④Search Consoleを新ドメインで再登録（vercel.appとは別プロパティ）。ドメインメールは後回しでOK。</p>
+        <h3>独自ドメイン取得・設定 → 完了</h3>
+        <p><strong>2026-06-18 完了：anniv.gift を Vercel Domains で取得（年$18）。</strong>kinenbi-planner プロジェクトに割当（apexをメイン）、DNS・SSL自動。canonical・OGP・JSON-LD を anniv.gift に統一。Search Console は新ドメインをURLプレフィックスで登録・所有権確認済み、sitemap.xml / robots.txt も設置。旧 kinenbi-planner.vercel.app も生存（canonicalで anniv.gift に集約）。</p>
         <div class="tools">
           <span class="tool-tag">Vercel Domains</span>
-          <span class="tool-tag">Search Console（再登録）</span>
+          <span class="tool-tag">Search Console</span>
         </div>
-        <span class="done-note">STEP A確定済み（Anniv）→ 着手可能。次のアクション</span>
+        <span class="done-note">anniv.gift 公開・SEO初期設定まで完了</span>
       </div>
-      <div class="flow-step-status"><span class="badge badge-todo">未着手</span></div>
+      <div class="flow-step-status"><span class="badge badge-done">完了</span></div>
     </div>
 
     <div class="flow-step todo">
@@ -770,16 +770,16 @@
       <th style="width:70px; text-align:center;">手間</th>
       <th>変更方法</th>
     </tr>
-    <tr><td>LP（本文・title・OGP表記）</td><td>Anniv（対応済）</td><td class="status">小</td><td>lp/index.html 等を編集 → push（完了）</td></tr>
-    <tr><td>独自ドメイン</td><td>未取得（anniv.gift 等が空き）</td><td class="status">大</td><td>取得 → Vercel追加・DNS・SSL → Search Console再登録</td></tr>
-    <tr><td>freee（開業届の屋号）</td><td>記念日プラン</td><td class="status">小</td><td>次回の確定申告で新屋号Annivを記載（専用の届出は不要）</td></tr>
-    <tr><td>GMOオフィスサポート（宛名・屋号）</td><td>記念日プラン</td><td class="status">中</td><td>GMOサポートに変更申請（条件・書類・回数を要確認）</td></tr>
-    <tr><td>Stripe（ビジネス名）</td><td>記念日プラン</td><td class="status">小</td><td>ダッシュボードの設定でAnnivに変更</td></tr>
-    <tr><td>LINE公式アカウント名</td><td>記念日プラン</td><td class="status">小</td><td>LINE管理画面でAnnivに変更（変更回数の制限に注意）</td></tr>
-    <tr><td>特商法・プライバシーポリシー</td><td>Anniv（対応済）</td><td class="status">小</td><td>lp/tokutei.html・privacy.html を編集 → push（完了）</td></tr>
-    <tr><td>受付確認メール（件名・署名）</td><td>記念日プラン</td><td class="status">小</td><td>Makeのメール文面をAnnivに変更（応答テンプレ.htmlは対応済）</td></tr>
-    <tr><td>応答テンプレ集（屋号表記）</td><td>Anniv（対応済）</td><td class="status">小</td><td>応答テンプレ.html を編集（完了）</td></tr>
-    <tr><td>Search Console / 検索インデックス</td><td>kinenbi-planner.vercel.app</td><td class="status">大</td><td>ドメイン変更時は新プロパティ登録＋旧→新の301リダイレクト（SEOやり直し）</td></tr>
+    <tr><td>LP（本文・title・OGP表記）</td><td>Anniv ✓ 対応済</td><td class="status">完了</td><td>lp/index.html 等を編集 → push</td></tr>
+    <tr><td>独自ドメイン</td><td>anniv.gift ✓ 取得・公開済</td><td class="status">完了</td><td>Vercel Domainsで取得・割当・Search Console登録</td></tr>
+    <tr><td>freee（開業届の屋号）</td><td>Anniv ✓ 変更・開業届再提出済</td><td class="status">完了</td><td>freee屋号変更＋開業届をAnnivで再提出</td></tr>
+    <tr><td>GMOオフィスサポート（宛名・屋号）</td><td>変更申請済（手続き待ち）</td><td class="status">申請中</td><td>GMOサポートに屋号変更を問い合わせ申請</td></tr>
+    <tr><td>Stripe（ビジネス名）</td><td>Anniv ✓ 対応済</td><td class="status">完了</td><td>ダッシュボードでビジネス名・明細表記をAnnivに</td></tr>
+    <tr><td>LINE公式アカウント名</td><td>Anniv ✓ 対応済</td><td class="status">完了</td><td>LINE管理画面で変更</td></tr>
+    <tr><td>特商法・プライバシーポリシー</td><td>Anniv ✓ 対応済</td><td class="status">完了</td><td>lp/tokutei.html・privacy.html を編集 → push</td></tr>
+    <tr><td>受付確認メール（件名・署名）</td><td>Anniv ✓ 対応済</td><td class="status">完了</td><td>Makeのメール文面・応答テンプレをAnnivに</td></tr>
+    <tr><td>応答テンプレ集（屋号表記）</td><td>Anniv ✓ 対応済</td><td class="status">完了</td><td>応答テンプレ.html を編集</td></tr>
+    <tr><td>Search Console / 検索インデックス</td><td>anniv.gift ✓ 登録済</td><td class="status">完了</td><td>新ドメインをURLプレフィックスで登録・所有権確認・sitemap送信</td></tr>
     <tr><td>事業用メールアドレス</td><td>kinenbi.planner@gmail.com</td><td class="status">大</td><td>Gmailアドレスは原則変更不可。変えるなら新規取得＋全SaaSの登録メール変更</td></tr>
     <tr><td>GitHub / Vercel プロジェクト名</td><td>kinenbi-planner</td><td class="status">中</td><td>リネーム可能だが連携・URLに影響。動作確認が必要</td></tr>
     <tr><td>SNS（将来開設）</td><td>未開設</td><td class="status">小</td><td>新名で開設すればよい（既存への影響なし）</td></tr>
@@ -1253,7 +1253,7 @@
   </p>
 
   <div style="margin-top: 48px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #aaa; text-align: right;">
-    Anniv — 実装状況ドキュメント　最終更新：2026-06-16
+    Anniv — 実装状況ドキュメント　最終更新：2026-06-18
   </div>
 
 </div>
