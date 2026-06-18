@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>実装状況 | 記念日プラン</title>
+  <title>実装状況 | Anniv</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -320,9 +320,9 @@
 <div class="page">
 
   <div class="page-header">
-    <div class="service-label">記念日プラン</div>
+    <div class="service-label">Anniv</div>
     <h1>実装状況 &amp; フロー管理</h1>
-    <div class="meta">最終更新：2026-06-15（フロー試運転 全工程クリア。Phase 1の主要構築は完了）　　Phase 1 進行中（進捗90%・残りは告知→初受注と事務手続き）</div>
+    <div class="meta">最終更新：2026-06-16（STEP A ブランド名を「Anniv」継続で確定。次はドメイン取得）　　Phase 1 進行中（進捗90%・残りは告知→初受注と事務手続き）</div>
   </div>
 
   <!-- 凡例 -->
@@ -548,7 +548,7 @@
       <td>開業届</td>
       <td>freee開業 → e-Tax</td>
       <td class="status"><span class="badge badge-done">完了</span></td>
-      <td>2026-05-28 提出・受付完了。屋号「記念日プラン」登録済み</td>
+      <td>2026-05-28 提出・受付完了。屋号「Anniv」登録済み</td>
     </tr>
     <tr>
       <td>青色申告承認申請</td>
@@ -560,7 +560,7 @@
       <td>バーチャルオフィス</td>
       <td>GMOオフィスサポート</td>
       <td class="status"><span class="badge badge-done">完了</span></td>
-      <td>大阪・梅田／月660円／屋号「記念日プラン」。住所：〒530-0001 大阪府大阪市北区梅田1丁目2番2号 大阪駅前第2ビル12-12</td>
+      <td>大阪・梅田／月660円／屋号「Anniv」。住所：〒530-0001 大阪府大阪市北区梅田1丁目2番2号 大阪駅前第2ビル12-12</td>
     </tr>
     <tr>
       <td>異動届出書（事業所住所をバーチャルに変更）</td>
@@ -675,6 +675,119 @@
 
   </div>
 
+  <!-- 今後の流れ ロードマップ -->
+  <h2>今後の流れ（ロードマップ）— 2026-06-16 整理</h2>
+  <p style="font-size: 12px; color: #666; margin-bottom: 16px;">
+    Phase 1の構築・試運転は完了。ここから初受注までの流れを上から順に整理。<strong>STEP A（ブランド名の最終決定）が独自ドメイン取得と告知の前提</strong>になる——名前を変える可能性があるなら、ドメインを買う前にここを固めるのが最も手戻りが少ない。
+  </p>
+
+  <div class="flow">
+
+    <div class="flow-step done">
+      <div class="flow-step-num">STEP A</div>
+      <div class="flow-step-body">
+        <h3>ブランド名の最終決定 → 「記念日プラン」から「Anniv」へ改名</h3>
+        <p><strong>2026-06-18 決定：「記念日プラン」→「Anniv（アニブ）」に改名。</strong>当初は記念日プラン継続（記述的でSEOに強くドメイン取得済み）の方針だったが、一般名詞すぎて指名検索・ブランド性が弱く、ターゲットである男性に響くスマートさに欠けるため改名を決定。AnnivはAnniversary由来で短くスマート、記念日と察せられ、分かりやすさはタグライン「記念日サポート」で担保する。ドメインは anniv.gift / anniv.day / anniv.me 等が空き（.com/.jp/.app/.co は他者取得済み）、「Anniv」単体の競合サービスは現時点で未確認。LP・特商法・プライバシーポリシー・応答テンプレの表記はAnniv化済み。</p>
+        <span class="done-note">記念日プラン → Anniv に改名（2026-06-18）。残りは外部サービスの屋号変更とドメイン取得</span>
+      </div>
+      <div class="flow-step-status"><span class="badge badge-done">完了</span></div>
+    </div>
+
+    <div class="flow-step todo">
+      <div class="flow-step-num">STEP B</div>
+      <div class="flow-step-body">
+        <h3>独自ドメイン取得・設定</h3>
+        <p>ブランド名確定後に進める。第一候補は <strong>kinenbi-planner.com</strong>（現サブドメインと一致）。取得先はVercel Domainsが最も設定がラク（DNS自動）。流れ：①レジストラで取得 → ②Vercelにドメイン追加・DNS設定 → ③SSL自動 → ④Search Consoleを新ドメインで再登録（vercel.appとは別プロパティ）。ドメインメールは後回しでOK。</p>
+        <div class="tools">
+          <span class="tool-tag">Vercel Domains</span>
+          <span class="tool-tag">Search Console（再登録）</span>
+        </div>
+        <span class="done-note">STEP A確定済み（Anniv）→ 着手可能。次のアクション</span>
+      </div>
+      <div class="flow-step-status"><span class="badge badge-todo">未着手</span></div>
+    </div>
+
+    <div class="flow-step todo">
+      <div class="flow-step-num">STEP C</div>
+      <div class="flow-step-body">
+        <h3>告知 → 初受注（最重要）</h3>
+        <p>収益化の最大課題。一斉SNSより、記念日が近そうな知人・カップル・結婚記念日のある人へ<strong>個別連絡</strong>でLPを送る方が初受注は早い。実績ゼロの壁を越えるため<strong>3組限定モニター価格（20〜30%OFF＋体験談協力）</strong>を初速施策として併用するのが有効。</p>
+        <div class="tools">
+          <span class="tool-tag">個別連絡 / SNS</span>
+          <span class="tool-tag">モニター企画</span>
+        </div>
+      </div>
+      <div class="flow-step-status"><span class="badge badge-todo">未着手</span></div>
+    </div>
+
+    <div class="flow-step todo">
+      <div class="flow-step-num">STEP D</div>
+      <div class="flow-step-body">
+        <h3>サービス供給準備（告知と並行）</h3>
+        <p>受注しても回せるように最低限揃える：プレゼント仕入れ先の当たり／大阪レストランの当たり／演出指示書PDFテンプレ（Canva）。ヒアリング→提案に数日バッファがあるので初問い合わせ後の本格手配でも間に合うが、演出指示書テンプレだけは先に作っておくと楽。</p>
+        <div class="tools">
+          <span class="tool-tag">Canva</span>
+          <span class="tool-tag">仕入れ先・レストランリスト</span>
+        </div>
+      </div>
+      <div class="flow-step-status"><span class="badge badge-todo">未着手</span></div>
+    </div>
+
+    <div class="flow-step todo">
+      <div class="flow-step-num">STEP E</div>
+      <div class="flow-step-body">
+        <h3>異動届出書の提出（事務・いつでも可）</h3>
+        <p>freee開業で異動届出書を作成 → e-Taxで事業所住所を自宅→バーチャル（大阪駅前第2ビル12-12）に変更。<strong>Stripeの事業所住所は2026-06-16時点で更新済み</strong>。残りはe-Tax側の手続き。</p>
+        <div class="tools">
+          <span class="tool-tag">freee開業</span>
+          <span class="tool-tag">e-Tax</span>
+        </div>
+        <span class="done-note">Stripe住所更新は完了済み</span>
+      </div>
+      <div class="flow-step-status"><span class="badge badge-todo">未着手</span></div>
+    </div>
+
+    <div class="flow-step blocked">
+      <div class="flow-step-num">STEP F</div>
+      <div class="flow-step-body">
+        <h3>Phase 2（初受注・運用が回り始めてから）</h3>
+        <p>受付メールの到達性改善（独自ドメイン送信＋SPF/DKIM/DMARC、必要ならResend/Brevo）／カスタムドメインでのSEO本格化・コンテンツ追加／PayPay for Business／LINE公式認証アカウント（緑バッジ）／Instagram開設／顧客の記念日DB化→次回記念日の自動リマインド（LTV施策）。</p>
+      </div>
+      <div class="flow-step-status"><span class="badge badge-blocked">Phase 2</span></div>
+    </div>
+
+  </div>
+
+  <!-- 改名の影響範囲 -->
+  <h2>記念日プラン → Anniv 改名の影響範囲（対応チェックリスト）</h2>
+  <p style="font-size: 12px; color: #666; margin-bottom: 16px;">
+    2026-06-18 にAnnivへ改名。<strong>リポジトリ内（LP・特商法・プライバシー・応答テンプレ）は対応済み。残るは外部サービスの屋号・名称変更とドメイン取得。</strong>ドメインは未取得なので、いま新名で取得するのが最も低コスト。
+  </p>
+  <table>
+    <tr>
+      <th>対象</th>
+      <th>現在の値</th>
+      <th style="width:70px; text-align:center;">手間</th>
+      <th>変更方法</th>
+    </tr>
+    <tr><td>LP（本文・title・OGP表記）</td><td>Anniv（対応済）</td><td class="status">小</td><td>lp/index.html 等を編集 → push（完了）</td></tr>
+    <tr><td>独自ドメイン</td><td>未取得（anniv.gift 等が空き）</td><td class="status">大</td><td>取得 → Vercel追加・DNS・SSL → Search Console再登録</td></tr>
+    <tr><td>freee（開業届の屋号）</td><td>記念日プラン</td><td class="status">小</td><td>次回の確定申告で新屋号Annivを記載（専用の届出は不要）</td></tr>
+    <tr><td>GMOオフィスサポート（宛名・屋号）</td><td>記念日プラン</td><td class="status">中</td><td>GMOサポートに変更申請（条件・書類・回数を要確認）</td></tr>
+    <tr><td>Stripe（ビジネス名）</td><td>記念日プラン</td><td class="status">小</td><td>ダッシュボードの設定でAnnivに変更</td></tr>
+    <tr><td>LINE公式アカウント名</td><td>記念日プラン</td><td class="status">小</td><td>LINE管理画面でAnnivに変更（変更回数の制限に注意）</td></tr>
+    <tr><td>特商法・プライバシーポリシー</td><td>Anniv（対応済）</td><td class="status">小</td><td>lp/tokutei.html・privacy.html を編集 → push（完了）</td></tr>
+    <tr><td>受付確認メール（件名・署名）</td><td>記念日プラン</td><td class="status">小</td><td>Makeのメール文面をAnnivに変更（応答テンプレ.htmlは対応済）</td></tr>
+    <tr><td>応答テンプレ集（屋号表記）</td><td>Anniv（対応済）</td><td class="status">小</td><td>応答テンプレ.html を編集（完了）</td></tr>
+    <tr><td>Search Console / 検索インデックス</td><td>kinenbi-planner.vercel.app</td><td class="status">大</td><td>ドメイン変更時は新プロパティ登録＋旧→新の301リダイレクト（SEOやり直し）</td></tr>
+    <tr><td>事業用メールアドレス</td><td>kinenbi.planner@gmail.com</td><td class="status">大</td><td>Gmailアドレスは原則変更不可。変えるなら新規取得＋全SaaSの登録メール変更</td></tr>
+    <tr><td>GitHub / Vercel プロジェクト名</td><td>kinenbi-planner</td><td class="status">中</td><td>リネーム可能だが連携・URLに影響。動作確認が必要</td></tr>
+    <tr><td>SNS（将来開設）</td><td>未開設</td><td class="status">小</td><td>新名で開設すればよい（既存への影響なし）</td></tr>
+  </table>
+  <p style="font-size: 12px; color: #666; margin-top: 8px;">
+    ※ 事業用Gmailアドレス（kinenbi.planner@gmail.com）はブランド名を変えても無理に変更しなくてよい（裏方の連絡先のため）。表に出る表記から優先的に揃えるのが現実的。
+  </p>
+
   <!-- 導線最適化TODO -->
   <h2>導線最適化TODO（2026-05-28 追加）</h2>
   <p style="font-size: 12px; color: #666; margin-bottom: 16px;">
@@ -703,7 +816,7 @@
       <span class="priority-rank">P2</span>
       <div>
         <h3>受付メール件名・冒頭のLINE誘導強化 <span class="owner-tag delegate">対応済み</span></h3>
-        <p>2026-05-28夜 完了。件名を「【記念日プラン】LINE友だち追加で担当からご連絡します」に変更、本文最上部に LINE URL を格上げ。</p>
+        <p>2026-05-28夜 完了。件名を「【Anniv】LINE友だち追加で担当からご連絡します」に変更、本文最上部に LINE URL を格上げ。</p>
       </div>
     </div>
 
@@ -1023,7 +1136,7 @@
       <tr><th>住所</th><td>〒530-0001 大阪府大阪市北区梅田1丁目2番2号 大阪駅前第2ビル12-12</td></tr>
       <tr><th>プラン</th><td>転送なしプラン（月660円）</td></tr>
       <tr><th>申込サイト</th><td><a href="https://www.gmo-office.com/" target="_blank">https://www.gmo-office.com/</a></td></tr>
-      <tr><th>屋号宛名</th><td>記念日プラン</td></tr>
+      <tr><th>屋号宛名</th><td>Anniv</td></tr>
     </table>
   </div>
 
@@ -1037,7 +1150,7 @@
       <tr><th>サイト</th><td><a href="https://www.freee.co.jp/kaigyou/" target="_blank">https://www.freee.co.jp/kaigyou/</a></td></tr>
       <tr><th>管理画面</th><td><a href="https://app.secure.freee.co.jp/founder" target="_blank">https://app.secure.freee.co.jp/founder</a></td></tr>
       <tr><th>提出済み書類</th><td>個人事業の開業・廃業等届出書／所得税の青色申告承認申請書（共に2026-05-28提出）</td></tr>
-      <tr><th>屋号</th><td>記念日プラン</td></tr>
+      <tr><th>屋号</th><td>Anniv</td></tr>
     </table>
   </div>
 
@@ -1140,7 +1253,7 @@
   </p>
 
   <div style="margin-top: 48px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #aaa; text-align: right;">
-    記念日プラン — 実装状況ドキュメント　最終更新：2026-06-15
+    Anniv — 実装状況ドキュメント　最終更新：2026-06-16
   </div>
 
 </div>
