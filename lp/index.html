@@ -4,10 +4,34 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="google-site-verification" content="gKIUXvZ5xKurtXVkGrwXu5SgwZnBXn1m0ch0rZHbkRI" />
-  <title>記念日プラン | 記念日トータルサポート</title>
+
+  <title>記念日プラン｜プレゼント・レストラン予約・サプライズ演出の代行</title>
+  <meta name="description" content="記念日のプレゼント選びからレストラン予約、当日のサプライズ演出まで、専属プランナーがまるごと代行。アンケートに答えるだけで最短2日、ご相談無料・ご入金前のキャンセル無料。大切な人を喜ばせたいあなたをトータルサポートします。">
+  <link rel="canonical" href="https://kinenbi-planner.vercel.app/">
+  <meta name="theme-color" content="#1a2840">
+  <meta name="format-detection" content="telephone=no">
+
+  <!-- OGP（Facebook / LINE など） -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://kinenbi-planner.vercel.app/">
+  <meta property="og:title" content="記念日プラン｜プレゼント・予約・演出をトータルサポート">
+  <meta property="og:description" content="プレゼント選びからレストラン予約、当日の演出まで。大切な日に外さない選択を、専属プランナーが一緒にご用意します。ご相談無料・最短2日。">
+  <meta property="og:site_name" content="記念日プラン">
+  <meta property="og:locale" content="ja_JP">
+  <meta property="og:image" content="https://kinenbi-planner.vercel.app/assets/ogp.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="キャンドルと花が並ぶ記念日のディナーテーブル">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="記念日プラン｜プレゼント・予約・演出をトータルサポート">
+  <meta name="twitter:description" content="プレゼント選びからレストラン予約、当日の演出まで。大切な日に外さない選択を、専属プランナーが一緒にご用意します。ご相談無料・最短2日。">
+  <meta name="twitter:image" content="https://kinenbi-planner.vercel.app/assets/ogp.jpg">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
       --white: #ffffff;
@@ -40,6 +64,9 @@
       --grad-accent: linear-gradient(90deg, var(--blue-mid), var(--gold));
 
       --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+      /* 和文見出し用フォント（英数=Cormorant、和文=Noto Serif JPの明朝） */
+      --font-serif-jp: 'Cormorant Garamond', 'Noto Serif JP', serif;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -84,7 +111,7 @@
       padding: 14px 60px;
     }
     .nav-logo {
-      font-family: 'Cormorant Garamond', serif;
+      font-family: var(--font-serif-jp);
       font-size: 20px;
       font-weight: 500;
       color: var(--navy);
@@ -174,6 +201,31 @@
     }
     @keyframes float1 { from { transform: translate(0,0); } to { transform: translate(-30px, 26px); } }
     @keyframes float2 { from { transform: translate(0,0); } to { transform: translate(24px, -22px); } }
+    /* オーロラ状のゆっくり回る光 */
+    .hero-aurora {
+      position: absolute;
+      inset: -25%;
+      background: conic-gradient(from 0deg, transparent 0%, rgba(168,200,224,0.14) 25%, transparent 50%, rgba(196,163,90,0.10) 75%, transparent 100%);
+      filter: blur(70px);
+      animation: auroraSpin 34s linear infinite;
+      z-index: 0;
+      pointer-events: none;
+    }
+    @keyframes auroraSpin { to { transform: rotate(360deg); } }
+
+    /* マウス追従グロー（奥行き演出） */
+    .hero-glow {
+      position: absolute;
+      width: 460px; height: 460px;
+      left: 32%; top: 38%;
+      margin-left: -230px; margin-top: -230px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(74,138,181,0.20), transparent 65%);
+      filter: blur(40px);
+      pointer-events: none;
+      z-index: 1;
+    }
+
     /* 微細グレイン（高級質感） */
     .hero-grain {
       position: absolute;
@@ -219,7 +271,7 @@
       margin-right: 9px;
     }
     .hero-title {
-      font-family: 'Cormorant Garamond', serif;
+      font-family: var(--font-serif-jp);
       font-size: clamp(42px, 5.2vw, 66px);
       font-weight: 400;
       line-height: 1.18;
@@ -408,7 +460,7 @@
       background: var(--gold);
     }
     .section-title {
-      font-family: 'Cormorant Garamond', serif;
+      font-family: var(--font-serif-jp);
       font-size: clamp(28px, 3.5vw, 44px);
       font-weight: 400;
       color: var(--navy);
@@ -463,7 +515,7 @@
       border: 1px solid var(--glass-border);
       border-radius: 12px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 21px;
+      color: var(--blue-mid);
       margin-bottom: 18px;
       box-shadow: inset 0 1px 2px rgba(255,255,255,0.8), 0 4px 12px rgba(74,138,181,0.12);
     }
@@ -516,6 +568,57 @@
       box-shadow: var(--shadow-sm);
     }
     .service-note strong { color: var(--navy); font-weight: 500; }
+
+    /* ── GALLERY ── */
+    #gallery { background: var(--blue-pale); }
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .gallery-item {
+      position: relative;
+      margin: 0;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
+      aspect-ratio: 4 / 5;
+      transition: transform 0.3s var(--ease), box-shadow 0.3s;
+    }
+    .gallery-item:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); }
+    .gallery-item img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.7s var(--ease);
+    }
+    .gallery-item:hover img { transform: scale(1.06); }
+    .gallery-item::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(26,40,64,0) 42%, rgba(26,40,64,0.66) 100%);
+      pointer-events: none;
+    }
+    .gallery-item figcaption {
+      position: absolute;
+      left: 22px; bottom: 18px; right: 22px;
+      z-index: 2;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      text-shadow: 0 1px 10px rgba(0,0,0,0.4);
+    }
+    .gallery-item figcaption span {
+      display: block;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 12px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--gold-soft);
+      margin-bottom: 4px;
+    }
 
     /* ── CONCIERGE ── */
     #concierge {
@@ -785,7 +888,7 @@
       background: linear-gradient(135deg, var(--blue-light), #eaf4fb);
       border: 1px solid var(--glass-border);
       display: flex; align-items: center; justify-content: center;
-      font-size: 22px;
+      color: var(--blue-mid);
       margin-bottom: 18px;
       box-shadow: inset 0 1px 2px rgba(255,255,255,0.8), 0 4px 14px rgba(74,138,181,0.12);
     }
@@ -829,6 +932,12 @@
     #cta .btn-primary:hover { background: var(--blue-pale); }
     #cta .payment-note { margin-top: 20px; font-size: 12px; color: rgba(255,255,255,0.4); letter-spacing: 0.05em; }
 
+    /* 光がゆっくり呼吸する（navy系セクションの背景グロー） */
+    @keyframes glowDrift { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+    #concierge::before, #concierge::after,
+    #cta::before, #cta::after { animation: glowDrift 9s ease-in-out infinite; }
+    #concierge::after, #cta::after { animation-delay: -4.5s; }
+
     /* ── FOOTER ── */
     footer {
       background: var(--navy);
@@ -841,7 +950,7 @@
       gap: 16px;
     }
     .footer-logo {
-      font-family: 'Cormorant Garamond', serif;
+      font-family: var(--font-serif-jp);
       font-size: 18px;
       font-weight: 400;
       color: rgba(255,255,255,0.72);
@@ -918,7 +1027,7 @@
       border: 1px solid var(--glass-border);
       border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      font-size: 25px;
+      color: var(--blue-mid);
       margin: 0 auto 20px;
       box-shadow: inset 0 1px 2px rgba(255,255,255,0.8), 0 6px 16px rgba(74,138,181,0.15);
     }
@@ -931,7 +1040,7 @@
       margin-bottom: 12px;
     }
     .popup-title {
-      font-family: 'Cormorant Garamond', serif;
+      font-family: var(--font-serif-jp);
       font-size: 26px;
       font-weight: 400;
       color: var(--navy);
@@ -970,16 +1079,8 @@
     }
     .popup-skip:hover { color: var(--navy); }
 
-    /* ── SCROLL ANIMATION ── */
-    .animate {
-      opacity: 0;
-      transform: translateY(30px);
-      transition: opacity 0.8s var(--ease), transform 0.8s var(--ease);
-    }
-    .animate.delay-1 { transition-delay: 0.1s; }
-    .animate.delay-2 { transition-delay: 0.2s; }
-    .animate.delay-3 { transition-delay: 0.3s; }
-    .animate.visible { opacity: 1; transform: translateY(0); }
+    /* ── SCROLL ANIMATION（初期状態のみCSS、revealはGSAPが制御） ── */
+    .animate { opacity: 0; transform: translateY(34px); will-change: opacity, transform; }
 
     /* ── RESPONSIVE ── */
     @media (max-width: 900px) {
@@ -991,6 +1092,7 @@
       .hero-visual { display: none; }
       .hero-scroll { display: none; }
       .pain-grid, .services-grid, .trust-grid { grid-template-columns: 1fr; }
+      .gallery-grid { grid-template-columns: 1fr 1fr; }
       .pricing-grid { grid-template-columns: 1fr 1fr; }
       .pricing-card.featured { transform: none; }
       .pricing-card.featured:hover { transform: translateY(-5px); }
@@ -999,7 +1101,22 @@
     @media (max-width: 560px) {
       .pricing-grid { grid-template-columns: 1fr; }
       #cta { padding: 76px 24px; }
+      .hero-title br, .section-title br { display: none; }
     }
+
+    /* ── キーボードフォーカスの可視化（a11y） ── */
+    a:focus-visible,
+    button:focus-visible {
+      outline: 2px solid var(--blue-mid);
+      outline-offset: 3px;
+      border-radius: 4px;
+    }
+
+    /* ── Lenis スムーススクロール ── */
+    html.lenis, html.lenis body { height: auto; }
+    .lenis.lenis-smooth { scroll-behavior: auto !important; }
+    .lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+    .lenis.lenis-stopped { overflow: hidden; }
 
     /* ── 動きを減らす設定の尊重 ── */
     @media (prefers-reduced-motion: reduce) {
@@ -1007,6 +1124,36 @@
       .animate { opacity: 1 !important; transform: none !important; }
     }
   </style>
+
+  <!-- 構造化データ（検索結果のリッチ表示・ローカルビジネス情報） -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ProfessionalService",
+    "name": "記念日プラン",
+    "description": "記念日のプレゼント選び・レストラン予約・当日のサプライズ演出を専属プランナーが代行する記念日トータルサポートサービス。",
+    "url": "https://kinenbi-planner.vercel.app/",
+    "telephone": "+81-90-8924-5617",
+    "email": "kinenbi.planner@gmail.com",
+    "priceRange": "¥¥",
+    "areaServed": "JP",
+    "founder": { "@type": "Person", "name": "三樹 颯" },
+    "address": {
+      "@type": "PostalAddress",
+      "postalCode": "530-0001",
+      "addressRegion": "大阪府",
+      "addressLocality": "大阪市北区",
+      "streetAddress": "梅田1丁目2番2号 大阪駅前第2ビル12-12",
+      "addressCountry": "JP"
+    },
+    "openingHoursSpecification": {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
+      "opens": "10:00",
+      "closes": "22:00"
+    }
+  }
+  </script>
 </head>
 <body>
 
@@ -1014,7 +1161,7 @@
 <div class="scroll-progress" id="scrollProgress"></div>
 
 <!-- NAV -->
-<nav id="navbar">
+<nav id="navbar" aria-label="メインナビゲーション">
   <a href="#" class="nav-logo">記念日プラン</a>
   <ul class="nav-links">
     <li><a href="#services">サービス</a></li>
@@ -1027,6 +1174,8 @@
 <!-- HERO -->
 <section id="hero">
   <div class="hero-bg"></div>
+  <div class="hero-aurora"></div>
+  <div class="hero-glow"></div>
   <div class="hero-orb o1"></div>
   <div class="hero-orb o2"></div>
   <div class="hero-grain"></div>
@@ -1035,8 +1184,7 @@
       <span class="hero-label animate">Anniversary Concierge</span>
       <h1 class="hero-title animate delay-1">記念日を、<br>もっと<em>特別</em>に。</h1>
       <p class="hero-sub animate delay-2">
-        プレゼント選びから、レストラン予約、当日の演出まで。<br>
-        大切な日に、外さない選択を。
+        プレゼント選びから、レストラン予約、当日の演出まで。大切な日に、外さない選択を。
       </p>
       <div class="hero-cta-wrap animate delay-3">
         <a href="#pricing" class="btn-primary">
@@ -1087,17 +1235,29 @@
     </div>
     <div class="pain-grid">
       <div class="pain-card animate delay-1">
-        <div class="pain-icon">🎁</div>
+        <div class="pain-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+            <rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/>
+          </svg>
+        </div>
         <h3>何を贈ればいいかわからない</h3>
         <p>毎回ネットを何時間も検索して、結局決められない。センスに自信がない。</p>
       </div>
       <div class="pain-card animate delay-2">
-        <div class="pain-icon">🍽️</div>
+        <div class="pain-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+            <path d="M8 22h8"/><path d="M7 10h10"/><path d="M12 15v7"/><path d="M12 15a5 5 0 0 0 5-5c0-2-.5-4-1-6H8c-.5 2-1 4-1 6a5 5 0 0 0 5 5Z"/>
+          </svg>
+        </div>
         <h3>レストランを調べる時間がない</h3>
         <p>仕事が忙しくて、予約まで手が回らない。どこがいいかもわからない。</p>
       </div>
       <div class="pain-card animate delay-3">
-        <div class="pain-icon">💌</div>
+        <div class="pain-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+            <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+          </svg>
+        </div>
         <h3>気持ちを上手く伝えられない</h3>
         <p>思いはあるのに、言葉や演出にどうまとめればいいか悩んでしまう。</p>
       </div>
@@ -1137,6 +1297,32 @@
   </div>
 </section>
 
+<!-- GALLERY -->
+<!-- 写真: Unsplash（無料・商用可・帰属不要）dinner=photos/...cGZ-X0nAUgY / flower=photos/...qGay0Nc9QWM / gift=photos/...W-IvjTDAWhM -->
+<section id="gallery">
+  <div class="section-inner">
+    <div class="section-header animate">
+      <div class="section-label">Gallery</div>
+      <h2 class="section-title">記念日の特別な時間を、<br>かたちに。</h2>
+      <p class="section-sub">プレゼント、レストラン、サプライズ。ひとつひとつを丁寧にご用意し、忘れられない一日に仕上げます。</p>
+    </div>
+    <div class="gallery-grid">
+      <figure class="gallery-item animate delay-1">
+        <img src="assets/dinner.jpg" alt="キャンドルと花、ワイングラスが並ぶ記念日のディナーテーブル" loading="lazy" width="700" height="875">
+        <figcaption><span>Dinner</span>特別な夜のレストラン</figcaption>
+      </figure>
+      <figure class="gallery-item animate delay-2">
+        <img src="assets/bouquet.jpg" alt="淡い色合いの上品な花束" loading="lazy" width="700" height="875">
+        <figcaption><span>Flower</span>想いを添える花束</figcaption>
+      </figure>
+      <figure class="gallery-item animate delay-3">
+        <img src="assets/gift.jpg" alt="リボンをかけた上品なプレゼント" loading="lazy" width="700" height="875">
+        <figcaption><span>Gift</span>心に残る贈りもの</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
 <!-- CONCIERGE -->
 <section id="concierge">
   <div class="section-inner">
@@ -1145,10 +1331,7 @@
         <div class="section-label animate">Concierge</div>
         <h2 class="section-title animate delay-1">多様な経験を持つプランナーがあなたの想いに寄り添います。</h2>
         <p class="concierge-text animate delay-2">
-          元化粧品販売員や主婦、大学生など、<br>
-          さまざまな視点を持つプランナーが在籍。<br>
-          幅広い感性を活かし、<br>
-          大切な方に本当に喜ばれるご提案をお届けします。
+          元化粧品販売員や主婦、大学生など、さまざまな視点を持つプランナーが在籍。幅広い感性を活かし、大切な方に本当に喜ばれるご提案をお届けします。
         </p>
         <div class="concierge-tags animate delay-3">
           <span class="concierge-tag">元化粧品販売員</span>
@@ -1239,8 +1422,7 @@
           <li>演出指示書（渡し方・タイミング・言葉の提案）</li>
         </ul>
       </div>
-      <div class="pricing-card featured animate delay-2">
-        <div class="pricing-featured-badge">よく選ばれる予算帯</div>
+      <div class="pricing-card animate delay-2">
         <div class="pricing-budget-range">〜¥35,000</div>
         <div class="pricing-plan-name">プレゼント代込みの目安</div>
         <div class="pricing-divider"></div>
@@ -1292,17 +1474,29 @@
     </div>
     <div class="trust-grid">
       <div class="trust-card animate delay-1">
-        <div class="trust-icon">🔒</div>
+        <div class="trust-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
         <h3>完全秘密厳守</h3>
         <p>お客様の個人情報・ご相談内容は社外に一切共有しません。プライバシーポリシーに基づき適切に管理します。</p>
       </div>
       <div class="trust-card animate delay-2">
-        <div class="trust-icon">⚡</div>
+        <div class="trust-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
         <h3>24時間以内に返信</h3>
         <p>お申し込み後、24時間以内にプランナーよりご連絡します。ご不明な点はいつでもご相談ください。</p>
       </div>
       <div class="trust-card animate delay-3">
-        <div class="trust-icon">✓</div>
+        <div class="trust-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+            <circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>
+          </svg>
+        </div>
         <h3>プラン確定・ご入金前はキャンセル無料</h3>
         <p>プランの方向性にご納得いただいてからお支払いいただきます。ご入金前のキャンセルは無料です。</p>
       </div>
@@ -1326,14 +1520,17 @@
 
 <!-- POPUP -->
 <div class="popup-overlay" id="popupOverlay">
-  <div class="popup">
-    <button class="popup-close" id="popupClose">✕</button>
-    <div class="popup-icon">💬</div>
+  <div class="popup" role="dialog" aria-modal="true" aria-labelledby="popupTitle">
+    <button class="popup-close" id="popupClose" aria-label="閉じる">✕</button>
+    <div class="popup-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+      </svg>
+    </div>
     <div class="popup-label">Free Consultation</div>
-    <h3 class="popup-title">何かお迷いですか？<br>お気軽にご相談ください。</h3>
+    <h3 class="popup-title" id="popupTitle">何かお迷いですか？<br>お気軽にご相談ください。</h3>
     <p class="popup-text">
-      どのプランが合うかわからない、予算感が気になるなど、<br>
-      どんなご質問でもプランナーが無料でお答えします。
+      どのプランが合うかわからない、予算感が気になるなど、どんなご質問でもプランナーが無料でお答えします。
     </p>
     <a href="https://tally.so/r/lbVDPB" target="_blank" rel="noopener noreferrer" class="popup-cta">無料で相談する</a>
     <button class="popup-skip" id="popupSkip">今は相談しない</button>
@@ -1351,76 +1548,109 @@
   <div class="footer-copy">© 2026 記念日プラン</div>
 </footer>
 
+<!-- アニメーションライブラリ（GSAP + ScrollTrigger / Lenis スムーススクロール） -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://unpkg.com/lenis@1/dist/lenis.min.js"></script>
+
 <script>
-  // Scroll progress + nav scroll
-  const navbar = document.getElementById('navbar');
-  const progress = document.getElementById('scrollProgress');
-  function onScroll() {
-    navbar.classList.toggle('scrolled', window.scrollY > 20);
-    const h = document.documentElement.scrollHeight - window.innerHeight;
-    progress.style.width = (h > 0 ? (window.scrollY / h) * 100 : 0) + '%';
-  }
-  window.addEventListener('scroll', onScroll, { passive: true });
-  onScroll();
+(function () {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // Scroll animation
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) entry.target.classList.add('visible');
-    });
-  }, { threshold: 0.12 });
-  document.querySelectorAll('.animate').forEach(el => observer.observe(el));
-
-  // Count-up（heroの数字が見えたら一度だけ実行）
-  function animateCount(el) {
-    const target = Number(el.dataset.target);
-    if (target === 0) { el.textContent = '0'; return; }
-    const dur = 1300;
-    let startTs = null;
-    function step(ts) {
-      if (startTs === null) startTs = ts;
-      const p = Math.min((ts - startTs) / dur, 1);
-      const eased = 1 - Math.pow(1 - p, 3);
-      el.textContent = Math.round(eased * target);
-      if (p < 1) requestAnimationFrame(step);
-      else el.textContent = String(target);
-    }
-    requestAnimationFrame(step);
-  }
-  const statsEl = document.querySelector('.hero-stats');
-  if (statsEl) {
-    const statObserver = new IntersectionObserver((entries, obs) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.querySelectorAll('.count').forEach(animateCount);
-          obs.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.3 });
-    statObserver.observe(statsEl);
-  }
-
-  // Popup（45秒後・24時間以内に表示済みなら出さない）
+  /* ---------- ポップアップ（演出の有無に関わらず常に動かす） ---------- */
   const POPUP_KEY = 'popup_shown';
   const overlay = document.getElementById('popupOverlay');
   const closeBtn = document.getElementById('popupClose');
   const skipBtn  = document.getElementById('popupSkip');
-
   function showPopup() {
     const last = localStorage.getItem(POPUP_KEY);
     if (last && Date.now() - Number(last) < 24 * 60 * 60 * 1000) return;
     overlay.classList.add('show');
   }
-
   function hidePopup() {
     overlay.classList.remove('show');
     localStorage.setItem(POPUP_KEY, Date.now());
   }
-
   setTimeout(showPopup, 45000);
   closeBtn.addEventListener('click', hidePopup);
   skipBtn.addEventListener('click', hidePopup);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) hidePopup(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && overlay.classList.contains('show')) hidePopup();
+  });
+
+  /* ---------- nav の影 + スクロール進捗バー ---------- */
+  const navbar = document.getElementById('navbar');
+  const progress = document.getElementById('scrollProgress');
+  function onScroll(y) {
+    navbar.classList.toggle('scrolled', y > 20);
+    const h = document.documentElement.scrollHeight - window.innerHeight;
+    progress.style.width = (h > 0 ? (y / h) * 100 : 0) + '%';
+  }
+
+  const hasGSAP = typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined';
+
+  /* ---------- フォールバック / 動き低減：演出なしで全要素を表示 ---------- */
+  if (reduce || !hasGSAP) {
+    document.querySelectorAll('.animate').forEach((el) => { el.style.opacity = '1'; el.style.transform = 'none'; });
+    document.querySelectorAll('.count').forEach((el) => { el.textContent = el.dataset.target; });
+    window.addEventListener('scroll', () => onScroll(window.scrollY), { passive: true });
+    onScroll(window.scrollY);
+    return;
+  }
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  /* ---------- Lenis スムーススクロール（読み込めていれば有効化） ---------- */
+  if (typeof Lenis !== 'undefined') {
+    const lenis = new Lenis({ duration: 1.1, smoothWheel: true });
+    lenis.on('scroll', ScrollTrigger.update);
+    lenis.on('scroll', ({ scroll }) => onScroll(scroll));
+    gsap.ticker.add((t) => lenis.raf(t * 1000));
+    gsap.ticker.lagSmoothing(0);
+  } else {
+    window.addEventListener('scroll', () => onScroll(window.scrollY), { passive: true });
+  }
+  onScroll(window.scrollY);
+
+  /* ---------- スクロールで要素を reveal（stagger 付き） ---------- */
+  ScrollTrigger.batch('.animate', {
+    start: 'top 86%',
+    onEnter: (els) => gsap.to(els, { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out', stagger: 0.1, overwrite: true }),
+  });
+
+  /* ---------- 背景パララックス（hero、奥行き） ---------- */
+  gsap.to('.hero-bg', { yPercent: 18, ease: 'none', scrollTrigger: { trigger: '#hero', start: 'top top', end: 'bottom top', scrub: true } });
+  gsap.to('.hero-grain', { yPercent: 30, ease: 'none', scrollTrigger: { trigger: '#hero', start: 'top top', end: 'bottom top', scrub: true } });
+
+  /* ---------- マウス追従グロー ---------- */
+  const hero = document.getElementById('hero');
+  const glow = document.querySelector('.hero-glow');
+  if (hero && glow) {
+    const xTo = gsap.quickTo(glow, 'xPercent', { duration: 1, ease: 'power3' });
+    const yTo = gsap.quickTo(glow, 'yPercent', { duration: 1, ease: 'power3' });
+    hero.addEventListener('mousemove', (e) => {
+      const r = hero.getBoundingClientRect();
+      xTo(((e.clientX - r.left) / r.width - 0.5) * 60);
+      yTo(((e.clientY - r.top) / r.height - 0.5) * 60);
+    });
+  }
+
+  /* ---------- 数字カウントアップ（表示時に一度だけ） ---------- */
+  gsap.utils.toArray('.count').forEach((el) => {
+    const target = Number(el.dataset.target);
+    ScrollTrigger.create({
+      trigger: el, start: 'top 90%', once: true,
+      onEnter: () => {
+        if (target === 0) { el.textContent = '0'; return; }
+        const obj = { v: 0 };
+        gsap.to(obj, { v: target, duration: 1.3, ease: 'power2.out', onUpdate: () => { el.textContent = Math.round(obj.v); } });
+      },
+    });
+  });
+
+  ScrollTrigger.refresh();
+})();
 </script>
 </body>
 </html>
