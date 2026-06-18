@@ -346,7 +346,7 @@
         <div class="tools">
           <span class="tool-tag">HTML / Vercel</span>
         </div>
-        <span class="done-note">2026-05-28：LP最新版を反映済み（料金は見積もり制・予算目安表示）。</span>
+        <span class="done-note">2026-06-18：Anniv化＋高品質化（SVGアイコン・明朝見出し・OGP/構造化データ・GSAP演出・写真背景）まで反映済み。料金は見積もり制・予算目安表示。</span>
       </div>
       <div class="flow-step-status"><span class="badge badge-done">完了</span></div>
     </div>
@@ -464,7 +464,7 @@
       <td>LP公開</td>
       <td>HTML + Vercel</td>
       <td class="status"><span class="badge badge-done">完了</span></td>
-      <td>2026-05-28：見積もり制対応の最新版を反映</td>
+      <td>2026-06-18：Anniv化・高品質化（SVG/明朝/OGP/GSAP/写真）・独自ドメイン anniv.gift 公開まで反映</td>
     </tr>
     <tr>
       <td>申し込みフォーム</td>
@@ -476,7 +476,7 @@
       <td>受付確認メール（自動）</td>
       <td>Make + Gmail</td>
       <td class="status"><span class="badge badge-partial">要対応</span></td>
-      <td>送信自体は稼働中。ただし2026-06-15の試運転で<strong>Gmail受信側の迷惑メールに振り分けられる</strong>ことを確認。gmail.com送信＋送信実績ゼロが原因。LINEが主導線・メールは保険のため<strong>当面は許容（先送り）</strong>。本質対策は独自ドメイン取得＋SPF/DKIM/DMARC認証（Phase 2）</td>
+      <td>送信自体は稼働中。ただし2026-06-15の試運転で<strong>Gmail受信側の迷惑メールに振り分けられる</strong>ことを確認。gmail.com送信＋送信実績ゼロが原因。LINEが主導線・メールは保険のため<strong>当面は許容</strong>。独自ドメイン anniv.gift を取得済みのため、本質対策（@anniv.gift 送信＋SPF/DKIM/DMARC認証）に着手可能になった</td>
     </tr>
     <tr>
       <td>顧客管理DB（フォーム回答ログ）</td>
@@ -500,7 +500,7 @@
       <td>自前サンクスページ</td>
       <td>HTML + Vercel</td>
       <td class="status"><span class="badge badge-done">完了</span></td>
-      <td>2026-05-28夜 lp/thanks.html 実装・Vercel公開・Tally Redirect先切替完了。`https://kinenbi-planner.vercel.app/thanks.html` で稼働中</td>
+      <td>2026-05-28夜 lp/thanks.html 実装・Vercel公開・Tally Redirect先切替完了。2026-06-18 独自ドメイン化により `https://anniv.gift/thanks.html` で稼働中</td>
     </tr>
     <tr>
       <td>Vercel デプロイ設定</td>
@@ -512,7 +512,7 @@
       <td>Google Search Console（SEO初期設定）</td>
       <td>Search Console + LP head metaタグ</td>
       <td class="status"><span class="badge badge-done">完了</span></td>
-      <td>2026-06-14 所有権確認用 google-site-verification メタタグを lp/index.html の head に追加→本番反映→所有権確認OK。URL検査からインデックス登録もリクエスト済み（実際の登録は数日〜2週間後。site:検索で確認）。sitemap未作成（LP1枚なので任意）</td>
+      <td>2026-06-14 vercel.appで所有権確認。2026-06-18 独自ドメイン anniv.gift を新規プロパティ（URLプレフィックス）で登録・所有権確認OK、sitemap.xml / robots.txt も設置・送信済み。URL検査でインデックス登録もリクエスト済み</td>
     </tr>
     <tr>
       <td>Git認証のセキュリティ改善</td>
@@ -590,14 +590,14 @@
       <td>LP正式公開・告知</td>
       <td>Vercel + SNS</td>
       <td class="status"><span class="badge badge-partial">告知開始可能</span></td>
-      <td>LP自体は kinenbi-planner.vercel.app で公開済み。2026-06-15に試運転完了したので、<strong>あとは知人・友人へ告知 → 初受注に進める状態</strong></td>
+      <td>LP自体は独自ドメイン anniv.gift で公開済み（Anniv化・高品質化済み）。2026-06-15に試運転完了、2026-06-18にブランド改名・ドメイン取得まで完了。<strong>あとは知人・友人へ告知 → 初受注に進める状態</strong></td>
     </tr>
   </table>
 
   <!-- 優先タスク -->
-  <h2>今やるべきこと（優先順）— 2026-06-14 更新</h2>
+  <h2>今やるべきこと（優先順）— 2026-06-18 更新</h2>
   <p style="font-size: 12px; color: #666; margin-bottom: 16px;">
-    各種構築（LP・フォーム・自動転記・LINE・Stripe・各種手続き・Search Console・Git改善）に加え、<strong>2026-06-15にフロー試運転（自己テスト）も全工程クリア</strong>。これでPhase 1の構築フェーズは実質完了し、<strong>残る収益化の最大課題は「知人・友人への告知 → 初受注」</strong>。並行して異動届出書とサービス供給準備を進める。SEO（検索流入）はvercel.appサブドメインでは上位表示が難しく、カスタムドメイン取得（Phase 2）後に本格化するため当面は補助的位置づけ。
+    各種構築（LP・フォーム・自動転記・LINE・Stripe・各種手続き・Search Console・Git改善）に加え、<strong>2026-06-15にフロー試運転（自己テスト）も全工程クリア</strong>。さらに2026-06-18に<strong>ブランド改名（記念日プラン→Anniv）・独自ドメイン anniv.gift 取得・外部サービス移行・異動届提出まで完了</strong>。これでPhase 1の構築フェーズは実質完了し、<strong>残る収益化の最大課題は「知人・友人への告知 → 初受注」</strong>。SEOは独自ドメイン anniv.gift で本格化できる土台が整った。
   </p>
   <div class="priority-list">
 
@@ -612,8 +612,8 @@
     <div class="priority-item p2">
       <span class="priority-rank">P2</span>
       <div>
-        <h3>異動届出書を提出（事業所住所を自宅 → バーチャルに変更） <span class="owner-tag owner">本人</span></h3>
-        <p>freee開業で異動届出書を作成 → e-Taxで提出。現状freee側の事業所所在地が自宅のままなので、バーチャル住所（大阪駅前第2ビル12-12）に変更する。Stripeの事業所住所もあわせて更新。試運転と並行して進められる。</p>
+        <h3>異動届出書を提出（事業所住所を自宅 → バーチャルに変更） <span class="owner-tag delegate">対応済み</span></h3>
+        <p>2026-06-18 完了。freee開業で異動届出書を作成→e-Taxで提出し、事業所所在地をバーチャル住所（大阪駅前第2ビル12-12）に変更済み。Stripeの事業所住所も更新済み。</p>
       </div>
     </div>
 
@@ -621,7 +621,7 @@
       <span class="priority-rank">P2</span>
       <div>
         <h3>LP正式公開 → 知人・友人への告知 → 初受注 <span class="owner-tag owner">本人</span></h3>
-        <p>試運転で問題なければ告知開始。SNSや個別連絡で知人・友人に共有 → 初受注を目指す。LP本体は既にVercelで公開済み（kinenbi-planner.vercel.app）。カスタムドメインはPhase 2で対応。</p>
+        <p>試運転で問題なければ告知開始。SNSや個別連絡で知人・友人に共有 → 初受注を目指す。LP本体は独自ドメイン anniv.gift で公開済み（ブランドAnniv・高品質化・SEO初期設定まで完了）。</p>
       </div>
     </div>
 
@@ -629,7 +629,7 @@
       <span class="priority-rank">P3</span>
       <div>
         <h3>インデックス登録の確認（SEO follow-up） <span class="owner-tag owner">本人</span></h3>
-        <p>2026-06-14にインデックス登録をリクエスト済み。数日〜2週間後に <code>site:kinenbi-planner.vercel.app</code> でGoogle検索 → ヒットすれば登録完了。Search ConsoleのURL検査でも「URLはGoogleに登録されています」を確認できる。登録されない場合は再リクエスト。カスタムドメイン取得後はそちらで再登録が必要。</p>
+        <p>2026-06-18 独自ドメイン anniv.gift で Search Console 登録・sitemap送信・インデックス登録リクエスト済み。数日〜2週間後に <code>site:anniv.gift</code> でGoogle検索 → ヒットすれば登録完了。Search ConsoleのURL検査でも「URLはGoogleに登録されています」を確認できる。登録されない場合は再リクエスト。</p>
       </div>
     </div>
 
@@ -669,16 +669,16 @@
       <span class="priority-rank" style="background:#888;">Phase 2以降</span>
       <div>
         <h3>受付メールの到達性改善（迷惑メール対策） <span class="owner-tag owner">本人</span></h3>
-        <p>2026-06-15の試運転で受付確認メールがGmailの迷惑メールに振り分けられることを確認。当面は許容（LINE主導線・メールは保険のため）。カスタムドメイン取得とセットで、独自ドメイン送信＋SPF/DKIM/DMARC認証を設定して受信箱到達率を改善する。必要に応じてResend/Brevo等のトランザクションメール送信に切り替え。</p>
+        <p>2026-06-15の試運転で受付確認メールがGmailの迷惑メールに振り分けられることを確認。当面は許容（LINE主導線・メールは保険のため）。独自ドメイン anniv.gift は取得済みのため、@anniv.gift 送信＋SPF/DKIM/DMARC認証を設定すれば受信箱到達率を改善できる。必要に応じてResend/Brevo等のトランザクションメール送信に切り替え。</p>
       </div>
     </div>
 
   </div>
 
   <!-- 今後の流れ ロードマップ -->
-  <h2>今後の流れ（ロードマップ）— 2026-06-16 整理</h2>
+  <h2>今後の流れ（ロードマップ）— 2026-06-18 更新</h2>
   <p style="font-size: 12px; color: #666; margin-bottom: 16px;">
-    Phase 1の構築・試運転は完了。ここから初受注までの流れを上から順に整理。<strong>STEP A（ブランド名の最終決定）が独自ドメイン取得と告知の前提</strong>になる——名前を変える可能性があるなら、ドメインを買う前にここを固めるのが最も手戻りが少ない。
+    Phase 1の構築・試運転・ブランド改名（Anniv）・独自ドメイン（anniv.gift）取得・外部サービス移行・異動届提出まで完了。残るは初受注に向けた告知（下記STEP C）とサービス供給準備（STEP D）。
   </p>
 
   <div class="flow">
@@ -733,18 +733,18 @@
       <div class="flow-step-status"><span class="badge badge-todo">未着手</span></div>
     </div>
 
-    <div class="flow-step todo">
+    <div class="flow-step done">
       <div class="flow-step-num">STEP E</div>
       <div class="flow-step-body">
-        <h3>異動届出書の提出（事務・いつでも可）</h3>
-        <p>freee開業で異動届出書を作成 → e-Taxで事業所住所を自宅→バーチャル（大阪駅前第2ビル12-12）に変更。<strong>Stripeの事業所住所は2026-06-16時点で更新済み</strong>。残りはe-Tax側の手続き。</p>
+        <h3>異動届出書の提出（事務）→ 完了</h3>
+        <p>2026-06-18 完了。freee開業で異動届出書を作成→e-Taxで事業所住所を自宅→バーチャル（大阪駅前第2ビル12-12）に変更済み。Stripeの事業所住所も更新済み。</p>
         <div class="tools">
           <span class="tool-tag">freee開業</span>
           <span class="tool-tag">e-Tax</span>
         </div>
-        <span class="done-note">Stripe住所更新は完了済み</span>
+        <span class="done-note">事業所住所の変更・Stripe住所更新ともに完了</span>
       </div>
-      <div class="flow-step-status"><span class="badge badge-todo">未着手</span></div>
+      <div class="flow-step-status"><span class="badge badge-done">完了</span></div>
     </div>
 
     <div class="flow-step blocked">
@@ -808,7 +808,7 @@
       <span class="priority-rank">P1</span>
       <div>
         <h3>自前サンクスページ作成（lp/thanks.html） <span class="owner-tag delegate">対応済み</span></h3>
-        <p>2026-05-28夜 完了。実装・Vercel公開・Tally Redirect先切替まで完了。`https://kinenbi-planner.vercel.app/thanks.html` で稼働中。LPと同じ世界観でメインCTAだけ LINE 緑ボタン。Vercel側の設定（Production Branch を `main`→`master`、Root Directory を `./`→`lp`）も併せて修正済み。</p>
+        <p>2026-05-28夜 完了。実装・Vercel公開・Tally Redirect先切替まで完了。2026-06-18 独自ドメイン化により `https://anniv.gift/thanks.html` で稼働中。LPと同じ世界観でメインCTAだけ LINE 緑ボタン。Vercel側の設定（Production Branch を `main`→`master`、Root Directory を `./`→`lp`）も併せて修正済み。</p>
       </div>
     </div>
 
@@ -963,7 +963,7 @@
     </div>
     <div class="tool-purpose">LP（ランディングページ）のホスティング。GitHubリポジトリと連携して push 時に自動デプロイ。</div>
     <table class="tool-table">
-      <tr><th>公開URL</th><td><a href="https://kinenbi-planner.vercel.app/" target="_blank">https://kinenbi-planner.vercel.app/</a></td></tr>
+      <tr><th>公開URL</th><td><a href="https://anniv.gift/" target="_blank">https://anniv.gift/</a>（旧 kinenbi-planner.vercel.app も生存）</td></tr>
       <tr><th>管理画面</th><td><a href="https://vercel.com/dashboard" target="_blank">https://vercel.com/dashboard</a></td></tr>
       <tr><th>アカウント</th><td>kinenbi.planner@gmail.com</td></tr>
       <tr><th>プラン</th><td>Hobby（個人プラン）</td></tr>
@@ -991,12 +991,12 @@
     </div>
     <div class="tool-purpose">LPの検索パフォーマンス計測・インデックス管理。所有権確認後、URL検査でインデックス登録のリクエストやクロール状況の確認ができる。</div>
     <table class="tool-table">
-      <tr><th>状態</th><td>2026-06-14 所有権確認完了（lp/index.html head の google-site-verification メタタグ方式）。インデックス登録リクエスト済み</td></tr>
-      <tr><th>登録プロパティ</th><td>https://kinenbi-planner.vercel.app/</td></tr>
+      <tr><th>状態</th><td>2026-06-18 独自ドメイン anniv.gift を新規プロパティ（URLプレフィックス）で登録・所有権確認OK。sitemap送信・インデックス登録リクエスト済み</td></tr>
+      <tr><th>登録プロパティ</th><td>https://anniv.gift/（旧 https://kinenbi-planner.vercel.app/ も登録済み）</td></tr>
       <tr><th>管理画面</th><td><a href="https://search.google.com/search-console" target="_blank">https://search.google.com/search-console</a></td></tr>
       <tr><th>アカウント</th><td>kinenbi.planner@gmail.com</td></tr>
       <tr><th>確認方法</th><td>HTMLメタタグ（コードに常設。削除すると確認が外れる）</td></tr>
-      <tr><th>登録確認</th><td>Google検索で <code>site:kinenbi-planner.vercel.app</code> がヒットすればインデックス済み（数日〜2週間目安）</td></tr>
+      <tr><th>登録確認</th><td>Google検索で <code>site:anniv.gift</code> がヒットすればインデックス済み（数日〜2週間目安）</td></tr>
     </table>
   </div>
 
@@ -1230,7 +1230,7 @@
   </div>
 
   <!-- コスト合計 -->
-  <h2>月額コスト合計（2026-05-28時点）</h2>
+  <h2>月額コスト合計（2026-06-18時点）</h2>
   <table>
     <tr>
       <th>項目</th>
@@ -1245,8 +1245,9 @@
     <tr><td>Notion</td><td style="text-align:right;">¥0</td><td>無料プラン</td></tr>
     <tr><td>PayPay銀行</td><td style="text-align:right;">¥0</td><td>口座維持費なし</td></tr>
     <tr><td>GMOオフィスサポート</td><td style="text-align:right;">¥660</td><td>転送なしプラン</td></tr>
+    <tr><td>独自ドメイン anniv.gift</td><td style="text-align:right;">約¥225</td><td>年額約¥2,700（$18）を月換算。Vercel Domainsで取得・年払い</td></tr>
     <tr><td>Stripe（基本料金）</td><td style="text-align:right;">¥0</td><td>決済時に手数料3.6%のみ</td></tr>
-    <tr style="font-weight:700; background:#f0f4f8;"><td>合計</td><td style="text-align:right;">¥660</td><td>受注ゼロでも発生</td></tr>
+    <tr style="font-weight:700; background:#f0f4f8;"><td>合計</td><td style="text-align:right;">約¥885</td><td>受注ゼロでも発生（ドメインは年払い）</td></tr>
   </table>
   <p style="font-size: 12px; color: #666; margin-top: 8px;">
     ※ 上記は固定費。決済時のStripe手数料（3.6%）・PayPay手数料（1.98%）は売上発生時に変動。
