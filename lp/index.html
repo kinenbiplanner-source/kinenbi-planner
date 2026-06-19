@@ -10,6 +10,8 @@
   <meta name="description" content="記念日のプレゼント選びからレストラン予約、当日のサプライズ演出まで、専属プランナーがまるごとサポート。アンケートに答えるだけで最短2日、ご相談無料・ご入金前のキャンセル無料。大切な人を喜ばせたいあなたをトータルサポートします。">
   <link rel="canonical" href="https://anniv.gift/">
   <meta name="theme-color" content="#1a2840">
+  <link rel="icon" href="/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/favicon.png">
   <meta name="format-detection" content="telephone=no">
 
   <!-- OGP（Facebook / LINE など） -->
@@ -99,7 +101,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 20px 60px;
+      padding: 12px 60px;
       background: rgba(255,255,255,0.78);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
@@ -109,31 +111,36 @@
     nav.scrolled {
       box-shadow: 0 6px 28px rgba(26,40,64,0.08);
       border-bottom-color: var(--border);
-      padding: 14px 60px;
+      padding: 8px 60px;
     }
     .nav-logo {
       font-family: var(--font-serif-jp);
-      font-size: 27px;
+      font-size: 26px;
       font-weight: 600;
       color: var(--navy);
       letter-spacing: 0.05em;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
-      gap: 9px;
+      gap: 10px;
+    }
+    .nav-logo img {
+      height: 72px;
+      width: auto;
+      display: block;
     }
     .nav-logo-tag {
       font-family: 'Noto Sans JP', sans-serif;
-      font-size: 10px;
+      font-size: 16px;
       font-weight: 400;
       color: var(--text-light);
-      letter-spacing: 0.08em;
-      padding-left: 10px;
+      letter-spacing: 0.05em;
+      padding-left: 14px;
       border-left: 1px solid var(--border);
     }
     .nav-links { display: flex; gap: 36px; list-style: none; align-items: center; }
     .nav-links a {
-      font-size: 13px;
+      font-size: 16px;
       font-weight: 400;
       color: var(--text-light);
       text-decoration: none;
@@ -994,12 +1001,14 @@
       gap: 16px;
     }
     .footer-logo {
-      font-family: var(--font-serif-jp);
-      font-size: 18px;
-      font-weight: 400;
-      color: rgba(255,255,255,0.72);
-      letter-spacing: 0.05em;
       text-decoration: none;
+      display: inline-block;
+    }
+    .footer-logo img {
+      height: 48px;
+      width: auto;
+      filter: brightness(0) invert(1);
+      opacity: 0.72;
     }
     .footer-links { display: flex; gap: 28px; }
     .footer-links a {
@@ -1206,7 +1215,7 @@
 
 <!-- NAV -->
 <nav id="navbar" aria-label="メインナビゲーション">
-  <a href="#" class="nav-logo">Anniv<span class="nav-logo-tag">記念日サポート</span></a>
+  <a href="#" class="nav-logo"><img src="assets/logo_trans.png" alt="">Anniv<span class="nav-logo-tag">記念日サポート</span></a>
   <ul class="nav-links">
     <li><a href="#services">サービス</a></li>
     <li><a href="#flow">ご利用の流れ</a></li>
@@ -1585,7 +1594,7 @@
 
 <!-- FOOTER -->
 <footer>
-  <a href="#" class="footer-logo">Anniv</a>
+  <a href="#" class="footer-logo"><img src="assets/logo_trans.png" alt="Anniv"></a>
   <div class="footer-links">
     <a href="tokutei.html">特定商取引法に基づく表記</a>
     <a href="privacy.html">プライバシーポリシー</a>
