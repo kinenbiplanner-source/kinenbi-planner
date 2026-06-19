@@ -397,11 +397,10 @@
       <div class="flow-step-num">STEP 05</div>
       <div class="flow-step-body">
         <h3>プランナーがLINEでヒアリング・プラン提案</h3>
-        <p>LINE公式アカウントの管理画面からユーザーへDM。応答テンプレ.html の C-D セクションを使ってヒアリング・プラン提案を行う。応答モードは「チャット（手動応答）」に設定済み。</p>
+        <p>LINE公式アカウントの管理画面からユーザーへDM。完全オーダーメイドで対応。応答モードは「チャット（手動応答）」に設定済み。</p>
         <div class="tools">
           <span class="tool-tag">LINE公式アカウント</span>
           <span class="tool-tag">Notion（顧客情報・案件管理）</span>
-          <span class="tool-tag">応答テンプレ.html</span>
         </div>
         <span class="done-note">2026-05-28：LINE公式アカウント開設・応答モード設定完了。本番受信できる状態。</span>
       </div>
@@ -520,12 +519,6 @@
       <td>Git Credential Manager</td>
       <td class="status"><span class="badge badge-done">完了</span></td>
       <td>2026-06-14 リモートURLに平文埋め込みされていたPATを除去→GCM（Windows資格情報マネージャー）認証へ移行。漏洩した旧トークンはGitHubで無効化（Revoke）済み</td>
-    </tr>
-    <tr>
-      <td>応答テンプレ集</td>
-      <td>応答テンプレ.html</td>
-      <td class="status"><span class="badge badge-done">完了</span></td>
-      <td>9セクション15テンプレ完備</td>
     </tr>
     <tr>
       <td>サンクスページ LINE案内</td>
@@ -755,7 +748,7 @@
   <!-- 改名の影響範囲 -->
   <h2>記念日プラン → Anniv 改名の影響範囲（対応チェックリスト）</h2>
   <p style="font-size: 12px; color: #666; margin-bottom: 16px;">
-    2026-06-18 にAnnivへ改名。<strong>リポジトリ内（LP・特商法・プライバシー・応答テンプレ）は対応済み。残るは外部サービスの屋号・名称変更とドメイン取得。</strong>ドメインは未取得なので、いま新名で取得するのが最も低コスト。
+    2026-06-18 にAnnivへ改名。<strong>リポジトリ内（LP・特商法・プライバシー）は対応済み。残るは外部サービスの屋号・名称変更とドメイン取得。</strong>ドメインは未取得なので、いま新名で取得するのが最も低コスト。
   </p>
   <table>
     <tr>
@@ -771,8 +764,7 @@
     <tr><td>Stripe（ビジネス名）</td><td>Anniv ✓ 対応済</td><td class="status">完了</td><td>ダッシュボードでビジネス名・明細表記をAnnivに</td></tr>
     <tr><td>LINE公式アカウント名</td><td>Anniv ✓ 対応済</td><td class="status">完了</td><td>LINE管理画面で変更</td></tr>
     <tr><td>特商法・プライバシーポリシー</td><td>Anniv ✓ 対応済</td><td class="status">完了</td><td>lp/tokutei.html・privacy.html を編集 → push</td></tr>
-    <tr><td>受付確認メール（件名・署名）</td><td>Anniv ✓ 対応済</td><td class="status">完了</td><td>Makeのメール文面・応答テンプレをAnnivに</td></tr>
-    <tr><td>応答テンプレ集（屋号表記）</td><td>Anniv ✓ 対応済</td><td class="status">完了</td><td>応答テンプレ.html を編集</td></tr>
+    <tr><td>受付確認メール（件名・署名）</td><td>Anniv ✓ 対応済</td><td class="status">完了</td><td>Makeのメール文面をAnnivに変更</td></tr>
     <tr><td>Search Console / 検索インデックス</td><td>anniv.gift ✓ 登録済</td><td class="status">完了</td><td>新ドメインをURLプレフィックスで登録・所有権確認・sitemap送信</td></tr>
     <tr><td>事業用メールアドレス</td><td>kinenbi.planner@gmail.com</td><td class="status">大</td><td>Gmailアドレスは原則変更不可。変えるなら新規取得＋全SaaSの登録メール変更</td></tr>
     <tr><td>GitHub / Vercel プロジェクト名</td><td>kinenbi-planner</td><td class="status">中</td><td>リネーム可能だが連携・URLに影響。動作確認が必要</td></tr>
@@ -836,7 +828,7 @@
       <span class="priority-rank">P2</span>
       <div>
         <h3>Stripe URL と PayPay URL を最初から両方送る運用に <span class="owner-tag delegate">リーナ・ベル</span></h3>
-        <p>応答テンプレE-1の「PayPay希望ならお返事ください」を廃止。Invoice発行時にPayPayリンクもセットで作成し、決済案内メッセージに両方並べて掲載。1往復削減で離脱低下。</p>
+        <p>Invoice発行時にPayPayリンクもセットで作成し、決済案内メッセージに両方並べて掲載。1往復削減で離脱低下。</p>
       </div>
     </div>
 
@@ -860,7 +852,7 @@
       <span class="priority-rank">P2</span>
       <div>
         <h3>演出指示書フォーマットの確定（PDFテンプレ作成） <span class="owner-tag delegate">ジェラトーニ＋ステラ・ルー</span></h3>
-        <p>自己テスト前に確定が必須。CanvaでA4・ブランドカラーのPDFテンプレを1枚作成。応答テンプレG-1の「PDF」記載と整合させる。</p>
+        <p>CanvaでA4・ブランドカラーのPDFテンプレを1枚作成。</p>
       </div>
     </div>
 
@@ -885,7 +877,7 @@
       <span class="priority-rank">P3</span>
       <div>
         <h3>キャンセルポリシーの内規明文化 <span class="owner-tag delegate">スティッチ</span></h3>
-        <p>応答テンプレI-3「個別判断」のままだと案件ごとに揉める。フェーズ別の返金率（プレゼント発注前は全額返金／発注後は●%／レストラン予約後は●%）を内規ドキュメント化し、特商法ページ・応答テンプレに反映。</p>
+        <p>キャンセルポリシーを明文化し特商法ページに反映済み（プラン確定前：全額無料／確定後：原則返金不可）。</p>
       </div>
     </div>
 
@@ -1035,7 +1027,7 @@
     </div>
     <div class="tool-purpose">顧客とのコミュニケーション窓口。Tally送信後にユーザーに友だち追加してもらい、ヒアリング→プラン提案→決済→納品まで全てLINE上で完結。</div>
     <table class="tool-table">
-      <tr><th>状態</th><td>開設完了（2026-05-28）。応答モード＝チャット手動応答。あいさつメッセージ＝応答テンプレB-1反映済み</td></tr>
+      <tr><th>状態</th><td>開設完了（2026-05-28）。応答モード＝チャット手動応答。完全オーダーメイドで対応</td></tr>
       <tr><th>友だち追加URL</th><td>https://lin.ee/WLgydmi</td></tr>
       <tr><th>管理画面</th><td><a href="https://manager.line.biz/" target="_blank">https://manager.line.biz/</a></td></tr>
       <tr><th>料金</th><td>フリープラン（月200通まで・1対1チャット無制限）</td></tr>
@@ -1140,15 +1132,6 @@
   <!-- 補助ファイル -->
   <div class="tool-category">補助ファイル・ドキュメント</div>
 
-  <div class="tool-card">
-    <div class="tool-card-header">
-      <h4>応答テンプレ.html</h4>
-    </div>
-    <div class="tool-purpose">コンシェルジュ対応の標準文言集。9セクション15テンプレ。受付確認・LINE初回対応・ヒアリング・プラン提案・決済案内・指示書納品・キャンセル対応など全てカバー。</div>
-    <table class="tool-table">
-      <tr><th>場所</th><td>c:\dev\kinenbi-planner\応答テンプレ.html</td></tr>
-    </table>
-  </div>
 
   <div class="tool-card">
     <div class="tool-card-header">
