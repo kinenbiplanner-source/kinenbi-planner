@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anniv — 運用ダッシュボード</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Noto+Sans+JP:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --navy: #1a2840;
+      --navy-light: #243550;
+      --navy-card: #1e2e47;
+      --navy-hover: #253659;
+      --gold: #c9a84c;
+      --gold-soft: #d4b96a;
+      --gold-dim: rgba(201,168,76,0.15);
+      --white: #ffffff;
+      --text: rgba(255,255,255,0.88);
+      --text-muted: rgba(255,255,255,0.38);
+      --border: rgba(255,255,255,0.07);
+      --border-gold: rgba(201,168,76,0.3);
+      --green: #4ade80;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 15px; }
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: var(--navy);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 28px 36px 56px;
+    }
+
+    /* ── HEADER ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+    .header-brand { display: flex; align-items: center; gap: 16px; }
+    .header-brand img { height: 38px; width: auto; filter: brightness(0) invert(1); opacity: 0.9; }
+    .header-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
+      font-weight: 400;
+      letter-spacing: 0.1em;
+    }
+    .header-sub { font-size: 11px; color: var(--text-muted); letter-spacing: 0.1em; margin-top: 3px; text-transform: uppercase; }
+    .header-right { text-align: right; }
+    .clock { font-size: 22px; font-weight: 300; letter-spacing: 0.08em; color: var(--white); }
+    .date { font-size: 11px; color: var(--text-muted); margin-top: 4px; letter-spacing: 0.05em; }
+
+    /* ── COST STRIP ── */
+    .cost-section {
+      background: var(--navy-card);
+      border: 1px solid var(--border-gold);
+      border-radius: 12px;
+      padding: 24px 28px;
+      margin-bottom: 24px;
+    }
+    .cost-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .cost-title {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--gold-soft);
+    }
+    .cost-total {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .cost-total-num {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 32px;
+      font-weight: 400;
+      color: var(--white);
+      letter-spacing: 0.02em;
+    }
+    .cost-total-label { font-size: 12px; color: var(--text-muted); }
+    .cost-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .cost-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 16px;
+      min-width: 160px;
+      flex: 1;
+    }
+    .cost-item-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-paid { background: var(--gold); }
+    .dot-free { background: rgba(255,255,255,0.18); }
+    .cost-item-body { flex: 1; }
+    .cost-item-name { font-size: 12px; color: var(--text); }
+    .cost-item-amount { font-size: 13px; font-weight: 500; color: var(--white); margin-top: 2px; }
+    .cost-item-amount.free { color: var(--text-muted); font-weight: 300; }
+    .cost-divider {
+      width: 1px;
+      height: 40px;
+      background: var(--border);
+      margin: 0 4px;
+      align-self: center;
+    }
+
+    /* ── LP BANNER ── */
+    .lp-banner {
+      background: linear-gradient(120deg, #253858 0%, #1e2f4a 100%);
+      border: 1px solid var(--border-gold);
+      border-radius: 12px;
+      padding: 22px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    .lp-live {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gold-soft);
+      margin-bottom: 8px;
+    }
+    .live-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .lp-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 26px;
+      font-weight: 400;
+      letter-spacing: 0.06em;
+      color: var(--white);
+    }
+    .lp-url { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    .lp-btns { display: flex; gap: 10px; flex-shrink: 0; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 20px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      letter-spacing: 0.03em;
+      transition: opacity 0.18s, transform 0.18s;
+      white-space: nowrap;
+    }
+    .btn:hover { opacity: 0.78; transform: translateY(-1px); }
+    .btn-gold { background: var(--gold); color: var(--navy); }
+    .btn-ghost { background: rgba(255,255,255,0.07); color: var(--white); border: 1px solid var(--border); }
+
+    /* ── MAIN GRID ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    /* ── CATEGORY CARD ── */
+    .card {
+      background: var(--navy-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 20px 26px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); flex-shrink: 0; }
+    .card-label {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--gold-soft);
+    }
+    .link-list { padding: 8px 0; }
+    .link-item {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 18px 26px;
+      text-decoration: none;
+      color: var(--text);
+      transition: background 0.15s;
+      border-bottom: 1px solid var(--border);
+    }
+    .link-item:last-child { border-bottom: none; }
+    .link-item:hover { background: rgba(255,255,255,0.04); }
+    .link-item:hover .link-name { color: var(--white); }
+    .link-item:hover .arrow { opacity: 0.7; }
+    .link-icon {
+      width: 52px; height: 52px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+      background: rgba(255,255,255,0.04);
+    }
+    .link-body { flex: 1; min-width: 0; }
+    .link-name { font-size: 16px; transition: color 0.15s; font-weight: 400; }
+    .link-desc { font-size: 12px; color: var(--text-muted); margin-top: 5px; }
+    .arrow { font-size: 16px; color: var(--text-muted); opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
+    .local-badge {
+      font-size: 10px;
+      background: var(--gold-dim);
+      color: var(--gold-soft);
+      border: 1px solid var(--border-gold);
+      border-radius: 4px;
+      padding: 3px 9px;
+      flex-shrink: 0;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    @media (max-width: 700px) {
+      body { padding: 20px 18px 40px; }
+      .lp-banner { flex-direction: column; align-items: flex-start; }
+      .cost-items { flex-direction: column; }
+      .cost-divider { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-brand">
+    <img src="lp/assets/logo_trans.png" alt="Anniv">
+    <div>
+      <div class="header-title">Operations Dashboard</div>
+      <div class="header-sub">Anniv — Anniversary Support</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="clock" id="clock">--:--</div>
+    <div class="date" id="date"></div>
+  </div>
+</header>
+
+<!-- COST STRIP -->
+<div class="cost-section">
+  <div class="cost-header">
+    <div class="cost-title">Monthly Running Cost</div>
+    <div class="cost-total">
+      <div class="cost-total-num" id="totalCost">¥—</div>
+      <div class="cost-total-label">/ 月（固定費）</div>
+    </div>
+  </div>
+  <div class="cost-items">
+    <div class="cost-item">
+      <div class="cost-item-dot dot-paid"></div>
+      <div class="cost-item-body">
+        <div class="cost-item-name">GMOオフィスサポート</div>
+        <div class="cost-item-amount">¥660</div>
+      </div>
+    </div>
+    <div class="cost-item">
+      <div class="cost-item-dot dot-paid"></div>
+      <div class="cost-item-body">
+        <div class="cost-item-name">独自ドメイン anniv.gift</div>
+        <div class="cost-item-amount">¥225 <span style="font-size:10px;color:var(--text-muted);">（年払い月換算）</span></div>
+      </div>
+    </div>
+    <div class="cost-item" id="jalItem">
+      <div class="cost-item-dot dot-paid"></div>
+      <div class="cost-item-body">
+        <div class="cost-item-name">JALモバイル（事業用）</div>
+        <div class="cost-item-amount" id="jalAmount">¥1,300</div>
+      </div>
+    </div>
+    <div class="cost-divider"></div>
+    <div class="cost-item">
+      <div class="cost-item-dot dot-free"></div>
+      <div class="cost-item-body">
+        <div class="cost-item-name">Vercel / GitHub / Tally / Make / Notion</div>
+        <div class="cost-item-amount free">¥0（無料枠）</div>
+      </div>
+    </div>
+    <div class="cost-item">
+      <div class="cost-item-dot dot-free"></div>
+      <div class="cost-item-body">
+        <div class="cost-item-name">Stripe（決済手数料）</div>
+        <div class="cost-item-amount free">3.6%（売上発生時のみ）</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LP BANNER -->
+<div class="lp-banner">
+  <div>
+    <div class="lp-live"><span class="live-dot"></span>LIVE</div>
+    <div class="lp-name">anniv.gift</div>
+    <div class="lp-url">https://anniv.gift/</div>
+  </div>
+  <div class="lp-btns">
+    <a href="https://anniv.gift/" target="_blank" class="btn btn-gold">LPを開く</a>
+    <a href="https://vercel.com/dashboard" target="_blank" class="btn btn-ghost">Vercel</a>
+    <a href="https://github.com/kinenbiplanner-source/kinenbi-planner" target="_blank" class="btn btn-ghost">GitHub</a>
+    <a href="https://search.google.com/search-console" target="_blank" class="btn btn-ghost">Search Console</a>
+  </div>
+</div>
+
+<!-- MAIN GRID -->
+<div class="grid">
+
+  <!-- 顧客対応 -->
+  <div class="card">
+    <div class="card-header"><div class="card-dot"></div><div class="card-label">顧客対応</div></div>
+    <div class="link-list">
+      <a href="https://manager.line.biz/" target="_blank" class="link-item">
+        <div class="link-icon">💬</div>
+        <div class="link-body"><div class="link-name">LINE公式アカウント</div><div class="link-desc">ヒアリング・提案・納品</div></div>
+        <span class="arrow">↗</span>
+      </a>
+      <a href="https://tally.so/" target="_blank" class="link-item">
+        <div class="link-icon">📋</div>
+        <div class="link-body"><div class="link-name">Tally</div><div class="link-desc">申し込みフォーム管理</div></div>
+        <span class="arrow">↗</span>
+      </a>
+      <a href="https://www.notion.so/" target="_blank" class="link-item">
+        <div class="link-icon">🗂</div>
+        <div class="link-body"><div class="link-name">Notion</div><div class="link-desc">顧客管理DB・案件管理DB</div></div>
+        <span class="arrow">↗</span>
+      </a>
+      <a href="https://mail.google.com/" target="_blank" class="link-item">
+        <div class="link-icon">✉️</div>
+        <div class="link-body"><div class="link-name">Gmail（事業用）</div><div class="link-desc">kinenbi.planner@gmail.com</div></div>
+        <span class="arrow">↗</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- 決済 -->
+  <div class="card">
+    <div class="card-header"><div class="card-dot"></div><div class="card-label">決済</div></div>
+    <div class="link-list">
+      <a href="https://dashboard.stripe.com/" target="_blank" class="link-item">
+        <div class="link-icon">💳</div>
+        <div class="link-body"><div class="link-name">Stripe</div><div class="link-desc">Invoice発行・売上管理</div></div>
+        <span class="arrow">↗</span>
+      </a>
+      <a href="https://www.paypay-bank.co.jp/" target="_blank" class="link-item">
+        <div class="link-icon">🏦</div>
+        <div class="link-body"><div class="link-name">PayPay銀行</div><div class="link-desc">事業用口座</div></div>
+        <span class="arrow">↗</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- 自動化 -->
+  <div class="card">
+    <div class="card-header"><div class="card-dot"></div><div class="card-label">自動化</div></div>
+    <div class="link-list">
+      <a href="https://www.make.com/" target="_blank" class="link-item">
+        <div class="link-icon">⚙️</div>
+        <div class="link-body"><div class="link-name">Make</div><div class="link-desc">受付確認メール自動送信</div></div>
+        <span class="arrow">↗</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- SNS -->
+  <div class="card">
+    <div class="card-header"><div class="card-dot"></div><div class="card-label">SNS</div></div>
+    <div class="link-list">
+      <a href="https://www.instagram.com/anniv.gift/" target="_blank" class="link-item">
+        <div class="link-icon">📸</div>
+        <div class="link-body"><div class="link-name">Instagram</div><div class="link-desc">@anniv.gift</div></div>
+        <span class="arrow">↗</span>
+      </a>
+      <a href="https://x.com/Anniv_gift" target="_blank" class="link-item">
+        <div class="link-icon">𝕏</div>
+        <div class="link-body"><div class="link-name">X (Twitter)</div><div class="link-desc">@Anniv_gift</div></div>
+        <span class="arrow">↗</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- 事業基盤 -->
+  <div class="card">
+    <div class="card-header"><div class="card-dot"></div><div class="card-label">事業基盤</div></div>
+    <div class="link-list">
+      <a href="https://www.gmo-office.com/" target="_blank" class="link-item">
+        <div class="link-icon">🏢</div>
+        <div class="link-body"><div class="link-name">GMOオフィスサポート</div><div class="link-desc">バーチャルオフィス・月660円</div></div>
+        <span class="arrow">↗</span>
+      </a>
+      <a href="https://app.secure.freee.co.jp/founder" target="_blank" class="link-item">
+        <div class="link-icon">📑</div>
+        <div class="link-body"><div class="link-name">freee開業</div><div class="link-desc">届出書類・確定申告</div></div>
+        <span class="arrow">↗</span>
+      </a>
+      <a href="https://www.e-tax.nta.go.jp/" target="_blank" class="link-item">
+        <div class="link-icon">🏛</div>
+        <div class="link-body"><div class="link-name">e-Tax</div><div class="link-desc">国税電子申告</div></div>
+        <span class="arrow">↗</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- ドキュメント -->
+  <div class="card">
+    <div class="card-header"><div class="card-dot"></div><div class="card-label">ドキュメント</div></div>
+    <div class="link-list">
+      <a href="実装状況.html" target="_blank" class="link-item">
+        <div class="link-icon">📌</div>
+        <div class="link-body"><div class="link-name">実装状況</div><div class="link-desc">進捗・ツール一覧・ロードマップ</div></div>
+        <span class="local-badge">local</span>
+      </a>
+      <a href="lp/tokutei.html" target="_blank" class="link-item">
+        <div class="link-icon">📄</div>
+        <div class="link-body"><div class="link-name">特定商取引法</div><div class="link-desc">lp/tokutei.html</div></div>
+        <span class="local-badge">local</span>
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // 時計
+  function updateClock() {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    document.getElementById('clock').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    document.getElementById('date').textContent =
+      `${now.getFullYear()}.${pad(now.getMonth()+1)}.${pad(now.getDate())} ${days[now.getDay()]}`;
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // JAL Mobileの料金が入ったら合計を計算（現在はプレースホルダー）
+  const JAL_MOBILE = 1300;
+  if (JAL_MOBILE !== null) {
+    document.getElementById('jalAmount').textContent = `¥${JAL_MOBILE.toLocaleString()}`;
+    const total = 660 + 225 + JAL_MOBILE;
+    document.getElementById('totalCost').textContent = `¥${total.toLocaleString()}`;
+  } else {
+    document.getElementById('totalCost').textContent = '¥885＋JALモバイル';
+  }
+</script>
+
+</body>
+</html>
