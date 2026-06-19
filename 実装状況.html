@@ -322,7 +322,7 @@
   <div class="page-header">
     <div class="service-label">Anniv</div>
     <h1>実装状況 &amp; フロー管理</h1>
-    <div class="meta">最終更新：2026-06-19（ロゴ/ファビコン/OGP画像すべて完了、インデックス登録確認済み、GMO屋号変更完了、サービス供給準備着手）　　Phase 1 進行中（告知→初受注フェーズ）</div>
+    <div class="meta">最終更新：2026-06-19（お問い合わせフォーム（contact.html）実装・フッターリンク切り替え完了）　　Phase 1 進行中（告知→初受注フェーズ）</div>
   </div>
 
   <!-- 凡例 -->
@@ -573,6 +573,12 @@
       <td>PayPay</td>
       <td class="status"><span class="badge badge-blocked">Phase 2以降</span></td>
       <td>Phase 1では断念。個人事業主+LINE運用ではAPI統合のハードルが高い。Phase 2以降でニーズが出たら再検討</td>
+    </tr>
+    <tr>
+      <td>お問い合わせフォーム</td>
+      <td>lp/contact.html + Formsubmit.co</td>
+      <td class="status"><span class="badge badge-done">完了</span></td>
+      <td>2026-06-19 実装。フッターの「お問い合わせ」リンクを mailto: → /contact に切り替え。フォーム送信は Formsubmit.co（無料）経由で kinenbi.planner@gmail.com に転送。初回送信時に確認メールが届くので「Activate」を押す必要あり。送信成功後はページ内に完了メッセージを表示（リダイレクトなし）</td>
     </tr>
     <tr>
       <td>特商法・プライバシーポリシー</td>
@@ -1036,6 +1042,21 @@
     </table>
   </div>
 
+  <div class="tool-card">
+    <div class="tool-card-header">
+      <h4>Formsubmit.co（お問い合わせフォーム送信）</h4>
+      <span class="tool-cost cost-free">無料</span>
+    </div>
+    <div class="tool-purpose">静的サイト向けフォーム送信サービス。lp/contact.html のフォームデータを kinenbi.planner@gmail.com へ転送する。アカウント登録不要・初回送信時の確認メールを一度承認すれば以降は自動転送。</div>
+    <table class="tool-table">
+      <tr><th>状態</th><td>2026-06-19 実装済み。初回フォーム送信後に Formsubmit からの確認メールで「Activate」を押すと本番稼働</td></tr>
+      <tr><th>送信先</th><td>kinenbi.planner@gmail.com</td></tr>
+      <tr><th>エンドポイント</th><td>https://formsubmit.co/ajax/kinenbi.planner@gmail.com（AJAX）</td></tr>
+      <tr><th>料金</th><td>無料（月500件まで）</td></tr>
+      <tr><th>フォームページ</th><td>lp/contact.html → https://anniv.gift/contact</td></tr>
+    </table>
+  </div>
+
   <!-- 決済 -->
   <div class="tool-category">決済</div>
 
@@ -1201,6 +1222,7 @@
     <tr><td>独自ドメイン anniv.gift</td><td style="text-align:right;">約¥225</td><td>年額約¥2,700（$18）を月換算。Vercel Domainsで取得・年払い</td></tr>
     <tr><td>JALモバイル（事業用電話番号）</td><td style="text-align:right;">¥1,300</td><td>事業用携帯電話番号として使用</td></tr>
     <tr><td>Stripe（基本料金）</td><td style="text-align:right;">¥0</td><td>決済時に手数料3.6%のみ</td></tr>
+    <tr><td>Formsubmit.co</td><td style="text-align:right;">¥0</td><td>無料（月500件まで）</td></tr>
     <tr style="font-weight:700; background:#f0f4f8;"><td>合計</td><td style="text-align:right;">約¥2,185</td><td>受注ゼロでも発生（ドメインは年払い）</td></tr>
   </table>
   <p style="font-size: 12px; color: #666; margin-top: 8px;">
@@ -1208,7 +1230,7 @@
   </p>
 
   <div style="margin-top: 48px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #aaa; text-align: right;">
-    Anniv — 実装状況ドキュメント　最終更新：2026-06-19
+    Anniv — 実装状況ドキュメント　最終更新：2026-06-19（お問い合わせフォーム実装）
   </div>
 
 </div>

@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
+  <title>お問い合わせ | Anniv</title>
+  <link rel="icon" href="/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/favicon.png">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --white: #ffffff;
+      --blue-pale: #f0f7fc;
+      --blue-light: #d6eaf8;
+      --blue-pastel: #a8c8e0;
+      --blue-mid: #4a8ab5;
+      --navy: #1a2840;
+      --navy-soft: #243550;
+      --text: #2d3748;
+      --text-light: #64748b;
+      --border: #d1e8f5;
+      --radius: 12px;
+      --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-weight: 400;
+      color: var(--text);
+      background: var(--white);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* NAV */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 60px;
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--navy);
+      letter-spacing: 0.05em;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .nav-logo img { height: 64px; width: auto; }
+
+    /* MAIN */
+    main {
+      flex: 1;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 80px 24px 100px;
+      position: relative;
+      overflow: hidden;
+    }
+    .main-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 70% 40%, rgba(168,200,224,0.18) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 20% 80%, rgba(168,200,224,0.10) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    .container {
+      position: relative;
+      max-width: 560px;
+      width: 100%;
+    }
+
+    /* HEADING */
+    .page-label {
+      display: inline-block;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      color: var(--blue-mid);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 500;
+      color: var(--navy);
+      letter-spacing: 0.02em;
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+    .lead {
+      font-size: 14px;
+      color: var(--text-light);
+      line-height: 1.9;
+      margin-bottom: 44px;
+    }
+
+    /* FORM */
+    .form-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 44px 40px;
+      box-shadow: 0 4px 24px rgba(26,40,64,0.06);
+    }
+    .form-group {
+      margin-bottom: 24px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--navy);
+      margin-bottom: 8px;
+      letter-spacing: 0.02em;
+    }
+    label .required {
+      color: var(--blue-mid);
+      font-size: 11px;
+      font-weight: 400;
+      margin-left: 6px;
+      letter-spacing: 0;
+    }
+    input[type="text"],
+    input[type="email"],
+    textarea {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--white);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+      appearance: none;
+    }
+    input[type="text"]:focus,
+    input[type="email"]:focus,
+    textarea:focus {
+      border-color: var(--blue-pastel);
+      box-shadow: 0 0 0 3px rgba(168,200,224,0.25);
+    }
+    textarea {
+      resize: vertical;
+      min-height: 140px;
+      line-height: 1.7;
+    }
+
+    .submit-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 17px 32px;
+      background: var(--navy);
+      color: var(--white);
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 16px rgba(26,40,64,0.18);
+      margin-top: 8px;
+    }
+    .submit-btn:hover {
+      background: var(--navy-soft);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(26,40,64,0.26);
+    }
+    .submit-btn:active { transform: translateY(0); }
+    .submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .submit-btn svg { transition: transform 0.2s; }
+    .submit-btn:hover svg { transform: translateX(3px); }
+
+    .form-note {
+      font-size: 12px;
+      color: var(--text-light);
+      line-height: 1.8;
+      margin-top: 16px;
+      text-align: center;
+    }
+    .form-note a {
+      color: var(--blue-mid);
+      text-decoration: none;
+    }
+    .form-note a:hover { text-decoration: underline; }
+
+    /* ERROR */
+    .error-msg {
+      font-size: 12px;
+      color: #c0392b;
+      margin-top: 6px;
+      display: none;
+    }
+    input.error, textarea.error {
+      border-color: #e0a0a0;
+    }
+
+    /* SUCCESS STATE */
+    .success-state {
+      display: none;
+      text-align: center;
+      padding: 60px 40px;
+    }
+    .success-state.show { display: block; }
+    .form-card.hidden { display: none; }
+    .check-icon {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 28px;
+      border-radius: 50%;
+      background: var(--blue-pale);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--blue-pastel);
+    }
+    .check-icon svg {
+      width: 36px;
+      height: 36px;
+      stroke: var(--navy);
+      stroke-width: 2.5;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .success-title {
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--navy);
+      margin-bottom: 14px;
+      line-height: 1.6;
+    }
+    .success-desc {
+      font-size: 14px;
+      color: var(--text-light);
+      line-height: 1.9;
+      margin-bottom: 36px;
+    }
+
+    .back-link {
+      display: inline-block;
+      font-size: 13px;
+      color: var(--text-light);
+      text-decoration: none;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 2px;
+      transition: color 0.2s, border-color 0.2s;
+      margin-top: 16px;
+    }
+    .back-link:hover { color: var(--navy); border-color: var(--navy); }
+
+    /* FOOTER */
+    footer {
+      padding: 32px 24px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-light);
+      border-top: 1px solid var(--border);
+      background: var(--white);
+    }
+    footer a {
+      color: var(--text-light);
+      text-decoration: none;
+      margin: 0 8px;
+      transition: color 0.2s;
+    }
+    footer a:hover { color: var(--navy); }
+
+    /* MOBILE */
+    @media (max-width: 640px) {
+      nav { padding: 20px 24px; }
+      main { padding: 48px 20px 72px; }
+      h1 { font-size: 22px; }
+      .form-card { padding: 32px 24px; }
+      .success-state { padding: 40px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="/" class="nav-logo"><img src="assets/logo_trans.png" alt="">Anniv</a>
+  </nav>
+
+  <main>
+    <div class="main-bg"></div>
+    <div class="container">
+
+      <div class="page-label">Contact</div>
+      <h1>お問い合わせ</h1>
+      <p class="lead">
+        ご質問・ご不明点などお気軽にどうぞ。<br>
+        通常1〜2営業日以内にご返信いたします。
+      </p>
+
+      <!-- FORM -->
+      <div class="form-card" id="formCard">
+        <form id="contactForm" novalidate>
+          <div class="form-group">
+            <label for="name">お名前<span class="required">必須</span></label>
+            <input type="text" id="name" name="name" placeholder="山田 太郎" autocomplete="name">
+            <div class="error-msg" id="nameError">お名前を入力してください</div>
+          </div>
+          <div class="form-group">
+            <label for="email">メールアドレス<span class="required">必須</span></label>
+            <input type="email" id="email" name="email" placeholder="example@email.com" autocomplete="email">
+            <div class="error-msg" id="emailError">有効なメールアドレスを入力してください</div>
+          </div>
+          <div class="form-group">
+            <label for="message">お問い合わせ内容<span class="required">必須</span></label>
+            <textarea id="message" name="message" placeholder="ご質問内容をご記入ください"></textarea>
+            <div class="error-msg" id="messageError">お問い合わせ内容を入力してください</div>
+          </div>
+          <button type="submit" class="submit-btn" id="submitBtn">
+            <span id="btnLabel">送信する</span>
+            <svg id="btnArrow" width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <p class="form-note">
+            送信内容は <a href="/privacy.html">プライバシーポリシー</a> に基づき取り扱います。
+          </p>
+        </form>
+      </div>
+
+      <!-- SUCCESS -->
+      <div class="success-state" id="successState">
+        <div class="check-icon">
+          <svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"></polyline></svg>
+        </div>
+        <div class="success-title">お問い合わせを受け付けました</div>
+        <p class="success-desc">
+          ご連絡いただきありがとうございます。<br>
+          内容を確認のうえ、1〜2営業日以内にご返信いたします。
+        </p>
+        <a href="/" class="back-link">トップページに戻る</a>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    <div>
+      <a href="/tokutei.html">特定商取引法に基づく表記</a>　｜　<a href="/privacy.html">プライバシーポリシー</a>
+    </div>
+    <div style="margin-top: 10px;">© 2026 Anniv</div>
+  </footer>
+
+  <script>
+    const form = document.getElementById('contactForm');
+    const formCard = document.getElementById('formCard');
+    const successState = document.getElementById('successState');
+    const submitBtn = document.getElementById('submitBtn');
+    const btnLabel = document.getElementById('btnLabel');
+    const btnArrow = document.getElementById('btnArrow');
+
+    function validate() {
+      let valid = true;
+      const name = document.getElementById('name');
+      const email = document.getElementById('email');
+      const message = document.getElementById('message');
+
+      [name, email, message].forEach(el => {
+        el.classList.remove('error');
+        el.nextElementSibling.style.display = 'none';
+      });
+
+      if (!name.value.trim()) {
+        name.classList.add('error');
+        document.getElementById('nameError').style.display = 'block';
+        valid = false;
+      }
+      if (!email.value.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
+        email.classList.add('error');
+        document.getElementById('emailError').style.display = 'block';
+        valid = false;
+      }
+      if (!message.value.trim()) {
+        message.classList.add('error');
+        document.getElementById('messageError').style.display = 'block';
+        valid = false;
+      }
+      return valid;
+    }
+
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      if (!validate()) return;
+
+      submitBtn.disabled = true;
+      btnLabel.textContent = '送信中...';
+      btnArrow.style.display = 'none';
+
+      try {
+        const res = await fetch('https://formsubmit.co/ajax/kinenbi.planner@gmail.com', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            name: document.getElementById('name').value,
+            email: document.getElementById('email').value,
+            message: document.getElementById('message').value,
+            _subject: 'Anniv お問い合わせ',
+            _template: 'table'
+          })
+        });
+        const data = await res.json();
+        if (data.success === 'true' || data.success === true) {
+          formCard.style.display = 'none';
+          successState.classList.add('show');
+          document.querySelector('.lead').style.display = 'none';
+          document.querySelector('h1').style.display = 'none';
+          document.querySelector('.page-label').style.display = 'none';
+        } else {
+          throw new Error('Failed');
+        }
+      } catch {
+        submitBtn.disabled = false;
+        btnLabel.textContent = '送信する';
+        btnArrow.style.display = '';
+        alert('送信に失敗しました。しばらくしてから再度お試しください。');
+      }
+    });
+  </script>
+
+</body>
+</html>
