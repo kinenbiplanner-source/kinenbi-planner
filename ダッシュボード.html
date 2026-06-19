@@ -179,75 +179,65 @@
     /* ── MAIN GRID ── */
     .grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 20px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
     }
 
-    /* ── CATEGORY CARD ── */
+    /* ── SQUARE CARD ── */
     .card {
+      aspect-ratio: 1;
       background: var(--navy-card);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      overflow: hidden;
-    }
-    .card-header {
-      padding: 20px 26px 18px;
-      border-bottom: 1px solid var(--border);
+      border-radius: 16px;
       display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .card-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); flex-shrink: 0; }
-    .card-label {
-      font-size: 11px;
-      font-weight: 500;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--gold-soft);
-    }
-    .link-list { padding: 8px 0; }
-    .link-item {
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      padding: 18px 26px;
-      text-decoration: none;
-      color: var(--text);
-      transition: background 0.15s;
-      border-bottom: 1px solid var(--border);
-    }
-    .link-item:last-child { border-bottom: none; }
-    .link-item:hover { background: rgba(255,255,255,0.04); }
-    .link-item:hover .link-name { color: var(--white); }
-    .link-item:hover .arrow { opacity: 0.7; }
-    .link-icon {
-      width: 52px; height: 52px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-size: 22px;
-      flex-shrink: 0;
-      background: rgba(255,255,255,0.04);
+      gap: 14px;
+      text-decoration: none;
+      color: var(--text);
+      padding: 24px;
+      transition: background 0.18s, border-color 0.18s, transform 0.18s;
+      cursor: pointer;
+      text-align: center;
     }
-    .link-body { flex: 1; min-width: 0; }
-    .link-name { font-size: 16px; transition: color 0.15s; font-weight: 400; }
-    .link-desc { font-size: 12px; color: var(--text-muted); margin-top: 5px; }
-    .arrow { font-size: 16px; color: var(--text-muted); opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
-    .local-badge {
-      font-size: 10px;
+    .card:hover {
+      background: var(--navy-hover);
+      border-color: rgba(201,168,76,0.25);
+      transform: translateY(-3px);
+    }
+    .card:hover .card-name { color: var(--white); }
+    .card-icon {
+      font-size: 36px;
+      line-height: 1;
+    }
+    .card-name {
+      font-size: 15px;
+      font-weight: 400;
+      color: var(--text);
+      transition: color 0.18s;
+    }
+    .card-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .card.local { border-style: dashed; }
+    .card.local .card-name::after {
+      content: ' local';
+      font-size: 9px;
       background: var(--gold-dim);
       color: var(--gold-soft);
       border: 1px solid var(--border-gold);
-      border-radius: 4px;
-      padding: 3px 9px;
-      flex-shrink: 0;
+      border-radius: 3px;
+      padding: 1px 5px;
+      margin-left: 6px;
+      vertical-align: middle;
       letter-spacing: 0.05em;
     }
 
     /* ── RESPONSIVE ── */
-    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 700px) {
       body { padding: 20px 18px 40px; }
       .lp-banner { flex-direction: column; align-items: flex-start; }
@@ -340,117 +330,89 @@
 <!-- MAIN GRID -->
 <div class="grid">
 
-  <!-- 顧客対応 -->
-  <div class="card">
-    <div class="card-header"><div class="card-dot"></div><div class="card-label">顧客対応</div></div>
-    <div class="link-list">
-      <a href="https://manager.line.biz/" target="_blank" class="link-item">
-        <div class="link-icon">💬</div>
-        <div class="link-body"><div class="link-name">LINE公式アカウント</div><div class="link-desc">ヒアリング・提案・納品</div></div>
-        <span class="arrow">↗</span>
-      </a>
-      <a href="https://tally.so/" target="_blank" class="link-item">
-        <div class="link-icon">📋</div>
-        <div class="link-body"><div class="link-name">Tally</div><div class="link-desc">申し込みフォーム管理</div></div>
-        <span class="arrow">↗</span>
-      </a>
-      <a href="https://www.notion.so/" target="_blank" class="link-item">
-        <div class="link-icon">🗂</div>
-        <div class="link-body"><div class="link-name">Notion</div><div class="link-desc">顧客管理DB・案件管理DB</div></div>
-        <span class="arrow">↗</span>
-      </a>
-      <a href="https://mail.google.com/" target="_blank" class="link-item">
-        <div class="link-icon">✉️</div>
-        <div class="link-body"><div class="link-name">Gmail（事業用）</div><div class="link-desc">kinenbi.planner@gmail.com</div></div>
-        <span class="arrow">↗</span>
-      </a>
-    </div>
-  </div>
+  <a href="https://manager.line.biz/" target="_blank" class="card">
+    <div class="card-icon">💬</div>
+    <div class="card-name">LINE公式</div>
+    <div class="card-desc">ヒアリング・提案・納品</div>
+  </a>
 
-  <!-- 決済 -->
-  <div class="card">
-    <div class="card-header"><div class="card-dot"></div><div class="card-label">決済</div></div>
-    <div class="link-list">
-      <a href="https://dashboard.stripe.com/" target="_blank" class="link-item">
-        <div class="link-icon">💳</div>
-        <div class="link-body"><div class="link-name">Stripe</div><div class="link-desc">Invoice発行・売上管理</div></div>
-        <span class="arrow">↗</span>
-      </a>
-      <a href="https://www.paypay-bank.co.jp/" target="_blank" class="link-item">
-        <div class="link-icon">🏦</div>
-        <div class="link-body"><div class="link-name">PayPay銀行</div><div class="link-desc">事業用口座</div></div>
-        <span class="arrow">↗</span>
-      </a>
-    </div>
-  </div>
+  <a href="https://tally.so/" target="_blank" class="card">
+    <div class="card-icon">📋</div>
+    <div class="card-name">Tally</div>
+    <div class="card-desc">申し込みフォーム管理</div>
+  </a>
 
-  <!-- 自動化 -->
-  <div class="card">
-    <div class="card-header"><div class="card-dot"></div><div class="card-label">自動化</div></div>
-    <div class="link-list">
-      <a href="https://www.make.com/" target="_blank" class="link-item">
-        <div class="link-icon">⚙️</div>
-        <div class="link-body"><div class="link-name">Make</div><div class="link-desc">受付確認メール自動送信</div></div>
-        <span class="arrow">↗</span>
-      </a>
-    </div>
-  </div>
+  <a href="https://www.notion.so/" target="_blank" class="card">
+    <div class="card-icon">🗂</div>
+    <div class="card-name">Notion</div>
+    <div class="card-desc">顧客管理DB・案件管理</div>
+  </a>
 
-  <!-- SNS -->
-  <div class="card">
-    <div class="card-header"><div class="card-dot"></div><div class="card-label">SNS</div></div>
-    <div class="link-list">
-      <a href="https://www.instagram.com/anniv.gift/" target="_blank" class="link-item">
-        <div class="link-icon">📸</div>
-        <div class="link-body"><div class="link-name">Instagram</div><div class="link-desc">@anniv.gift</div></div>
-        <span class="arrow">↗</span>
-      </a>
-      <a href="https://x.com/Anniv_gift" target="_blank" class="link-item">
-        <div class="link-icon">𝕏</div>
-        <div class="link-body"><div class="link-name">X (Twitter)</div><div class="link-desc">@Anniv_gift</div></div>
-        <span class="arrow">↗</span>
-      </a>
-    </div>
-  </div>
+  <a href="https://mail.google.com/" target="_blank" class="card">
+    <div class="card-icon">✉️</div>
+    <div class="card-name">Gmail</div>
+    <div class="card-desc">kinenbi.planner@gmail.com</div>
+  </a>
 
-  <!-- 事業基盤 -->
-  <div class="card">
-    <div class="card-header"><div class="card-dot"></div><div class="card-label">事業基盤</div></div>
-    <div class="link-list">
-      <a href="https://www.gmo-office.com/" target="_blank" class="link-item">
-        <div class="link-icon">🏢</div>
-        <div class="link-body"><div class="link-name">GMOオフィスサポート</div><div class="link-desc">バーチャルオフィス・月660円</div></div>
-        <span class="arrow">↗</span>
-      </a>
-      <a href="https://app.secure.freee.co.jp/founder" target="_blank" class="link-item">
-        <div class="link-icon">📑</div>
-        <div class="link-body"><div class="link-name">freee開業</div><div class="link-desc">届出書類・確定申告</div></div>
-        <span class="arrow">↗</span>
-      </a>
-      <a href="https://www.e-tax.nta.go.jp/" target="_blank" class="link-item">
-        <div class="link-icon">🏛</div>
-        <div class="link-body"><div class="link-name">e-Tax</div><div class="link-desc">国税電子申告</div></div>
-        <span class="arrow">↗</span>
-      </a>
-    </div>
-  </div>
+  <a href="https://dashboard.stripe.com/" target="_blank" class="card">
+    <div class="card-icon">💳</div>
+    <div class="card-name">Stripe</div>
+    <div class="card-desc">Invoice発行・売上管理</div>
+  </a>
 
-  <!-- ドキュメント -->
-  <div class="card">
-    <div class="card-header"><div class="card-dot"></div><div class="card-label">ドキュメント</div></div>
-    <div class="link-list">
-      <a href="実装状況.html" target="_blank" class="link-item">
-        <div class="link-icon">📌</div>
-        <div class="link-body"><div class="link-name">実装状況</div><div class="link-desc">進捗・ツール一覧・ロードマップ</div></div>
-        <span class="local-badge">local</span>
-      </a>
-      <a href="lp/tokutei.html" target="_blank" class="link-item">
-        <div class="link-icon">📄</div>
-        <div class="link-body"><div class="link-name">特定商取引法</div><div class="link-desc">lp/tokutei.html</div></div>
-        <span class="local-badge">local</span>
-      </a>
-    </div>
-  </div>
+  <a href="https://www.paypay-bank.co.jp/" target="_blank" class="card">
+    <div class="card-icon">🏦</div>
+    <div class="card-name">PayPay銀行</div>
+    <div class="card-desc">事業用口座</div>
+  </a>
+
+  <a href="https://www.make.com/" target="_blank" class="card">
+    <div class="card-icon">⚙️</div>
+    <div class="card-name">Make</div>
+    <div class="card-desc">受付確認メール自動送信</div>
+  </a>
+
+  <a href="https://www.instagram.com/anniv.gift/" target="_blank" class="card">
+    <div class="card-icon">📸</div>
+    <div class="card-name">Instagram</div>
+    <div class="card-desc">@anniv.gift</div>
+  </a>
+
+  <a href="https://x.com/Anniv_gift" target="_blank" class="card">
+    <div class="card-icon">𝕏</div>
+    <div class="card-name">X</div>
+    <div class="card-desc">@Anniv_gift</div>
+  </a>
+
+  <a href="https://www.gmo-office.com/" target="_blank" class="card">
+    <div class="card-icon">🏢</div>
+    <div class="card-name">GMOオフィス</div>
+    <div class="card-desc">バーチャルオフィス</div>
+  </a>
+
+  <a href="https://app.secure.freee.co.jp/founder" target="_blank" class="card">
+    <div class="card-icon">📑</div>
+    <div class="card-name">freee開業</div>
+    <div class="card-desc">届出書類・確定申告</div>
+  </a>
+
+  <a href="https://www.e-tax.nta.go.jp/" target="_blank" class="card">
+    <div class="card-icon">🏛</div>
+    <div class="card-name">e-Tax</div>
+    <div class="card-desc">国税電子申告</div>
+  </a>
+
+  <a href="実装状況.html" target="_blank" class="card local">
+    <div class="card-icon">📌</div>
+    <div class="card-name">実装状況</div>
+    <div class="card-desc">進捗・ロードマップ</div>
+  </a>
+
+  <a href="lp/tokutei.html" target="_blank" class="card local">
+    <div class="card-icon">📄</div>
+    <div class="card-name">特定商取引法</div>
+    <div class="card-desc">lp/tokutei.html</div>
+  </a>
 
 </div>
 
