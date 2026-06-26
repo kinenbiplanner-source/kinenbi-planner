@@ -3,9 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="google-site-verification" content="gKIUXvZ5xKurtXVkGrwXu5SgwZnBXn1m0ch0rZHbkRI" />
-  <meta name="google-site-verification" content="_-uhzU1cUGlUaKsnJBjHXvBjE0ibsq6O0FP1jfFdVBE" />
-
   <title>Anniv｜プレゼント・レストラン予約・サプライズ演出のサポート</title>
   <meta name="description" content="記念日のプレゼント選びからレストラン予約、当日のサプライズ演出まで、専属プランナーがまるごとサポート。アンケートに答えるだけで最短2日、ご相談無料・ご入金前のキャンセル無料。大切な人を喜ばせたいあなたをトータルサポートします。">
   <link rel="canonical" href="https://anniv.gift/">
@@ -14,7 +11,6 @@
   <link rel="apple-touch-icon" href="/favicon.png">
   <meta name="format-detection" content="telephone=no">
 
-  <!-- OGP（Facebook / LINE など） -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://anniv.gift/">
   <meta property="og:title" content="Anniv｜プレゼント・予約・演出をトータルサポート">
@@ -26,8 +22,6 @@
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="Anniv — 記念日を、もっと特別に。">
-
-  <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Anniv｜プレゼント・予約・演出をトータルサポート">
   <meta name="twitter:description" content="プレゼント選びからレストラン予約、当日の演出まで。大切な日に外さない選択を、専属プランナーが一緒にご用意します。ご相談無料・最短2日。">
@@ -36,9 +30,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;500;600&display=swap" rel="stylesheet">
+
   <style>
     :root {
       --white: #ffffff;
+      --ivory: #fafaf8;
       --blue-pale: #f0f7fc;
       --blue-light: #d6eaf8;
       --blue-pastel: #a8c8e0;
@@ -48,28 +44,24 @@
       --text: #2d3748;
       --text-light: #64748b;
       --border: #d1e8f5;
-      --radius: 12px;
+      --radius: 14px;
 
-      /* 金の極細アクセント（1色だけ） */
       --gold: #c4a35a;
       --gold-soft: #ddc488;
+      --gold-pale: #fdf8ef;
 
-      /* グラス */
-      --glass: rgba(255,255,255,0.62);
-      --glass-border: rgba(255,255,255,0.75);
+      --glass: rgba(255,255,255,0.68);
+      --glass-border: rgba(255,255,255,0.8);
 
-      /* 影スケール */
-      --shadow-sm: 0 2px 10px rgba(26,40,64,0.05);
-      --shadow-md: 0 10px 34px rgba(26,40,64,0.09);
-      --shadow-lg: 0 22px 54px rgba(26,40,64,0.13);
+      --shadow-sm: 0 2px 12px rgba(26,40,64,0.06);
+      --shadow-md: 0 10px 36px rgba(26,40,64,0.10);
+      --shadow-lg: 0 24px 60px rgba(26,40,64,0.15);
 
-      /* グラデ */
       --grad-navy: linear-gradient(140deg, #2a3d5c 0%, #1a2840 100%);
       --grad-accent: linear-gradient(90deg, var(--blue-mid), var(--gold));
+      --grad-gold: linear-gradient(135deg, var(--gold), var(--gold-soft));
 
       --ease: cubic-bezier(0.22, 1, 0.36, 1);
-
-      /* 和文見出し用フォント（英数=Cormorant、和文=Noto Serif JPの明朝） */
       --font-serif-jp: 'Cormorant Garamond', 'Noto Serif JP', serif;
     }
 
@@ -103,9 +95,9 @@
       align-items: center;
       justify-content: space-between;
       padding: 12px 60px;
-      background: rgba(255,255,255,0.78);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
+      background: rgba(255,255,255,0.82);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border-bottom: 1px solid transparent;
       transition: box-shadow 0.3s, border-color 0.3s, padding 0.3s;
     }
@@ -125,11 +117,7 @@
       align-items: center;
       gap: 10px;
     }
-    .nav-logo img {
-      height: 72px;
-      width: auto;
-      display: block;
-    }
+    .nav-logo img { height: 72px; width: auto; display: block; }
     .nav-logo-tag {
       font-family: 'Noto Sans JP', sans-serif;
       font-size: 16px;
@@ -163,7 +151,7 @@
       background: var(--grad-navy);
       color: var(--white) !important;
       padding: 10px 22px;
-      border-radius: 7px;
+      border-radius: 8px;
       font-weight: 500 !important;
       box-shadow: 0 6px 18px rgba(26,40,64,0.18);
       transition: transform 0.2s var(--ease), box-shadow 0.2s !important;
@@ -172,19 +160,12 @@
 
     /* ── HERO ── */
     #hero {
-      min-height: 100vh;
+      min-height: 100dvh;
       display: flex;
       align-items: center;
       padding: 150px 60px 90px;
       position: relative;
       overflow: hidden;
-      background: linear-gradient(180deg,
-        #2f6f9e 0%,
-        #4f93bd 24%,
-        #8fbcd9 44%,
-        #c7d4c2 58%,
-        #e4d4ac 76%,
-        #f4ecd6 100%);
     }
     .hero-bg {
       position: absolute;
@@ -198,98 +179,34 @@
       position: absolute;
       inset: 0;
       z-index: 1;
-      background: linear-gradient(95deg, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.6) 30%, rgba(255,255,255,0.12) 56%, rgba(255,255,255,0) 78%);
+      background: linear-gradient(100deg,
+        rgba(255,255,255,0.95) 0%,
+        rgba(255,255,255,0.82) 26%,
+        rgba(255,255,255,0.45) 50%,
+        rgba(255,255,255,0.08) 72%,
+        rgba(255,255,255,0) 100%);
       pointer-events: none;
     }
-    .hero-aurora, .hero-orb, .hero-glow, .hero-grain { display: none; }
-    @keyframes bgPulse {
-      from { opacity: 0.65; }
-      to   { opacity: 1; }
-    }
-    .hero-orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(70px);
-      pointer-events: none;
-    }
-    .hero-orb.o1 {
-      width: 380px; height: 380px;
-      background: rgba(168,200,224,0.45);
-      top: -90px; right: 8%;
-      animation: float1 13s ease-in-out infinite alternate;
-    }
-    .hero-orb.o2 {
-      width: 280px; height: 280px;
-      background: rgba(196,163,90,0.16);
-      bottom: 2%; left: 4%;
-      animation: float2 16s ease-in-out infinite alternate;
-    }
-    @keyframes float1 { from { transform: translate(0,0); } to { transform: translate(-30px, 26px); } }
-    @keyframes float2 { from { transform: translate(0,0); } to { transform: translate(24px, -22px); } }
-    /* セクション背景写真（暗く沈めてゆっくり動かす） */
-    .sec-photo {
-      position: absolute;
-      inset: 0;
-      background-size: cover;
-      background-position: center;
-      opacity: 0.32;
-      z-index: 0;
-      pointer-events: none;
-      animation: kenburns 28s ease-in-out infinite alternate;
-    }
-    #cta .sec-photo { background-image: url('assets/venue.jpg'); }
-    #flow { position: relative; overflow: hidden; }
-    #flow .sec-photo { background-image: url('assets/flow.jpg'); background-position: right center; opacity: 0.6; }
-    #flow::before {
-      content: '';
-      position: absolute; inset: 0; z-index: 1;
-      background: linear-gradient(95deg, var(--blue-pale) 0%, rgba(240,247,252,0.85) 34%, rgba(240,247,252,0.35) 62%, rgba(240,247,252,0) 100%);
-      pointer-events: none;
-    }
-    #flow .section-inner { position: relative; z-index: 2; }
     @keyframes kenburns {
       from { transform: scale(1.06) translate3d(-1%, -1%, 0); }
       to   { transform: scale(1.16) translate3d(1.5%, 1%, 0); }
     }
-
-    /* オーロラ状のゆっくり回る光 */
-    .hero-aurora {
-      position: absolute;
-      inset: -25%;
-      background: conic-gradient(from 0deg, transparent 0%, rgba(168,200,224,0.14) 25%, transparent 50%, rgba(196,163,90,0.10) 75%, transparent 100%);
-      filter: blur(70px);
-      animation: auroraSpin 34s linear infinite;
-      z-index: 0;
-      pointer-events: none;
-    }
-    @keyframes auroraSpin { to { transform: rotate(360deg); } }
-
-    /* マウス追従グロー（奥行き演出） */
     .hero-glow {
       position: absolute;
       width: 460px; height: 460px;
       left: 32%; top: 38%;
       margin-left: -230px; margin-top: -230px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(74,138,181,0.20), transparent 65%);
+      background: radial-gradient(circle, rgba(74,138,181,0.18), transparent 65%);
       filter: blur(40px);
       pointer-events: none;
       z-index: 1;
-    }
-
-    /* 微細グレイン（高級質感） */
-    .hero-grain {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      opacity: 0.04;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     }
     .hero-grid {
       position: relative;
       z-index: 2;
       display: grid;
-      grid-template-columns: 1.05fr 1fr;
+      grid-template-columns: 1.1fr 1fr;
       gap: 60px;
       max-width: 1100px;
       margin: 0 auto;
@@ -307,8 +224,8 @@
       margin-bottom: 26px;
       padding: 7px 16px;
       background: var(--glass);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       border: 1px solid var(--glass-border);
       border-radius: 20px;
       box-shadow: var(--shadow-sm);
@@ -323,47 +240,47 @@
     }
     .hero-title {
       font-family: var(--font-serif-jp);
-      font-size: clamp(42px, 5.2vw, 66px);
+      font-size: clamp(44px, 5.4vw, 70px);
       font-weight: 400;
       line-height: 1.18;
       color: var(--navy);
       letter-spacing: 0.02em;
-      margin-bottom: 26px;
+      margin-bottom: 28px;
     }
     .hero-title em { font-style: normal; color: var(--blue-mid); position: relative; }
     .hero-title em::after {
       content: '';
       position: absolute;
-      left: -3px; right: -3px; bottom: 7px;
-      height: 28%;
-      background: linear-gradient(90deg, rgba(196,163,90,0.15), rgba(196,163,90,0.32));
+      left: -3px; right: -3px; bottom: 8px;
+      height: 30%;
+      background: linear-gradient(90deg, rgba(196,163,90,0.15), rgba(196,163,90,0.36));
       border-radius: 4px;
       z-index: -1;
     }
     .hero-sub {
       font-size: 15px;
       font-weight: 300;
-      line-height: 1.95;
+      line-height: 2;
       color: var(--text-light);
-      margin-bottom: 42px;
+      margin-bottom: 46px;
       max-width: 420px;
     }
-    .hero-cta-wrap { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+    .hero-cta-wrap { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
     .btn-primary {
       display: inline-flex;
       align-items: center;
       gap: 8px;
       background: var(--grad-navy);
       color: var(--white);
-      padding: 15px 32px;
-      border-radius: 9px;
+      padding: 16px 34px;
+      border-radius: 10px;
       font-size: 14px;
       font-weight: 500;
       text-decoration: none;
       letter-spacing: 0.03em;
       position: relative;
       overflow: hidden;
-      box-shadow: 0 10px 28px rgba(26,40,64,0.2);
+      box-shadow: 0 10px 30px rgba(26,40,64,0.22);
       transition: transform 0.22s var(--ease), box-shadow 0.22s;
     }
     .btn-primary::after {
@@ -371,11 +288,11 @@
       position: absolute;
       top: 0; left: -130%;
       width: 55%; height: 100%;
-      background: linear-gradient(120deg, transparent, rgba(255,255,255,0.28), transparent);
+      background: linear-gradient(120deg, transparent, rgba(255,255,255,0.26), transparent);
       transform: skewX(-20deg);
       transition: left 0.7s var(--ease);
     }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 16px 36px rgba(26,40,64,0.28); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 18px 40px rgba(26,40,64,0.3); }
     .btn-primary:hover::after { left: 150%; }
     .btn-primary svg { transition: transform 0.2s; position: relative; z-index: 1; }
     .btn-primary:hover svg { transform: translateX(3px); }
@@ -389,25 +306,25 @@
       transition: color 0.2s, border-color 0.2s;
     }
     .btn-secondary:hover { color: var(--navy); border-color: var(--gold); }
-    .hero-visual { display: flex; justify-content: center; align-items: center; }
 
     /* hero stats */
+    .hero-visual { display: flex; justify-content: center; align-items: center; }
     .hero-stats {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 16px;
       width: 100%;
-      max-width: 410px;
+      max-width: 420px;
     }
     .hero-stat {
       position: relative;
-      background: var(--glass);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid var(--glass-border);
-      border-radius: 16px;
-      padding: 24px 22px;
-      box-shadow: var(--shadow-md);
+      background: rgba(255,255,255,0.72);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(255,255,255,0.85);
+      border-radius: 18px;
+      padding: 26px 22px;
+      box-shadow: 0 8px 32px rgba(26,40,64,0.10), inset 0 1px 0 rgba(255,255,255,0.9);
       overflow: hidden;
       transition: transform 0.3s var(--ease), box-shadow 0.3s;
     }
@@ -421,7 +338,7 @@
       transform-origin: left;
       transition: transform 0.4s var(--ease);
     }
-    .hero-stat:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+    .hero-stat:hover { transform: translateY(-4px); box-shadow: 0 16px 48px rgba(26,40,64,0.14); }
     .hero-stat:hover::before { transform: scaleX(1); }
     .hero-stat:first-child {
       grid-column: span 2;
@@ -431,15 +348,15 @@
     }
     .hero-stat-num {
       font-family: 'Cormorant Garamond', serif;
-      font-size: 42px;
+      font-size: 46px;
       font-weight: 400;
       color: var(--navy);
       line-height: 1;
     }
-    .hero-stat:first-child .hero-stat-num { font-size: 52px; }
+    .hero-stat:first-child .hero-stat-num { font-size: 56px; }
     .hero-stat-unit {
       font-family: 'Cormorant Garamond', serif;
-      font-size: 18px;
+      font-size: 19px;
       font-weight: 300;
       color: var(--blue-mid);
       margin-left: 2px;
@@ -448,13 +365,13 @@
       font-size: 12px;
       font-weight: 300;
       color: var(--text-light);
-      line-height: 1.6;
+      line-height: 1.65;
       margin-top: 6px;
     }
     .hero-stat:first-child .hero-stat-label { margin-top: 0; }
     .hero-stat-divider {
       width: 1px;
-      height: 40px;
+      height: 44px;
       background: linear-gradient(var(--border), var(--gold));
       flex-shrink: 0;
     }
@@ -491,8 +408,30 @@
     }
     @keyframes scrollCue { 0% { top: -40px; } 60%,100% { top: 40px; } }
 
+    /* ── TRUST BAR ── */
+    .trust-bar {
+      background: var(--navy);
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .trust-bar-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: rgba(255,255,255,0.82);
+      font-size: 13px;
+      font-weight: 300;
+      letter-spacing: 0.04em;
+      padding: 14px 40px;
+      border-right: 1px solid rgba(255,255,255,0.1);
+      white-space: nowrap;
+    }
+    .trust-bar-item:first-child { border-left: 1px solid rgba(255,255,255,0.1); }
+    .trust-bar-item svg { color: var(--gold); flex-shrink: 0; }
+
     /* ── SECTION BASE ── */
-    section { padding: 110px 60px; }
+    section { padding: 120px 60px; }
     .section-inner { max-width: 1100px; margin: 0 auto; }
     .section-label {
       display: inline-flex;
@@ -512,7 +451,7 @@
     }
     .section-title {
       font-family: var(--font-serif-jp);
-      font-size: clamp(28px, 3.5vw, 44px);
+      font-size: clamp(28px, 3.5vw, 46px);
       font-weight: 400;
       color: var(--navy);
       line-height: 1.3;
@@ -522,17 +461,17 @@
       font-size: 14px;
       font-weight: 300;
       color: var(--text-light);
-      line-height: 1.9;
+      line-height: 1.95;
       max-width: 560px;
     }
-    .section-header { margin-bottom: 60px; }
+    .section-header { margin-bottom: 64px; }
 
-    /* 共通カード上部アクセント */
-    .pain-card, .service-card, .trust-card {
+    /* ── CARD ACCENT (共通) ── */
+    .pain-card, .service-card, .trust-card, .testimonial-card {
       position: relative;
       overflow: hidden;
     }
-    .pain-card::before, .service-card::before, .trust-card::before {
+    .pain-card::before, .service-card::before, .trust-card::before, .testimonial-card::before {
       content: '';
       position: absolute;
       top: 0; left: 0; right: 0;
@@ -542,7 +481,8 @@
       transform-origin: left;
       transition: transform 0.4s var(--ease);
     }
-    .pain-card:hover::before, .service-card:hover::before, .trust-card:hover::before { transform: scaleX(1); }
+    .pain-card:hover::before, .service-card:hover::before,
+    .trust-card:hover::before, .testimonial-card:hover::before { transform: scaleX(1); }
 
     /* ── PAIN ── */
     #pain { background: var(--blue-pale); }
@@ -555,23 +495,23 @@
       background: var(--white);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 30px 26px;
+      padding: 32px 28px;
       box-shadow: var(--shadow-sm);
       transition: transform 0.28s var(--ease), box-shadow 0.28s;
     }
     .pain-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); }
     .pain-icon {
-      width: 48px; height: 48px;
+      width: 50px; height: 50px;
       background: linear-gradient(135deg, var(--blue-light), #eaf4fb);
       border: 1px solid var(--glass-border);
-      border-radius: 12px;
+      border-radius: 13px;
       display: flex; align-items: center; justify-content: center;
       color: var(--blue-mid);
-      margin-bottom: 18px;
-      box-shadow: inset 0 1px 2px rgba(255,255,255,0.8), 0 4px 12px rgba(74,138,181,0.12);
+      margin-bottom: 20px;
+      box-shadow: inset 0 1px 2px rgba(255,255,255,0.8), 0 4px 14px rgba(74,138,181,0.12);
     }
-    .pain-card h3 { font-size: 15px; font-weight: 500; color: var(--navy); margin-bottom: 8px; }
-    .pain-card p { font-size: 13px; font-weight: 300; color: var(--text-light); line-height: 1.8; }
+    .pain-card h3 { font-size: 15px; font-weight: 500; color: var(--navy); margin-bottom: 10px; }
+    .pain-card p { font-size: 13px; font-weight: 300; color: var(--text-light); line-height: 1.85; }
 
     /* ── SERVICES ── */
     #services { background: var(--white); }
@@ -584,7 +524,7 @@
     .service-card {
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 38px 30px;
+      padding: 40px 32px;
       background: var(--white);
       transition: transform 0.28s var(--ease), box-shadow 0.28s, border-color 0.28s;
     }
@@ -595,7 +535,7 @@
     }
     .service-num {
       font-family: 'Cormorant Garamond', serif;
-      font-size: 40px;
+      font-size: 42px;
       font-weight: 400;
       line-height: 1;
       margin-bottom: 22px;
@@ -606,16 +546,16 @@
       color: transparent;
     }
     .service-card h3 { font-size: 17px; font-weight: 500; color: var(--navy); margin-bottom: 12px; }
-    .service-card p { font-size: 13px; font-weight: 300; color: var(--text-light); line-height: 1.9; }
+    .service-card p { font-size: 13px; font-weight: 300; color: var(--text-light); line-height: 1.95; }
     .service-note {
       background: linear-gradient(135deg, var(--blue-pale), #fafdff);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 22px 30px;
+      padding: 24px 32px;
       font-size: 13px;
       font-weight: 300;
       color: var(--text-light);
-      line-height: 1.9;
+      line-height: 1.95;
       box-shadow: var(--shadow-sm);
     }
     .service-note strong { color: var(--navy); font-weight: 500; }
@@ -649,7 +589,7 @@
       content: '';
       position: absolute;
       inset: 0;
-      background: linear-gradient(180deg, rgba(26,40,64,0) 42%, rgba(26,40,64,0.66) 100%);
+      background: linear-gradient(180deg, rgba(26,40,64,0) 42%, rgba(26,40,64,0.68) 100%);
       pointer-events: none;
     }
     .gallery-item figcaption {
@@ -705,33 +645,29 @@
     .concierge-inner {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 60px;
+      gap: 64px;
       align-items: center;
     }
     .concierge-text {
       font-size: 14px;
       font-weight: 300;
-      color: rgba(255,255,255,0.72);
+      color: rgba(255,255,255,0.75);
       line-height: 2;
-      margin-bottom: 26px;
+      margin-bottom: 28px;
     }
     .concierge-tags { display: flex; flex-wrap: wrap; gap: 10px; }
     .concierge-tag {
       font-size: 12px;
       color: var(--blue-pastel);
-      border: 1px solid rgba(168,200,224,0.4);
+      border: 1px solid rgba(168,200,224,0.38);
       border-radius: 20px;
-      padding: 6px 15px;
+      padding: 6px 16px;
       font-weight: 400;
       letter-spacing: 0.03em;
       transition: border-color 0.25s, color 0.25s, background 0.25s;
     }
     .concierge-tag:hover { border-color: var(--gold); color: var(--gold-soft); background: rgba(196,163,90,0.06); }
-    .concierge-cards {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
+    .concierge-cards { display: flex; flex-direction: column; gap: 16px; }
     .concierge-card {
       background: rgba(255,255,255,0.05);
       backdrop-filter: blur(6px);
@@ -739,10 +675,10 @@
       border: 1px solid rgba(255,255,255,0.1);
       border-left: 2px solid var(--gold);
       border-radius: var(--radius);
-      padding: 22px 24px;
+      padding: 24px 26px;
       transition: transform 0.28s var(--ease), background 0.28s;
     }
-    .concierge-card:hover { transform: translateX(5px); background: rgba(255,255,255,0.08); }
+    .concierge-card:hover { transform: translateX(5px); background: rgba(255,255,255,0.09); }
     .concierge-card-role {
       font-size: 11px;
       font-weight: 500;
@@ -754,12 +690,28 @@
     .concierge-card-desc {
       font-size: 13px;
       font-weight: 300;
-      color: rgba(255,255,255,0.68);
-      line-height: 1.7;
+      color: rgba(255,255,255,0.70);
+      line-height: 1.75;
     }
 
     /* ── FLOW ── */
-    #flow { background: var(--blue-pale); }
+    #flow { background: var(--blue-pale); position: relative; overflow: hidden; }
+    #flow .sec-photo {
+      position: absolute;
+      inset: 0;
+      background: url('assets/flow.jpg') right center / cover no-repeat;
+      opacity: 0.55;
+      z-index: 0;
+      pointer-events: none;
+      animation: kenburns 28s ease-in-out infinite alternate;
+    }
+    #flow::before {
+      content: '';
+      position: absolute; inset: 0; z-index: 1;
+      background: linear-gradient(95deg, var(--blue-pale) 0%, rgba(240,247,252,0.88) 36%, rgba(240,247,252,0.32) 64%, rgba(240,247,252,0) 100%);
+      pointer-events: none;
+    }
+    #flow .section-inner { position: relative; z-index: 2; }
     .flow-steps {
       position: relative;
       max-width: 720px;
@@ -775,13 +727,13 @@
     }
     .flow-step {
       position: relative;
-      padding: 26px 0;
+      padding: 28px 0;
       border-bottom: 1px solid var(--border);
     }
     .flow-step:last-child { border-bottom: none; }
     .flow-node {
       position: absolute;
-      left: -56px; top: 32px;
+      left: -56px; top: 34px;
       width: 12px; height: 12px;
       border-radius: 50%;
       background: var(--white);
@@ -803,7 +755,7 @@
       margin-bottom: 6px;
     }
     .flow-step-content h3 { font-size: 16px; font-weight: 500; color: var(--navy); margin-bottom: 6px; }
-    .flow-step-content p { font-size: 13px; font-weight: 300; color: var(--text-light); line-height: 1.8; }
+    .flow-step-content p { font-size: 13px; font-weight: 300; color: var(--text-light); line-height: 1.85; }
 
     /* ── PRICING ── */
     #pricing { background: var(--white); }
@@ -818,7 +770,7 @@
       overflow: visible;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 34px 24px;
+      padding: 36px 26px;
       background: var(--white);
       box-shadow: var(--shadow-sm);
       transition: transform 0.28s var(--ease), box-shadow 0.28s;
@@ -828,27 +780,28 @@
       border-color: transparent;
       background: linear-gradient(165deg, #2a3d5c 0%, var(--navy) 100%);
       color: var(--white);
-      box-shadow: 0 26px 60px rgba(26,40,64,0.3);
-      transform: translateY(-8px);
+      box-shadow: 0 28px 64px rgba(26,40,64,0.32);
+      transform: translateY(-10px);
     }
-    .pricing-card.featured:hover { transform: translateY(-12px); }
+    .pricing-card.featured:hover { transform: translateY(-15px); }
     .pricing-featured-badge {
       position: absolute;
-      top: -12px;
+      top: -13px;
       left: 50%;
       transform: translateX(-50%);
-      background: linear-gradient(135deg, var(--gold), var(--gold-soft));
+      background: var(--grad-gold);
       color: var(--navy);
       font-size: 11px;
-      font-weight: 500;
-      padding: 5px 15px;
+      font-weight: 600;
+      padding: 5px 16px;
       border-radius: 20px;
       white-space: nowrap;
-      box-shadow: 0 5px 16px rgba(196,163,90,0.45);
+      box-shadow: 0 5px 18px rgba(196,163,90,0.5);
+      letter-spacing: 0.05em;
     }
     .pricing-budget-range {
       font-family: 'Cormorant Garamond', serif;
-      font-size: 30px;
+      font-size: 32px;
       font-weight: 400;
       color: var(--navy);
       line-height: 1;
@@ -861,7 +814,7 @@
       color: var(--text-light);
       margin-bottom: 20px;
     }
-    .pricing-card.featured .pricing-plan-name { color: rgba(255,255,255,0.55); }
+    .pricing-card.featured .pricing-plan-name { color: rgba(255,255,255,0.52); }
     .pricing-examples-label {
       font-size: 11px;
       font-weight: 500;
@@ -871,13 +824,6 @@
       margin-bottom: 10px;
     }
     .pricing-card.featured .pricing-examples-label { color: var(--gold-soft); }
-    .pricing-price-unit {
-      font-size: 12px;
-      color: var(--text-light);
-      margin-bottom: 20px;
-      font-weight: 300;
-    }
-    .pricing-card.featured .pricing-price-unit { color: rgba(255,255,255,0.5); }
     .pricing-divider {
       height: 1px;
       background: var(--border);
@@ -893,9 +839,9 @@
       display: flex;
       align-items: flex-start;
       gap: 8px;
-      line-height: 1.6;
+      line-height: 1.65;
     }
-    .pricing-card.featured .pricing-features li { color: rgba(255,255,255,0.78); }
+    .pricing-card.featured .pricing-features li { color: rgba(255,255,255,0.80); }
     .pricing-features li::before {
       content: '';
       width: 5px; height: 5px;
@@ -906,8 +852,8 @@
     }
     .pricing-card.featured .pricing-features li::before { background: var(--gold); }
     .pricing-express {
-      margin-top: 28px;
-      padding: 22px 24px;
+      margin-top: 30px;
+      padding: 22px 28px;
       background: linear-gradient(135deg, var(--blue-pale), #fafdff);
       border-radius: var(--radius);
       border: 1px solid var(--border);
@@ -917,6 +863,78 @@
       box-shadow: var(--shadow-sm);
     }
     .pricing-express strong { color: var(--navy); }
+
+    /* ── TESTIMONIALS ── */
+    #testimonials { background: var(--ivory); }
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+    }
+    .testimonial-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 36px 30px;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.28s var(--ease), box-shadow 0.28s;
+    }
+    .testimonial-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); }
+    .testimonial-stars {
+      display: flex;
+      gap: 3px;
+      margin-bottom: 18px;
+    }
+    .testimonial-stars svg {
+      width: 15px; height: 15px;
+      fill: var(--gold);
+      color: var(--gold);
+    }
+    .testimonial-quote-mark {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 64px;
+      line-height: 0.5;
+      color: var(--blue-light);
+      display: block;
+      margin-bottom: 18px;
+    }
+    .testimonial-text {
+      font-size: 14px;
+      font-weight: 300;
+      line-height: 1.95;
+      color: var(--text);
+      margin-bottom: 28px;
+    }
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+    .testimonial-avatar {
+      width: 46px; height: 46px;
+      border-radius: 50%;
+      background: var(--grad-navy);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 20px;
+      color: var(--gold-soft);
+      flex-shrink: 0;
+    }
+    .testimonial-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--navy);
+    }
+    .testimonial-context {
+      font-size: 12px;
+      font-weight: 300;
+      color: var(--text-light);
+      margin-top: 3px;
+    }
 
     /* ── TRUST ── */
     #trust { background: var(--blue-pale); }
@@ -929,31 +947,91 @@
       background: var(--white);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 34px 26px;
+      padding: 36px 28px;
       box-shadow: var(--shadow-sm);
       transition: transform 0.28s var(--ease), box-shadow 0.28s;
     }
     .trust-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); }
     .trust-icon {
-      width: 52px; height: 52px;
+      width: 54px; height: 54px;
       border-radius: 50%;
       background: linear-gradient(135deg, var(--blue-light), #eaf4fb);
       border: 1px solid var(--glass-border);
       display: flex; align-items: center; justify-content: center;
       color: var(--blue-mid);
-      margin-bottom: 18px;
-      box-shadow: inset 0 1px 2px rgba(255,255,255,0.8), 0 4px 14px rgba(74,138,181,0.12);
+      margin-bottom: 20px;
+      box-shadow: inset 0 1px 2px rgba(255,255,255,0.8), 0 4px 16px rgba(74,138,181,0.12);
     }
-    .trust-card h3 { font-size: 15px; font-weight: 500; color: var(--navy); margin-bottom: 8px; }
-    .trust-card p { font-size: 13px; font-weight: 300; color: var(--text-light); line-height: 1.9; }
+    .trust-card h3 { font-size: 15px; font-weight: 500; color: var(--navy); margin-bottom: 10px; }
+    .trust-card p { font-size: 13px; font-weight: 300; color: var(--text-light); line-height: 1.95; }
+
+    /* ── FAQ ── */
+    #faq { background: var(--white); }
+    .faq-wrap { max-width: 720px; }
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-question {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 22px 0;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--navy);
+      background: none;
+      border: none;
+      text-align: left;
+      width: 100%;
+      transition: color 0.2s;
+      letter-spacing: 0.02em;
+    }
+    .faq-question:hover { color: var(--blue-mid); }
+    .faq-toggle {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.2s, border-color 0.2s, transform 0.3s var(--ease);
+      color: var(--text-light);
+    }
+    .faq-item.open .faq-toggle {
+      background: var(--blue-light);
+      border-color: var(--blue-pastel);
+      color: var(--navy);
+      transform: rotate(45deg);
+    }
+    .faq-answer {
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height 0.4s var(--ease);
+    }
+    .faq-item.open .faq-answer { max-height: 300px; }
+    .faq-answer p {
+      font-size: 14px;
+      font-weight: 300;
+      color: var(--text-light);
+      line-height: 1.95;
+      padding-bottom: 22px;
+    }
 
     /* ── FINAL CTA ── */
     #cta {
       background: linear-gradient(160deg, #2a3d5c 0%, var(--navy) 100%);
       text-align: center;
-      padding: 110px 60px;
+      padding: 120px 60px;
       position: relative;
       overflow: hidden;
+    }
+    .cta-sec-photo {
+      position: absolute;
+      inset: 0;
+      background: url('assets/venue.jpg') center / cover no-repeat;
+      opacity: 0.22;
+      z-index: 0;
+      pointer-events: none;
+      animation: kenburns 28s ease-in-out infinite alternate;
     }
     #cta::before {
       content: '';
@@ -965,6 +1043,7 @@
       transform: translateX(-50%);
       filter: blur(30px);
       pointer-events: none;
+      animation: glowDrift 9s ease-in-out infinite;
     }
     #cta::after {
       content: '';
@@ -975,21 +1054,39 @@
       bottom: -120px; right: 6%;
       filter: blur(30px);
       pointer-events: none;
+      animation: glowDrift 9s ease-in-out infinite;
+      animation-delay: -4.5s;
     }
+    @keyframes glowDrift { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
     #cta .section-inner { position: relative; z-index: 2; }
     #cta .section-title { color: var(--white); margin-bottom: 20px; }
-    #cta .section-sub { color: rgba(255,255,255,0.62); margin: 0 auto 42px; }
-    #cta .btn-primary { background: var(--white); color: var(--navy); padding: 17px 38px; font-size: 15px; box-shadow: 0 14px 38px rgba(0,0,0,0.28); }
-    #cta .btn-primary::after { background: linear-gradient(120deg, transparent, rgba(26,40,64,0.08), transparent); }
+    #cta .section-sub { color: rgba(255,255,255,0.65); margin: 0 auto 48px; }
+    #cta .btn-primary {
+      background: var(--white);
+      color: var(--navy);
+      padding: 18px 42px;
+      font-size: 15px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.28);
+      border-radius: 11px;
+    }
+    #cta .btn-primary::after { background: linear-gradient(120deg, transparent, rgba(26,40,64,0.07), transparent); }
     #cta .btn-primary:hover { background: var(--blue-pale); }
-    #cta .payment-note { margin-top: 20px; font-size: 12px; color: rgba(255,255,255,0.4); letter-spacing: 0.05em; }
-    #cta .cta-reassure { margin-top: 20px; font-size: 13px; color: rgba(255,255,255,0.58); line-height: 1.8; letter-spacing: 0.03em; }
-
-    /* 光がゆっくり呼吸する（navy系セクションの背景グロー） */
-    @keyframes glowDrift { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
-    #concierge::before, #concierge::after,
-    #cta::before, #cta::after { animation: glowDrift 9s ease-in-out infinite; }
-    #concierge::after, #cta::after { animation-delay: -4.5s; }
+    .cta-line-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 20px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.62);
+      text-decoration: none;
+      letter-spacing: 0.04em;
+      transition: color 0.2s;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      padding-bottom: 2px;
+    }
+    .cta-line-link:hover { color: rgba(255,255,255,0.9); border-color: var(--gold-soft); }
+    #cta .cta-reassure { margin-top: 28px; font-size: 12px; color: rgba(255,255,255,0.38); letter-spacing: 0.05em; }
+    .cta-actions { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 
     /* ── FOOTER ── */
     footer {
@@ -1002,16 +1099,8 @@
       flex-wrap: wrap;
       gap: 16px;
     }
-    .footer-logo {
-      text-decoration: none;
-      display: inline-block;
-    }
-    .footer-logo img {
-      height: 48px;
-      width: auto;
-      filter: brightness(0) invert(1);
-      opacity: 0.72;
-    }
+    .footer-logo { text-decoration: none; display: inline-block; }
+    .footer-logo img { height: 48px; width: auto; filter: brightness(0) invert(1); opacity: 0.72; }
     .footer-links { display: flex; gap: 28px; }
     .footer-links a {
       font-size: 12px;
@@ -1023,15 +1112,22 @@
     .footer-links a:hover { color: var(--gold-soft); }
     .footer-copy { font-size: 12px; color: rgba(255,255,255,0.3); letter-spacing: 0.03em; }
     .footer-social { display: flex; gap: 16px; align-items: center; }
-    .footer-social a { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.5); transition: border-color 0.2s, color 0.2s; }
-    .footer-social a:hover { border-color: rgba(255,255,255,0.6); color: rgba(255,255,255,0.9); }
+    .footer-social a {
+      display: flex; align-items: center; justify-content: center;
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.18);
+      color: rgba(255,255,255,0.5);
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
+    }
+    .footer-social a:hover { border-color: rgba(255,255,255,0.55); color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.06); }
     .footer-social svg { width: 15px; height: 15px; fill: currentColor; }
 
     /* ── POPUP ── */
     .popup-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(26,40,64,0.5);
+      background: rgba(26,40,64,0.52);
       z-index: 200;
       display: flex;
       align-items: center;
@@ -1039,24 +1135,21 @@
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.4s ease;
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
     }
-    .popup-overlay.show {
-      opacity: 1;
-      pointer-events: all;
-    }
+    .popup-overlay.show { opacity: 1; pointer-events: all; }
     .popup {
       background: var(--white);
-      border-radius: 22px;
-      padding: 50px 44px;
+      border-radius: 24px;
+      padding: 52px 46px;
       max-width: 420px;
       width: 90%;
       position: relative;
       transform: translateY(24px) scale(0.97);
       transition: transform 0.45s var(--ease);
       text-align: center;
-      box-shadow: 0 30px 70px rgba(26,40,64,0.28);
+      box-shadow: 0 32px 72px rgba(26,40,64,0.30);
       overflow: hidden;
     }
     .popup::before {
@@ -1081,14 +1174,14 @@
     }
     .popup-close:hover { color: var(--navy); transform: rotate(90deg); }
     .popup-icon {
-      width: 60px; height: 60px;
+      width: 62px; height: 62px;
       background: linear-gradient(135deg, var(--blue-light), #eaf4fb);
       border: 1px solid var(--glass-border);
       border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
       color: var(--blue-mid);
       margin: 0 auto 20px;
-      box-shadow: inset 0 1px 2px rgba(255,255,255,0.8), 0 6px 16px rgba(74,138,181,0.15);
+      box-shadow: inset 0 1px 2px rgba(255,255,255,0.8), 0 6px 18px rgba(74,138,181,0.16);
     }
     .popup-label {
       font-size: 11px;
@@ -1110,7 +1203,7 @@
       font-size: 13px;
       font-weight: 300;
       color: var(--text-light);
-      line-height: 1.9;
+      line-height: 1.95;
       margin-bottom: 28px;
     }
     .popup-cta {
@@ -1118,15 +1211,15 @@
       background: var(--grad-navy);
       color: var(--white);
       padding: 15px 28px;
-      border-radius: 9px;
+      border-radius: 10px;
       font-size: 14px;
       font-weight: 500;
       text-decoration: none;
-      box-shadow: 0 10px 26px rgba(26,40,64,0.2);
+      box-shadow: 0 10px 28px rgba(26,40,64,0.22);
       transition: transform 0.2s var(--ease), box-shadow 0.2s;
       margin-bottom: 14px;
     }
-    .popup-cta:hover { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(26,40,64,0.28); }
+    .popup-cta:hover { transform: translateY(-2px); box-shadow: 0 14px 34px rgba(26,40,64,0.30); }
     .popup-skip {
       font-size: 12px;
       color: var(--text-light);
@@ -1138,53 +1231,51 @@
     }
     .popup-skip:hover { color: var(--navy); }
 
-    /* ── SCROLL ANIMATION（初期状態のみCSS、revealはGSAPが制御） ── */
+    /* ── SCROLL ANIMATION ── */
     .animate { opacity: 0; transform: translateY(34px); will-change: opacity, transform; }
 
     /* ── RESPONSIVE ── */
     @media (max-width: 900px) {
       nav, nav.scrolled { padding: 16px 24px; }
       nav .nav-links { display: none; }
-      section { padding: 76px 24px; }
+      section { padding: 80px 24px; }
       #hero { padding: 120px 24px 90px; }
       .hero-grid, .concierge-inner { grid-template-columns: 1fr; }
       .hero-visual { display: none; }
       .hero-scroll { display: none; }
-      .pain-grid, .services-grid, .trust-grid { grid-template-columns: 1fr; }
+      .pain-grid, .services-grid, .trust-grid, .testimonials-grid { grid-template-columns: 1fr; }
       .gallery-grid { grid-template-columns: 1fr 1fr; }
       .pricing-grid { grid-template-columns: 1fr 1fr; }
       .pricing-card.featured { transform: none; }
       .pricing-card.featured:hover { transform: translateY(-5px); }
+      .trust-bar-item { padding: 12px 20px; font-size: 12px; }
       footer { flex-direction: column; align-items: flex-start; padding: 30px 24px; }
+      #cta { padding: 80px 24px; }
     }
     @media (max-width: 560px) {
       .pricing-grid { grid-template-columns: 1fr; }
-      #cta { padding: 76px 24px; }
       .hero-title br, .section-title br { display: none; }
+      .trust-bar { display: none; }
     }
 
-    /* ── キーボードフォーカスの可視化（a11y） ── */
-    a:focus-visible,
-    button:focus-visible {
+    /* ── a11y ── */
+    a:focus-visible, button:focus-visible {
       outline: 2px solid var(--blue-mid);
       outline-offset: 3px;
       border-radius: 4px;
     }
 
-    /* ── Lenis スムーススクロール ── */
     html.lenis, html.lenis body { height: auto; }
     .lenis.lenis-smooth { scroll-behavior: auto !important; }
     .lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
     .lenis.lenis-stopped { overflow: hidden; }
 
-    /* ── 動きを減らす設定の尊重 ── */
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation: none !important; transition-duration: 0.001s !important; }
       .animate { opacity: 1 !important; transform: none !important; }
     }
   </style>
 
-  <!-- 構造化データ（検索結果のリッチ表示・ローカルビジネス情報） -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -1216,7 +1307,6 @@
 </head>
 <body>
 
-<!-- SCROLL PROGRESS -->
 <div class="scroll-progress" id="scrollProgress"></div>
 
 <!-- NAV -->
@@ -1233,11 +1323,7 @@
 <!-- HERO -->
 <section id="hero">
   <div class="hero-bg"></div>
-  <div class="hero-aurora"></div>
   <div class="hero-glow"></div>
-  <div class="hero-orb o1"></div>
-  <div class="hero-orb o2"></div>
-  <div class="hero-grain"></div>
   <div class="hero-grid">
     <div class="hero-content">
       <span class="hero-label animate">Anniversary Concierge</span>
@@ -1248,7 +1334,7 @@
       <div class="hero-cta-wrap animate delay-3">
         <a href="#pricing" class="btn-primary">
           プランを見る
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </a>
@@ -1284,6 +1370,22 @@
     <div class="hero-scroll-line"></div>
   </div>
 </section>
+
+<!-- TRUST BAR -->
+<div class="trust-bar" aria-label="安心ポイント">
+  <div class="trust-bar-item">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    12時間以内にご返信
+  </div>
+  <div class="trust-bar-item">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    ご相談・ヒアリング無料
+  </div>
+  <div class="trust-bar-item">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+    入金前キャンセル無料
+  </div>
+</div>
 
 <!-- PAIN -->
 <section id="pain">
@@ -1357,7 +1459,6 @@
 </section>
 
 <!-- GALLERY -->
-<!-- 写真: Unsplash（無料・商用可・帰属不要）dinner=photos/...cGZ-X0nAUgY / flower=photos/...qGay0Nc9QWM / gift=photos/...W-IvjTDAWhM -->
 <section id="gallery">
   <div class="section-inner">
     <div class="section-header animate">
@@ -1481,7 +1582,7 @@
           <li>演出プラン（渡し方・タイミング・言葉の提案）</li>
         </ul>
       </div>
-      <div class="pricing-card animate delay-2">
+      <div class="pricing-card featured animate delay-2">
         <div class="pricing-budget-range">〜¥35,000</div>
         <div class="pricing-divider"></div>
         <div class="pricing-examples-label">サービス例</div>
@@ -1492,7 +1593,7 @@
           <li>演出プラン</li>
         </ul>
       </div>
-      <div class="pricing-card animate delay-2">
+      <div class="pricing-card animate delay-3">
         <div class="pricing-budget-range">〜¥50,000</div>
         <div class="pricing-divider"></div>
         <div class="pricing-examples-label">サービス例</div>
@@ -1517,6 +1618,73 @@
     </div>
     <div class="pricing-express animate">
       <strong>スピード対応オプション</strong>　記念日2日前までのお申し込みは +¥3,000〜5,000 で対応可能です。
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section id="testimonials">
+  <div class="section-inner">
+    <div class="section-header animate">
+      <div class="section-label">Voice</div>
+      <h2 class="section-title">ご利用いただいた方のお声</h2>
+      <p class="section-sub">実際に Anniv をご利用いただいたお客様からのメッセージです。</p>
+    </div>
+    <div class="testimonials-grid">
+      <div class="testimonial-card animate delay-1">
+        <div class="testimonial-stars" aria-label="5つ星">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        </div>
+        <span class="testimonial-quote-mark" aria-hidden="true">"</span>
+        <p class="testimonial-text">何を贈ればいいか全く思い浮かばなかったのですが、相談してから2日でプランが完成しました。花束の選び方からレストランの予約まで全部お任せできて本当に助かりました。彼女のサプライズも大成功でした。</p>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar" aria-hidden="true">T</div>
+          <div>
+            <div class="testimonial-name">T.K. さん</div>
+            <div class="testimonial-context">27歳・男性 ／ 彼女の誕生日に利用</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial-card animate delay-2">
+        <div class="testimonial-stars" aria-label="5つ星">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        </div>
+        <span class="testimonial-quote-mark" aria-hidden="true">"</span>
+        <p class="testimonial-text">仕事が忙しくて結婚記念日の準備に時間が取れず、思い切って相談しました。プランナーの方が丁寧にヒアリングしてくださり、妻の好みをしっかり反映したプランを提案していただきました。妻は涙して喜んでくれました。</p>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar" aria-hidden="true">K</div>
+          <div>
+            <div class="testimonial-name">K.M. さん</div>
+            <div class="testimonial-context">33歳・男性 ／ 結婚記念日に利用</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial-card animate delay-3">
+        <div class="testimonial-stars" aria-label="5つ星">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        </div>
+        <span class="testimonial-quote-mark" aria-hidden="true">"</span>
+        <p class="testimonial-text">初めて使うサービスで少し不安でしたが、相談が完全無料なので気軽に試せました。彼へのプレゼント選びが毎年苦手で困っていたのですが、女性目線のアドバイスが的確で、とても喜んでもらえました。</p>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar" aria-hidden="true">M</div>
+          <div>
+            <div class="testimonial-name">M.S. さん</div>
+            <div class="testimonial-context">24歳・女性 ／ 彼氏の誕生日に利用</div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -1560,18 +1728,91 @@
   </div>
 </section>
 
+<!-- FAQ -->
+<section id="faq">
+  <div class="section-inner">
+    <div class="section-header animate">
+      <div class="section-label">FAQ</div>
+      <h2 class="section-title">よくあるご質問</h2>
+    </div>
+    <div class="faq-wrap animate delay-1">
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          ヒアリングや相談は本当に無料ですか？
+          <span class="faq-toggle" aria-hidden="true">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </span>
+        </button>
+        <div class="faq-answer" role="region">
+          <p>はい、完全無料です。プランの方向性が決まり、お客様にご納得いただいた上でお支払いをいただいています。ご相談だけで終わっていただいても構いません。</p>
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          記念日まであまり時間がないのですが、間に合いますか？
+          <span class="faq-toggle" aria-hidden="true">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </span>
+        </button>
+        <div class="faq-answer" role="region">
+          <p>記念日の2日前までであれば、スピード対応オプション（+¥3,000〜5,000）で対応いたします。まずはお気軽にご相談ください。記念日の日程・内容によっては、さらに短納期でのご対応も可能な場合があります。</p>
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          男性がパートナーにプレゼントする場合だけですか？
+          <span class="faq-toggle" aria-hidden="true">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </span>
+        </button>
+        <div class="faq-answer" role="region">
+          <p>いいえ、女性から男性へ、同性カップル間、ご友人やご家族へのプレゼントなど、あらゆる記念日のご相談に対応しています。ご遠慮なくお申し込みください。</p>
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          プレゼントはどのように届きますか？
+          <span class="faq-toggle" aria-hidden="true">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </span>
+        </button>
+        <div class="faq-answer" role="region">
+          <p>ブランドから直接、ご指定の住所にラッピング済みで発送いたします。サプライズを守るため、ご本人様のご住所への発送も可能です。なお、送料はプランによって異なります。</p>
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          キャンセルはできますか？
+          <span class="faq-toggle" aria-hidden="true">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </span>
+        </button>
+        <div class="faq-answer" role="region">
+          <p>プラン確定・ご入金前であれば、いつでも無料でキャンセルいただけます。プランナーからの提案内容にご納得いただいた後にお支払いいただく仕組みですので、安心してご相談ください。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- FINAL CTA -->
 <section id="cta">
-  <div class="sec-photo"></div>
+  <div class="cta-sec-photo"></div>
   <div class="section-inner">
     <h2 class="section-title animate delay-1">一緒に、忘れられない一日を。</h2>
     <p class="section-sub animate delay-2">フォームにご回答いただくだけで、想いに寄り添ったご提案をお届けします。</p>
-    <a href="https://tally.so/r/lbVDPB" target="_blank" rel="noopener noreferrer" class="btn-primary animate delay-3">
-      無料で相談する
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </a>
+    <div class="cta-actions animate delay-3">
+      <a href="https://tally.so/r/lbVDPB" target="_blank" rel="noopener noreferrer" class="btn-primary">
+        無料で相談する
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </a>
+      <a href="https://lin.ee/U4deTzi" target="_blank" rel="noopener noreferrer" class="cta-line-link">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.365 9.863c.349 0 .63.285.631.631 0 .345-.282.63-.631.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.282.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
+        LINEで直接相談する
+      </a>
+    </div>
     <p class="cta-reassure animate delay-4">強引な提案はいたしませんので、お気軽にご相談ください。</p>
   </div>
 </section>
@@ -1617,7 +1858,6 @@
   <div class="footer-copy">© 2026 Anniv</div>
 </footer>
 
-<!-- アニメーションライブラリ（GSAP + ScrollTrigger / Lenis スムーススクロール） -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script src="https://unpkg.com/lenis@1/dist/lenis.min.js"></script>
@@ -1626,7 +1866,7 @@
 (function () {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  /* ---------- ポップアップ（演出の有無に関わらず常に動かす） ---------- */
+  /* ── ポップアップ ── */
   const POPUP_KEY = 'popup_shown';
   const overlay = document.getElementById('popupOverlay');
   const closeBtn = document.getElementById('popupClose');
@@ -1648,7 +1888,23 @@
     if (e.key === 'Escape' && overlay.classList.contains('show')) hidePopup();
   });
 
-  /* ---------- nav の影 + スクロール進捗バー ---------- */
+  /* ── FAQ アコーディオン ── */
+  document.querySelectorAll('.faq-question').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const item = btn.closest('.faq-item');
+      const isOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item.open').forEach((el) => {
+        el.classList.remove('open');
+        el.querySelector('.faq-question').setAttribute('aria-expanded', 'false');
+      });
+      if (!isOpen) {
+        item.classList.add('open');
+        btn.setAttribute('aria-expanded', 'true');
+      }
+    });
+  });
+
+  /* ── nav の影 + スクロール進捗バー ── */
   const navbar = document.getElementById('navbar');
   const progress = document.getElementById('scrollProgress');
   function onScroll(y) {
@@ -1659,7 +1915,6 @@
 
   const hasGSAP = typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined';
 
-  /* ---------- フォールバック / 動き低減：演出なしで全要素を表示 ---------- */
   if (reduce || !hasGSAP) {
     document.querySelectorAll('.animate').forEach((el) => { el.style.opacity = '1'; el.style.transform = 'none'; });
     document.querySelectorAll('.count').forEach((el) => { el.textContent = el.dataset.target; });
@@ -1670,7 +1925,6 @@
 
   gsap.registerPlugin(ScrollTrigger);
 
-  /* ---------- Lenis スムーススクロール（読み込めていれば有効化） ---------- */
   if (typeof Lenis !== 'undefined') {
     const lenis = new Lenis({ duration: 1.1, smoothWheel: true });
     lenis.on('scroll', ScrollTrigger.update);
@@ -1682,13 +1936,11 @@
   }
   onScroll(window.scrollY);
 
-  /* ---------- スクロールで要素を reveal（stagger 付き） ---------- */
   ScrollTrigger.batch('.animate', {
     start: 'top 86%',
     onEnter: (els) => gsap.to(els, { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out', stagger: 0.1, overwrite: true }),
   });
 
-  /* ---------- マウス追従グロー ---------- */
   const hero = document.getElementById('hero');
   const glow = document.querySelector('.hero-glow');
   if (hero && glow) {
@@ -1701,7 +1953,6 @@
     });
   }
 
-  /* ---------- 数字カウントアップ（表示時に一度だけ） ---------- */
   gsap.utils.toArray('.count').forEach((el) => {
     const target = Number(el.dataset.target);
     ScrollTrigger.create({
