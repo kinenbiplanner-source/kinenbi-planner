@@ -1,0 +1,303 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import BaseHead from '../components/BaseHead.astro';
+import CtaBox from '../components/CtaBox.astro';
+
+type Props = CollectionEntry<'media'>['data'];
+
+const { title, description, axis, funnel, publishDate, updatedDate, cta } = Astro.props;
+
+const path = Astro.url.pathname.replace(/\/+$/, '');
+const articleUrl = new URL(path, Astro.site).href;
+
+const fmt = (d: Date) =>
+  new Intl.DateTimeFormat('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' }).format(d);
+
+// 構造化データ。Article と BreadcrumbList を入れる。
+// FAQPage は 2023年8月以降、一般サイトではリッチリザルトが出ないため入れていない
+// （メディア方針の判断。必要になったら追加する）。
+const articleLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: title,
+  description,
+  datePublished: publishDate.toISOString(),
+  ...(updatedDate ? { dateModified: updatedDate.toISOString() } : {}),
+  mainEntityOfPage: { '@type': 'WebPage', '@id': articleUrl },
+  author: { '@type': 'Organization', name: 'Anniv', url: 'https://anniv.gift/' },
+  publisher: { '@type': 'Organization', name: 'Anniv', url: 'https://anniv.gift/' },
+};
+
+const breadcrumbLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Anniv', item: 'https://anniv.gift/' },
+    { '@type': 'ListItem', position: 2, name: 'メディア', item: 'https://anniv.gift/media' },
+    { '@type': 'ListItem', position: 3, name: title, item: articleUrl },
+  ],
+};
+---
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <BaseHead title={`${title} | Anniv`} description={description} ogType="article" />
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(articleLd)} />
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(breadcrumbLd)} />
+  </head>
+  <body>
+    <header class="site-header">
+      <a href="/" class="site-logo">Anniv</a>
+      <nav>
+        <a href="/media">メディア</a>
+        <a href="https://anniv.gift/contact.html" class="header-cta">無料相談</a>
+      </nav>
+    </header>
+
+    <main>
+      <nav class="breadcrumb" aria-label="パンくず">
+        <a href="/">ホーム</a> <span>›</span>
+        <a href="/media">メディア</a> <span>›</span>
+        <span aria-current="page">{title}</span>
+      </nav>
+
+      <article>
+        <div class="article-meta">
+          <span class="badge">{axis}</span>
+          <span class="badge badge-funnel">{funnel}</span>
+        </div>
+        <h1>{title}</h1>
+        <p class="dates">
+          <time datetime={publishDate.toISOString()}>{fmt(publishDate)}公開</time>
+          {
+            updatedDate && (
+              <time datetime={updatedDate.toISOString()}>／{fmt(updatedDate)}更新</time>
+            )
+          }
+        </p>
+
+        <div class="prose">
+          <slot />
+        </div>
+
+        {cta && <CtaBox />}
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-links">
+        <a href="/tokutei.html">特定商取引法に基づく表記</a>
+        <a href="/privacy.html">プライバシーポリシー</a>
+        <a href="/contact.html">お問い合わせ</a>
+      </div>
+      <div>© 2026 Anniv</div>
+    </footer>
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    --navy: #1a2840;
+    --blue-mid: #4a8ab5;
+    --gold: #c4a35a;
+    --text: #2d3748;
+    --text-light: #64748b;
+    --border: #d1e8f5;
+    --ivory: #fafaf8;
+    --font-serif-jp: 'Cormorant Garamond', 'Noto Serif JP', serif;
+  }
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    color: var(--text);
+    background: #fff;
+    line-height: 1.9;
+  }
+  .site-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(12px);
+    z-index: 10;
+  }
+  .site-logo {
+    font-family: var(--font-serif-jp);
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--navy);
+    text-decoration: none;
+    letter-spacing: 0.05em;
+  }
+  .site-header nav {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+  .site-header nav a {
+    color: var(--text-light);
+    text-decoration: none;
+    font-size: 0.94rem;
+  }
+  .site-header nav a:hover {
+    color: var(--navy);
+  }
+  .header-cta {
+    background: var(--navy);
+    color: #fff !important;
+    padding: 9px 18px;
+    border-radius: 8px;
+  }
+  main {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+  .breadcrumb {
+    font-size: 0.82rem;
+    color: var(--text-light);
+    margin-bottom: 28px;
+  }
+  .breadcrumb a {
+    color: var(--text-light);
+    text-decoration: none;
+  }
+  .breadcrumb a:hover {
+    text-decoration: underline;
+  }
+  .breadcrumb span {
+    margin: 0 6px;
+  }
+  .article-meta {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .badge {
+    font-size: 0.76rem;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: #f0f7fc;
+    color: var(--blue-mid);
+    border: 1px solid var(--border);
+  }
+  .badge-funnel {
+    background: var(--ivory);
+    color: var(--text-light);
+    border-color: #e6e6e0;
+  }
+  h1 {
+    font-size: 2rem;
+    line-height: 1.5;
+    color: var(--navy);
+    margin-bottom: 12px;
+    font-weight: 700;
+  }
+  .dates {
+    font-size: 0.84rem;
+    color: var(--text-light);
+    margin-bottom: 36px;
+  }
+  .prose h2 {
+    font-size: 1.5rem;
+    color: var(--navy);
+    margin: 48px 0 16px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--border);
+    line-height: 1.5;
+  }
+  .prose h3 {
+    font-size: 1.18rem;
+    color: var(--navy);
+    margin: 32px 0 12px;
+    line-height: 1.6;
+  }
+  .prose p {
+    margin: 0 0 20px;
+  }
+  .prose ul,
+  .prose ol {
+    margin: 0 0 20px;
+    padding-left: 1.4em;
+  }
+  .prose li {
+    margin-bottom: 8px;
+  }
+  .prose a {
+    color: var(--blue-mid);
+  }
+  .prose img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 10px;
+  }
+  .prose table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 24px;
+    font-size: 0.94rem;
+  }
+  .prose th,
+  .prose td {
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    text-align: left;
+  }
+  .prose th {
+    background: #f0f7fc;
+    font-weight: 600;
+  }
+  .prose blockquote {
+    border-left: 3px solid var(--gold);
+    padding: 4px 0 4px 18px;
+    margin: 0 0 20px;
+    color: var(--text-light);
+  }
+  .prose code {
+    background: var(--ivory);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  .site-footer {
+    border-top: 1px solid var(--border);
+    padding: 28px 24px;
+    text-align: center;
+    font-size: 0.84rem;
+    color: var(--text-light);
+  }
+  .footer-links {
+    display: flex;
+    gap: 18px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .footer-links a {
+    color: var(--text-light);
+    text-decoration: none;
+  }
+  .footer-links a:hover {
+    text-decoration: underline;
+  }
+  @media (max-width: 640px) {
+    h1 {
+      font-size: 1.55rem;
+    }
+    .prose h2 {
+      font-size: 1.28rem;
+    }
+    main {
+      padding: 24px 18px 60px;
+    }
+  }
+</style>

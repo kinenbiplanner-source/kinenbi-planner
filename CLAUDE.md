@@ -4,13 +4,15 @@ Anniv（記念日のプレゼント選び・レストラン予約・サプライ
 
 ## トップレベル構成
 
-- `lp/` — 本番LP（Vercel root dir=lp、master push で自動デプロイ）
+- `public/` — 本番LPの静的ファイル（旧 `lp/`）。素のHTMLのまま Astro が無加工で配信する。**URLは従来どおり**（`/`、`/contact.html` など）
+- `src/` — Astroのメディア基盤。`content/media/`（公開記事のMarkdown）・`pages/media/`（一覧・記事ページ）・`layouts/`・`components/`
+- `astro.config.mjs` / `package.json` / `vercel.json` — ビルド設定（**Vercel root dir はリポジトリルート**、master push で自動デプロイ）
 - `.claude/agents/` — 記事制作サブエージェント定義（competitor-researcher / article-writer / article-reviewer）
   - `.claude/agents/reference/` — 記事制作の共有SSOT資料（article-style-guide.md / content-axis.md / interview-sheet.md / improvement-loop.md / 社内ナレッジ.md）
 - `.claude/skills/` — 記事制作オーケストレーター（write-article / rewrite-article）
 - `記事/` — 記事の作業フォルダ（下書き。`article.md`として保存）
 - `記事管理/` — KWマスターDB.csv（記事の管理台帳）・アフィリ案件マスター.csv（ヘッダーのみの雛形。将来アフィリを始める時に使う）・リサーチマスター.md（リサーチ結果の鮮度付きキャッシュ、必要になったら生成）
-- `メディア方針/` — メディア戦略.md（コンセプト・差別化軸・着手順・KPIなどメディア運営方針のSSOT）
+- `メディア方針/` — メディア戦略.md（コンセプト・差別化軸・着手順・KPIなどメディア運営方針のSSOT）・計測設計.md（GA4/Pixelのイベント定義のSSOT。**導線を足したら必ずここも更新する**）
 
 ## 記事制作システムについて
 
@@ -18,6 +20,10 @@ Anniv（記念日のプレゼント選び・レストラン予約・サプライ
 
 - 記事を新規で書く：`/write-article <KW>`
 - 既存記事をリライトする：`/rewrite-article <KW or ファイルパス>`
+- **記事を公開する**：下書き（`記事/article.md`）に frontmatter を付けて `src/content/media/<slug>.md` に置く。`npm run build` が通れば `/media/<slug>` で公開される
+  - frontmatter の必須項目：`title` / `description` / `axis`（軸）/ `funnel`（ファネル層）/ `publishDate`。軸3の記事は `cta: true` を付けると末尾に無料相談CTAが入る（スキーマは `src/content.config.ts`）
+  - **スラッグは公開後に変えない**。日付も入れない（URL変更＋301欠落で検索評価がリセットされた実害が爆速開発部にある）
+  - 公開したら `記事管理/KWマスターDB.csv` にURLを記録する
 - ルール変更：文体・骨格・SEOなど全軸共通のルールは `.claude/agents/reference/article-style-guide.md` を編集。コンテンツ軸（テーマ・リサーチ観点・文体の寄せ）は `.claude/agents/reference/content-axis.md` を編集
 
 **元の爆速開発部フローから未移植・簡略化した部分**（必要になったら元プロジェクト `C:\Users\sansh\OneDrive\爆速開発部\_config` を参照して移植する）：

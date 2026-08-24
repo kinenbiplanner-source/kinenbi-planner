@@ -353,7 +353,7 @@
     document.querySelectorAll('a[href*="lin.ee"]').forEach(function (el) {
       el.addEventListener('click', function () {
         if (typeof gtag === 'function') {
-          gtag('event', 'line_add_click', { event_category: 'conversion', event_label: 'line_friend_add' });
+          gtag('event', 'line_add_click', { event_category: 'conversion', event_label: 'thanks' });
         }
         if (typeof fbq === 'function') {
           fbq('track', 'Contact');

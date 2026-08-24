@@ -3,6 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-77X1XS59RB"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-77X1XS59RB');
+  </script>
+
+  <!-- Meta Pixel Code -->
+  <script>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '1686039682668276');
+  fbq('track', 'PageView');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=1686039682668276&ev=PageView&noscript=1"
+  /></noscript>
+  <!-- End Meta Pixel Code -->
+
   <title>Anniv — リンク一覧</title>
   <meta name="robots" content="noindex">
   <link rel="icon" href="/favicon.png" type="image/png">
@@ -293,5 +321,37 @@
     <p class="footer">© 2026 Anniv</p>
 
   </div>
+
+  <script>
+    document.querySelectorAll('.link-btn').forEach(function (el) {
+      var href = el.getAttribute('href') || '';
+      var label = '';
+      if (href.indexOf('lin.ee') !== -1) {
+        label = 'line';
+      } else if (href.indexOf('instagram.com') !== -1) {
+        label = 'instagram';
+      } else if (href.indexOf('x.com') !== -1) {
+        label = 'x';
+      } else if (href.indexOf('anniv.gift') !== -1) {
+        label = 'lp';
+      }
+      if (!label) return;
+
+      el.addEventListener('click', function () {
+        if (label === 'line') {
+          if (typeof gtag === 'function') {
+            gtag('event', 'line_add_click', { event_category: 'conversion', event_label: 'links' });
+          }
+          if (typeof fbq === 'function') {
+            fbq('track', 'Contact');
+          }
+        } else {
+          if (typeof gtag === 'function') {
+            gtag('event', 'links_click', { event_category: 'engagement', event_label: label });
+          }
+        }
+      });
+    });
+  </script>
 </body>
 </html>
