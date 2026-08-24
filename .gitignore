@@ -19,3 +19,10 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# cloudflare
+.wrangler/
+.dev.vars
+
+# ローカル検証用のシード（生成物）
+seed.local.sql

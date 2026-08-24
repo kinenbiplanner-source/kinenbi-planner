@@ -1,0 +1,754 @@
+/*
+ * 記事ページのスタイル。
+ *
+ * article-style-guide.md 9章が定める独自記法（:::info / :::box / :::timeline …）の
+ * 見た目はすべてここで決める。マークアップを出しているのは src/lib/markdown.ts なので、
+ * クラス名を変えるときは必ず両方を直すこと。
+ */
+
+/* ── レイアウト ── */
+.article-layout {
+  display: grid;
+  grid-template-columns: minmax(0, var(--article-max)) 280px;
+  gap: 56px;
+  align-items: start;
+}
+.article-main {
+  min-width: 0;
+}
+
+.breadcrumb {
+  font-size: 12px;
+  color: var(--text-light);
+  margin-bottom: 22px;
+  line-height: 1.8;
+}
+.breadcrumb a {
+  color: var(--text-light);
+  text-decoration: none;
+}
+.breadcrumb a:hover {
+  color: var(--navy);
+  text-decoration: underline;
+}
+.breadcrumb .sep {
+  margin: 0 7px;
+  color: var(--blue-pastel);
+}
+
+.article-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.badge {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  padding: 5px 13px;
+  border-radius: 999px;
+  background: var(--gold-pale);
+  color: #8a6d2f;
+  border: 1px solid var(--gold-soft);
+  text-decoration: none;
+}
+a.badge:hover {
+  background: var(--gold-soft);
+  color: var(--white);
+}
+.badge-funnel {
+  background: var(--blue-pale);
+  color: var(--blue-mid);
+  border-color: var(--border);
+}
+
+.article-title {
+  font-family: var(--font-serif-jp);
+  font-size: clamp(26px, 4vw, 40px);
+  font-weight: 500;
+  color: var(--navy);
+  line-height: 1.45;
+  margin-bottom: 14px;
+}
+.article-dates {
+  font-size: 12.5px;
+  color: var(--text-light);
+  letter-spacing: 0.03em;
+  margin-bottom: 32px;
+}
+.article-hero {
+  margin-bottom: 40px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.article-hero img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+/* ── 本文タイポグラフィ ── */
+.prose {
+  font-size: 16px;
+  line-height: var(--article-lh);
+  color: var(--text);
+}
+.prose > p {
+  margin: 0 0 22px;
+}
+.prose h2 {
+  position: relative;
+  font-family: var(--font-serif-jp);
+  font-size: clamp(21px, 2.6vw, 27px);
+  font-weight: 500;
+  color: var(--navy);
+  line-height: 1.5;
+  margin: 64px 0 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.prose h2::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 56px;
+  height: 2px;
+  background: var(--grad-accent);
+}
+.prose h3 {
+  font-family: var(--font-serif-jp);
+  font-size: clamp(17px, 2vw, 20px);
+  font-weight: 500;
+  color: var(--navy);
+  line-height: 1.6;
+  margin: 40px 0 14px;
+  padding-left: 13px;
+  border-left: 3px solid var(--gold);
+}
+.prose ul,
+.prose ol {
+  margin: 0 0 22px;
+  padding-left: 1.5em;
+}
+.prose li {
+  margin-bottom: 9px;
+}
+.prose li::marker {
+  color: var(--blue-mid);
+}
+.prose a {
+  color: var(--blue-mid);
+  text-underline-offset: 3px;
+}
+.prose a:hover {
+  color: var(--navy);
+}
+.prose strong {
+  font-weight: 700;
+  color: var(--navy);
+}
+.prose blockquote {
+  border-left: 3px solid var(--gold);
+  background: var(--gold-pale);
+  padding: 14px 20px;
+  margin: 0 0 22px;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  color: var(--text-light);
+  font-size: 15px;
+}
+.prose blockquote > :last-child {
+  margin-bottom: 0;
+}
+.prose code {
+  background: var(--ivory);
+  border: 1px solid var(--border);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+.prose pre {
+  background: var(--navy);
+  color: #e8eef7;
+  padding: 18px 20px;
+  border-radius: var(--radius);
+  overflow-x: auto;
+  margin: 0 0 22px;
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+.prose pre code {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+}
+.prose img {
+  border-radius: var(--radius);
+}
+
+/* ── 見出し冒頭の【タグ】 ── */
+.h-tag {
+  display: inline-block;
+  margin-right: 10px;
+  padding: 3px 11px;
+  border-radius: 999px;
+  background: var(--gold-pale);
+  color: #8a6d2f;
+  border: 1px solid var(--gold-soft);
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  vertical-align: middle;
+}
+
+/* ── 蛍光マーカー ── */
+.marker {
+  background: linear-gradient(transparent 62%, var(--marker-y) 62%);
+  color: inherit;
+}
+.marker-g {
+  background: linear-gradient(transparent 62%, var(--marker-g) 62%);
+}
+.marker-p {
+  background: linear-gradient(transparent 62%, var(--marker-p) 62%);
+}
+
+/* ── 表（比較表は幅を食うので横スクロールさせる）── */
+.table-wrap {
+  overflow-x: auto;
+  margin: 0 0 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.table-wrap table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 1.75;
+}
+.table-wrap th,
+.table-wrap td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.table-wrap th {
+  background: var(--navy);
+  color: var(--white);
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  border-bottom-color: var(--navy);
+}
+.table-wrap tbody tr:nth-child(even) td {
+  background: #fafcfe;
+}
+.table-wrap tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* ── カスタムブロック（info / tip / warning / danger）── */
+.cb {
+  position: relative;
+  margin: 0 0 28px;
+  padding: 17px 22px 17px 54px;
+  border-radius: var(--radius);
+  border-left: 4px solid var(--c-info);
+  background: #f4f9fd;
+  background: color-mix(in srgb, var(--c-info) 6%, var(--white));
+  font-size: 15px;
+  line-height: 1.85;
+}
+.cb > :last-child {
+  margin-bottom: 0;
+}
+.cb::before {
+  position: absolute;
+  left: 19px;
+  top: 18px;
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  color: var(--white);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 21px;
+  text-align: center;
+}
+.cb-info::before {
+  content: 'i';
+  background: var(--c-info);
+}
+.cb-tip {
+  border-left-color: var(--c-tip);
+  background: color-mix(in srgb, var(--c-tip) 6%, var(--white));
+}
+.cb-tip::before {
+  content: '✓';
+  background: var(--c-tip);
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 12px;
+}
+.cb-warning {
+  border-left-color: var(--c-warning);
+  background: color-mix(in srgb, var(--c-warning) 8%, var(--white));
+}
+.cb-warning::before {
+  content: '!';
+  background: var(--c-warning);
+}
+.cb-danger {
+  border-left-color: var(--c-danger);
+  background: color-mix(in srgb, var(--c-danger) 6%, var(--white));
+}
+.cb-danger::before {
+  content: '×';
+  background: var(--c-danger);
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 12px;
+}
+
+/* ── :::summary（導入直後の結論要約。記事内で最も目立たせる）── */
+.cb-summary {
+  padding: 24px 26px;
+  border-left: 4px solid var(--gold);
+  background: var(--blue-pale);
+  box-shadow: var(--shadow-sm);
+}
+.cb-summary::before {
+  content: none;
+}
+.cb-summary .cb-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin: 0 0 14px;
+}
+.cb-summary ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.cb-summary li {
+  position: relative;
+  padding-left: 28px;
+  margin-bottom: 10px;
+  color: var(--navy);
+  font-weight: 500;
+}
+.cb-summary li:last-child {
+  margin-bottom: 0;
+}
+.cb-summary li::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 0.62em;
+  width: 11px;
+  height: 6px;
+  border-left: 2px solid var(--gold);
+  border-bottom: 2px solid var(--gold);
+  transform: rotate(-45deg);
+}
+
+/* ── :::box color=#XXXXXX label="〇〇" ── */
+.box {
+  position: relative;
+  margin: 34px 0 28px;
+  padding: 26px 24px 20px;
+  border: 1px solid var(--box, var(--blue-mid));
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--box, var(--blue-mid)) 4%, var(--white));
+  font-size: 15px;
+  line-height: 1.85;
+}
+.box-label {
+  position: absolute;
+  top: -12px;
+  left: 20px;
+  background: var(--box, var(--blue-mid));
+  color: var(--white);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  padding: 4px 13px;
+  border-radius: 999px;
+}
+.box-body > :last-child {
+  margin-bottom: 0;
+}
+.box-body ul {
+  margin-bottom: 0;
+}
+
+/* ── :::faq ── */
+.faq {
+  margin: 0 0 28px;
+  border-top: 1px solid var(--border);
+}
+.faq-item {
+  padding: 18px 2px;
+  border-bottom: 1px solid var(--border);
+}
+.faq-q {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  margin: 0 0 10px;
+  font-weight: 600;
+  color: var(--navy);
+  line-height: 1.7;
+}
+.faq-badge {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  margin-top: 3px;
+  border-radius: 50%;
+  background: var(--grad-gold);
+  color: var(--white);
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.faq-a {
+  margin: 0;
+  padding-left: 33px;
+  color: var(--text-light);
+  font-size: 15px;
+}
+.faq-a + .faq-a {
+  margin-top: 8px;
+}
+
+/* ── :::timeline title=〇〇（STEP番号はCSS counterで振る）── */
+.timeline {
+  position: relative;
+  margin: 0 0 32px;
+  padding-left: 44px;
+  counter-reset: tl;
+}
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 14px;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  background: var(--border);
+}
+.timeline-title {
+  margin: 0 0 22px -44px;
+  font-family: var(--font-serif-jp);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--navy);
+}
+.prose .timeline-step {
+  counter-increment: tl;
+  position: relative;
+  margin: 26px 0 8px;
+  padding: 0;
+  border: 0;
+  font-family: var(--font-serif-jp);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--navy);
+}
+.prose .timeline-step::before {
+  content: counter(tl);
+  position: absolute;
+  left: -44px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--grad-gold);
+  color: var(--white);
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.timeline > p {
+  margin: 0 0 16px;
+  font-size: 15px;
+}
+
+/* ── 画像プレースホルダー（実画像に差し替える前の目印）── */
+.imgph {
+  display: block;
+  margin: 26px 0;
+  padding: 22px;
+  border: 1px dashed var(--blue-pastel);
+  border-radius: var(--radius);
+  background: var(--blue-pale);
+  text-align: center;
+}
+.imgph-cap {
+  display: block;
+  font-size: 13px;
+  color: var(--text-light);
+}
+.imgph-alt {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--blue-mid);
+  letter-spacing: 0.03em;
+}
+
+/* ── 無料相談CTA（軸3の固定CTA／記事末CTA共通）── */
+.cta-box {
+  margin: 40px 0;
+  padding: 24px 26px;
+  border: 1px solid var(--c-tip);
+  border-left: 4px solid var(--c-tip);
+  border-radius: var(--radius);
+  background: #f7fcf2;
+}
+.cta-label {
+  margin: 0 0 9px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #4d7a20;
+}
+.cta-lead {
+  margin: 0 0 18px;
+  font-size: 15px;
+  line-height: 1.9;
+}
+.cta-lead > :last-child {
+  margin-bottom: 0;
+}
+.cta-lead p {
+  margin: 0 0 10px;
+}
+.cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.cta-btn {
+  display: inline-block;
+  padding: 12px 24px;
+  border-radius: 8px;
+  background: var(--grad-navy);
+  color: var(--white) !important;
+  text-decoration: none;
+  font-size: 14.5px;
+  font-weight: 500;
+  box-shadow: 0 6px 18px rgba(26, 40, 64, 0.18);
+  transition: transform 0.2s var(--ease), box-shadow 0.2s;
+}
+.cta-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(26, 40, 64, 0.26);
+}
+.cta-btn-line {
+  background: #06c755;
+  box-shadow: 0 6px 18px rgba(6, 199, 85, 0.25);
+}
+.cta-btn-line:hover {
+  box-shadow: 0 10px 24px rgba(6, 199, 85, 0.32);
+}
+
+/* ── 目次 ── */
+.toc {
+  position: sticky;
+  top: 120px;
+}
+.toc-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 20px 18px;
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
+  max-height: calc(100vh - 230px);
+  overflow-y: auto;
+}
+.toc-head {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.toc-card ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.toc-card li {
+  margin-bottom: 9px;
+  line-height: 1.6;
+}
+.toc-card a {
+  display: block;
+  font-size: 13px;
+  color: var(--text-light);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  padding-left: 10px;
+  transition: color 0.2s, border-color 0.2s;
+}
+.toc-card a:hover {
+  color: var(--navy);
+}
+.toc-card .toc-l3 a {
+  padding-left: 22px;
+  font-size: 12.5px;
+}
+.toc-card a.is-current {
+  color: var(--navy);
+  border-left-color: var(--gold);
+  font-weight: 500;
+}
+
+/* モバイル用のインライン目次（[[toc]] の位置に出る） */
+.toc-inline {
+  display: none;
+  margin: 0 0 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--blue-pale);
+  padding: 14px 18px;
+}
+.toc-inline summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--navy);
+  font-size: 14px;
+}
+.toc-inline ul {
+  list-style: none;
+  margin: 14px 0 4px;
+  padding: 0;
+}
+.toc-inline li {
+  margin-bottom: 8px;
+}
+.toc-inline a {
+  font-size: 13.5px;
+  color: var(--text-light);
+  text-decoration: none;
+}
+.toc-inline .toc-l3 {
+  padding-left: 16px;
+}
+
+/* ── サイドバーのCTAカード ── */
+.side-cta {
+  margin-top: 20px;
+  padding: 22px 20px;
+  border-radius: var(--radius);
+  background: var(--grad-navy);
+  color: var(--white);
+  box-shadow: var(--shadow-md);
+}
+.side-cta-title {
+  font-family: var(--font-serif-jp);
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+.side-cta-text {
+  font-size: 12.5px;
+  line-height: 1.85;
+  color: rgba(255, 255, 255, 0.72);
+  margin-bottom: 16px;
+}
+.side-cta a {
+  display: block;
+  text-align: center;
+  padding: 11px 16px;
+  border-radius: 8px;
+  background: var(--grad-gold);
+  color: var(--navy);
+  font-size: 13.5px;
+  font-weight: 500;
+  text-decoration: none;
+}
+.side-cta a:hover {
+  filter: brightness(1.06);
+}
+
+/* ── 関連記事 ── */
+.related {
+  margin-top: 72px;
+  padding-top: 40px;
+  border-top: 1px solid var(--border);
+}
+.related-head {
+  font-family: var(--font-serif-jp);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--navy);
+  margin-bottom: 24px;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 1000px) {
+  .article-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  /* デスクトップのサイドバー目次は隠し、[[toc]] の位置のアコーディオンに切り替える。
+     CTAは記事末に集約するのでサイドバーごと落とす（重複させない）。 */
+  .article-side {
+    display: none;
+  }
+  .toc-inline {
+    display: block;
+  }
+}
+
+@media (max-width: 900px) {
+  .prose {
+    font-size: 15.5px;
+  }
+  .prose h2 {
+    margin: 48px 0 16px;
+  }
+  .cb {
+    padding: 15px 18px 15px 48px;
+  }
+  .box {
+    padding: 24px 18px 18px;
+  }
+  .timeline {
+    padding-left: 38px;
+  }
+  .timeline-title {
+    margin-left: -38px;
+  }
+  .timeline::before {
+    left: 12px;
+  }
+  .prose .timeline-step::before {
+    left: -38px;
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+  }
+  .cta-box {
+    padding: 20px 18px;
+  }
+  .cta-btn {
+    flex: 1 1 100%;
+    text-align: center;
+  }
+}

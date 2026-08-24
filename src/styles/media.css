@@ -1,0 +1,279 @@
+/*
+ * メディア一覧・カテゴリ一覧のスタイル。
+ * カードのアクセントバーは LP の「CARD ACCENT (共通)」と同じ挙動に揃えている。
+ */
+
+/* ── 軸フィルタ ── */
+.axis-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 48px;
+}
+.axis-pill {
+  padding: 9px 20px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--text-light);
+  font-size: 13.5px;
+  text-decoration: none;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.axis-pill:hover {
+  color: var(--navy);
+  border-color: var(--blue-pastel);
+}
+.axis-pill[aria-current='page'] {
+  background: var(--grad-navy);
+  border-color: transparent;
+  color: var(--white);
+  box-shadow: 0 6px 18px rgba(26, 40, 64, 0.18);
+}
+
+/* ── カードグリッド ── */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+}
+.card-grid.is-related {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.card {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
+}
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--grad-accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s var(--ease);
+  z-index: 2;
+}
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+.card:hover::before {
+  transform: scaleX(1);
+}
+
+.card-thumb {
+  aspect-ratio: 16 / 9;
+  background: var(--blue-pale);
+  overflow: hidden;
+}
+.card-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s var(--ease);
+}
+.card:hover .card-thumb img {
+  transform: scale(1.04);
+}
+/* アイキャッチ未設定のときのプレースホルダー（ロゴのシンボルだけ薄く置く） */
+.card-thumb.is-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--grad-navy);
+}
+.card-thumb.is-empty span {
+  font-family: var(--font-serif-jp);
+  font-size: 30px;
+  color: rgba(255, 255, 255, 0.28);
+  letter-spacing: 0.1em;
+}
+
+.card-body {
+  padding: 18px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.card-axis {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  padding: 4px 11px;
+  border-radius: 999px;
+  background: var(--gold-pale);
+  color: #8a6d2f;
+  border: 1px solid var(--gold-soft);
+  margin-bottom: 11px;
+}
+.card-title {
+  font-family: var(--font-serif-jp);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--navy);
+  line-height: 1.55;
+  margin-bottom: 9px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card-desc {
+  font-size: 13.5px;
+  line-height: 1.85;
+  color: var(--text-light);
+  margin-bottom: 14px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card-date {
+  margin-top: auto;
+  font-size: 11.5px;
+  color: var(--blue-mid);
+  letter-spacing: 0.05em;
+}
+
+/* ── ページネーション ── */
+.pager {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 56px;
+}
+.pager a,
+.pager span {
+  min-width: 38px;
+  height: 38px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 13.5px;
+  color: var(--text-light);
+  text-decoration: none;
+  transition: color 0.2s, border-color 0.2s;
+}
+.pager a:hover {
+  color: var(--navy);
+  border-color: var(--blue-pastel);
+}
+.pager .is-current {
+  background: var(--grad-navy);
+  border-color: transparent;
+  color: var(--white);
+}
+.pager .is-disabled {
+  opacity: 0.4;
+}
+
+/* ── 記事が0件のとき ── */
+.empty {
+  padding: 64px 24px;
+  text-align: center;
+  border: 1px dashed var(--blue-pastel);
+  border-radius: var(--radius);
+  background: var(--blue-pale);
+  color: var(--text-light);
+  font-size: 14px;
+  line-height: 2;
+}
+
+/* ── 一覧末尾の無料相談CTA ── */
+.list-cta {
+  margin-top: 72px;
+  padding: 44px 40px;
+  border-radius: var(--radius);
+  background: var(--grad-navy);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  flex-wrap: wrap;
+  box-shadow: var(--shadow-md);
+}
+.list-cta-title {
+  font-family: var(--font-serif-jp);
+  font-size: clamp(20px, 2.4vw, 26px);
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+.list-cta-text {
+  font-size: 13.5px;
+  line-height: 1.9;
+  color: rgba(255, 255, 255, 0.72);
+  max-width: 520px;
+}
+.list-cta-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.list-cta .cta-btn {
+  background: var(--grad-gold);
+  color: var(--navy) !important;
+  box-shadow: 0 6px 18px rgba(196, 163, 90, 0.28);
+}
+.list-cta .cta-btn-line {
+  background: #06c755;
+  color: var(--white) !important;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 1000px) {
+  .card-grid,
+  .card-grid.is-related {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+}
+
+@media (max-width: 640px) {
+  .card-grid,
+  .card-grid.is-related {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .axis-filter {
+    margin-bottom: 32px;
+    gap: 8px;
+  }
+  .axis-pill {
+    padding: 8px 15px;
+    font-size: 12.5px;
+  }
+  .list-cta {
+    margin-top: 48px;
+    padding: 30px 22px;
+  }
+  .list-cta-actions {
+    width: 100%;
+  }
+  .list-cta .cta-btn {
+    flex: 1 1 100%;
+    text-align: center;
+  }
+}

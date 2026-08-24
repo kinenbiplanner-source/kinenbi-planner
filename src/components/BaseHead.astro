@@ -4,17 +4,29 @@
  * title / description / canonical / OGP / GA4 / Meta Pixel を1か所に集約する。
  *
  * canonical は「末尾スラッシュ無し」に正規化して必ず1つに寄せる。
- * Vercel の cleanUrls と組み合わせると /media/foo と /media/foo/ の両方が
- * 200 を返しうるため、重複コンテンツ扱いを避ける歯止めがここ。
+ * /media/foo と /media/foo/ の両方が 200 を返しうるため、重複コンテンツ扱いを避ける歯止め。
+ *
+ * 計測タグの定義は `メディア方針/計測設計.md` が SSOT。
+ * privacy / tokutei は GA4 のみで Pixel を入れていないので、pixel プロップで再現できるようにしてある。
  */
 interface Props {
   title: string;
   description: string;
   ogImage?: string;
   ogType?: 'website' | 'article';
+  /** Meta Pixel を読むか。計測設計.md の「ページ別の導入状況」に合わせる。 */
+  pixel?: boolean;
+  noindex?: boolean;
 }
 
-const { title, description, ogImage = '/assets/ogp.jpg', ogType = 'website' } = Astro.props;
+const {
+  title,
+  description,
+  ogImage = '/assets/ogp.jpg',
+  ogType = 'website',
+  pixel = true,
+  noindex = false,
+} = Astro.props;
 
 // 末尾スラッシュを落として正規化（ルート '/' だけは残す）
 const rawPath = Astro.url.pathname;
@@ -25,12 +37,15 @@ const ogImageUrl = new URL(ogImage, Astro.site).href;
 
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#1a2840" />
+<meta name="format-detection" content="telephone=no" />
 <link rel="icon" href="/favicon.png" type="image/png" />
 <link rel="apple-touch-icon" href="/favicon.png" />
 
 <title>{title}</title>
 <meta name="description" content={description} />
 <link rel="canonical" href={canonical} />
+{noindex && <meta name="robots" content="noindex,nofollow" />}
 
 <meta property="og:type" content={ogType} />
 <meta property="og:title" content={title} />
@@ -38,6 +53,7 @@ const ogImageUrl = new URL(ogImage, Astro.site).href;
 <meta property="og:url" content={canonical} />
 <meta property="og:image" content={ogImageUrl} />
 <meta property="og:site_name" content="Anniv" />
+<meta property="og:locale" content="ja_JP" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content={title} />
 <meta name="twitter:description" content={description} />
@@ -46,12 +62,12 @@ const ogImageUrl = new URL(ogImage, Astro.site).href;
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link
-  href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Noto+Sans+JP:wght@300;400;500;700&display=swap"
+  href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;500;600&display=swap"
   rel="stylesheet"
 />
 
 <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-77X1XS59RB"></script>
+<script is:inline async src="https://www.googletagmanager.com/gtag/js?id=G-77X1XS59RB"></script>
 <script is:inline>
   window.dataLayer = window.dataLayer || [];
   function gtag() {
@@ -61,9 +77,11 @@ const ogImageUrl = new URL(ogImage, Astro.site).href;
   gtag('config', 'G-77X1XS59RB');
 </script>
 
-<!-- Meta Pixel Code -->
-<script is:inline>
-  !(function (f, b, e, v, n, t, s) {
+{
+  pixel && (
+    <Fragment>
+      <script is:inline>
+        {`!(function (f, b, e, v, n, t, s) {
     if (f.fbq) return;
     n = f.fbq = function () {
       n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
@@ -80,14 +98,17 @@ const ogImageUrl = new URL(ogImage, Astro.site).href;
     s.parentNode.insertBefore(t, s);
   })(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
   fbq('init', '1686039682668276');
-  fbq('track', 'PageView');
-</script>
-<noscript
-  ><img
-    height="1"
-    width="1"
-    style="display:none"
-    src="https://www.facebook.com/tr?id=1686039682668276&ev=PageView&noscript=1"
-  /></noscript
->
-<!-- End Meta Pixel Code -->
+  fbq('track', 'PageView');`}
+      </script>
+      <noscript>
+        <img
+          height="1"
+          width="1"
+          style="display:none"
+          src="https://www.facebook.com/tr?id=1686039682668276&ev=PageView&noscript=1"
+          alt=""
+        />
+      </noscript>
+    </Fragment>
+  )
+}

@@ -1,0 +1,57 @@
+/*
+ * Anniv のデザイントークン（SSOT）。
+ *
+ * 値は public/index.html（LP本体）の :root をそのまま持ってきたもの。
+ * contact.html / thanks.html は --radius:12px、--ease:cubic-bezier(0.25,.46,.45,.94) と
+ * 微妙にズレたサブセットを持っているが、LP本体の値を正とする。
+ * LPをコンポーネント化するとき（Phase 5）にそちらもこのファイルへ寄せる。
+ */
+:root {
+  --white: #ffffff;
+  --ivory: #fafaf8;
+  --blue-pale: #f0f7fc;
+  --blue-light: #d6eaf8;
+  --blue-pastel: #a8c8e0;
+  --blue-mid: #4a8ab5;
+  --navy: #1a2840;
+  --navy-soft: #243550;
+  --text: #2d3748;
+  --text-light: #64748b;
+  --border: #d1e8f5;
+  --radius: 14px;
+
+  --gold: #c4a35a;
+  --gold-soft: #ddc488;
+  --gold-pale: #fdf8ef;
+
+  --glass: rgba(255, 255, 255, 0.68);
+  --glass-border: rgba(255, 255, 255, 0.8);
+
+  --shadow-sm: 0 2px 12px rgba(26, 40, 64, 0.06);
+  --shadow-md: 0 10px 36px rgba(26, 40, 64, 0.1);
+  --shadow-lg: 0 24px 60px rgba(26, 40, 64, 0.15);
+
+  --grad-navy: linear-gradient(140deg, #2a3d5c 0%, #1a2840 100%);
+  --grad-accent: linear-gradient(90deg, var(--blue-mid), var(--gold));
+  --grad-gold: linear-gradient(135deg, var(--gold), var(--gold-soft));
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --font-serif-jp: 'Cormorant Garamond', 'Noto Serif JP', serif;
+
+  /* ── ここからメディア専用の追加分 ── */
+
+  /* 日本語で1行40〜45字。これ以上広げると視線の戻りが辛くなる */
+  --article-max: 760px;
+  --article-lh: 1.9;
+
+  /* 蛍光マーカー（style-guide 9章：標準／緑／ピンク） */
+  --marker-y: #fff3a3;
+  --marker-g: #c8ecb0;
+  --marker-p: #ffc9dc;
+
+  /* カスタムブロックの色 */
+  --c-info: #3498db;
+  --c-tip: #88c542;
+  --c-warning: #f39c12;
+  --c-danger: #e74c3c;
+}

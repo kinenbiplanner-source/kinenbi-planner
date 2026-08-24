@@ -1,0 +1,26 @@
+---
+/**
+ * メディア共通のヘッダー。マークアップは public/index.html（LP本体）の <nav id="navbar"> に揃える。
+ * 違いは2点だけ：
+ *  - リンク先がLP内アンカー（#services 等）ではなく絶対パス
+ *  - 「メディア」項目を足している
+ * LPをコンポーネント化するとき（Phase 5）は、このコンポーネントをLP側でも使う。
+ */
+interface Props {
+  /** 現在地のハイライト用。 */
+  current?: 'media';
+}
+const { current } = Astro.props;
+---
+
+<nav id="navbar" aria-label="メインナビゲーション">
+  <a href="/" class="nav-logo">
+    <img src="/assets/logo_trans.png" alt="" />Anniv<span class="nav-logo-tag">記念日サポート</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="/#services">サービス</a></li>
+    <li><a href="/#pricing">料金</a></li>
+    <li><a href="/media" aria-current={current === 'media' ? 'page' : undefined}>メディア</a></li>
+    <li><a href="/contact.html" class="nav-cta">無料相談</a></li>
+  </ul>
+</nav>
