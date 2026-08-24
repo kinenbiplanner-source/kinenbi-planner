@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "anniv",
+  "compatibility_date": "2026-08-24",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // workers.dev のサブドメインを無効にする。Cloudflare Access のポリシーは
+  // anniv.gift/admin にしか掛からないため、*.workers.dev を開けたままにすると
+  // 管理画面への迂回経路になる。
+  "workers_dev": false,
+
+  "observability": { "enabled": true },
+
+  // 記事本体。database_id は `wrangler d1 create anniv` の出力で置き換える。
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "anniv",
+      "database_id": "PLACEHOLDER_RUN_WRANGLER_D1_CREATE"
+    }
+  ],
+
+  // 記事内の画像。
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "anniv-media"
+    }
+  ]
+}

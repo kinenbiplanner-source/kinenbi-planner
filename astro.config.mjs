@@ -1,33 +1,26 @@
 // @ts-check
-import sitemap from '@astrojs/sitemap';
+import cloudflare from '@astrojs/cloudflare';
 import { defineConfig } from 'astro/config';
 
 // https://astro.build/config
 export default defineConfig({
   site: 'https://anniv.gift',
 
-  // build.format は 'directory'（既定）。'file' にすると出力が media.html になり、
-  // Astro.url.pathname も '.html' 付きになるため canonical が
-  // 'https://anniv.gift/media.html' として出てしまう。本番は Vercel の cleanUrls で
-  // '/media' として配信されるので、canonical と実URLが食い違う。ここは動かさない。
-  //
-  // trailingSlash は 'ignore'（既定）。/media と /media/ の両方が到達しうるが、
-  // canonical を BaseHead 側で「末尾スラッシュ無し」に正規化して1つに寄せている。
+  // 末尾スラッシュ無しに統一する。/media/foo と /media/foo/ の両方が 200 を返して
+  // 重複扱いされないよう、canonical は必ず BaseHead 側で 1 つに寄せる
+  // （メディア方針/計測設計.md と対）。
+  trailingSlash: 'never',
+  build: { format: 'file' },
 
-  integrations: [
-    sitemap({
-      // public/ 配下の素の HTML（LP本体・各種ページ）は Astro のページルートではないため
-      // 自動収集の対象外。手書き sitemap.xml を廃した代わりにここで明示する。
-      // noindex のページ（contact / thanks / links）は載せない。
-      customPages: [
-        'https://anniv.gift/',
-        'https://anniv.gift/privacy.html',
-        'https://anniv.gift/tokutei.html',
-      ],
-      // 注: trailingSlash:'never' によりトップは 'https://anniv.gift'（末尾スラッシュ無し）で
-      // 出力され、LP の canonical 'https://anniv.gift/' と表記が揃わない。
-      // ただし RFC 3986 のスキーム別正規化で http(s) の空パスは '/' と等価に扱われるため
-      // 実害はない（serialize で書き換えても、その後の正規化で剥がされる）。
-    }),
-  ],
+  // Cloudflare Workers へ。記事は D1、画像は R2 に置き、/media 配下と /admin・/api は
+  // ページ側の `export const prerender = false` でオンデマンドレンダリングにする。
+  // LP（public/ 配下の素の HTML）は静的アセットとしてそのまま配信される。
+  adapter: cloudflare({
+    // ビルド時は sharp で最適化し、実行時は変換しない。
+    // Cloudflare Images は有料なので runtime バインディングは使わない。
+    imageService: { build: 'compile', runtime: 'passthrough' },
+  }),
+
+  // sitemap.xml は D1 の公開記事を含める必要があるため @astrojs/sitemap をやめ、
+  // src/pages/sitemap.xml.ts で動的生成する。
 });

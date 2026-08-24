@@ -10,11 +10,25 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
+    "check": "astro check",
+    "deploy": "astro build && wrangler deploy",
+    "cf-typegen": "wrangler types",
+    "db:local": "wrangler d1 execute anniv --local --file=./schema.sql",
+    "db:remote": "wrangler d1 execute anniv --remote --file=./schema.sql",
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/sitemap": "^3.7.3",
+    "@astrojs/cloudflare": "^14.2.3",
     "astro": "^7.2.4",
+    "jose": "^6.2.10",
+    "markdown-it": "^15.0.0",
+    "markdown-it-container": "^4.0.0",
     "sharp": "^0.35.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/node": "^26.2.0",
+    "typescript": "^6.0.3",
+    "wrangler": "^4.125.0"
   }
 }
