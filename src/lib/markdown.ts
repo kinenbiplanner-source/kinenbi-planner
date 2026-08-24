@@ -133,8 +133,8 @@ md.use(container, 'box', {
         if (parseBoxParams(t.info).label === CTA_LABEL) {
           return (
             '</div>\n<div class="cta-actions">\n' +
-            `<a href="${CONTACT_URL}" class="cta-btn" data-cta="form">無料で相談する</a>\n` +
-            `<a href="${LINE_URL}" class="cta-btn cta-btn-line" target="_blank" rel="noopener noreferrer" data-cta="line">LINEで相談する</a>\n` +
+            `<a href="${CONTACT_URL}" class="cta-btn" data-cta="form" data-cta-label="article_body">無料で相談する</a>\n` +
+            `<a href="${LINE_URL}" class="cta-btn cta-btn-line" target="_blank" rel="noopener noreferrer" data-cta="line" data-cta-label="article_body">LINEで相談する</a>\n` +
             '</div>\n</aside>\n'
           );
         }

@@ -1,24 +1,37 @@
 ---
 /**
- * メディアのトップ（1ページ目）。2ページ目以降は /media/page/<n> が受ける。
- * 1ページ目を /media/page/1 にも出すと同じ内容が2つのURLで出るので、あちらは /media へ 301 する。
+ * メディア一覧の2ページ目以降。
+ *
+ * /media/page/1 は /media と中身が同じになるため 301 で寄せる（重複URL防止）。
+ * 存在しないページ番号は 404。空ページをそのまま返すと薄いページが無限に増える。
  */
 export const prerender = false;
 
-import MediaLayout from '../../layouts/MediaLayout.astro';
-import ArticleCard from '../../components/ArticleCard.astro';
-import { AXES } from '../../lib/axis';
-import { listPublished, countPublished, PAGE_SIZE } from '../../lib/db';
+import MediaLayout from '../../../layouts/MediaLayout.astro';
+import ArticleCard from '../../../components/ArticleCard.astro';
+import { AXES } from '../../../lib/axis';
+import { listPublished, countPublished, PAGE_SIZE } from '../../../lib/db';
 
-Astro.response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=86400');
+const raw = Astro.params.n ?? '';
+// 「01」「2.0」「-1」などを弾く。数値化できる文字列すべてを受けるとURLが増える。
+if (!/^[1-9][0-9]*$/.test(raw)) return new Response('Not found', { status: 404 });
+
+const page = Number(raw);
+if (page === 1) return Astro.redirect('/media', 301);
 
 const total = await countPublished();
 const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-const articles = await listPublished({ limit: PAGE_SIZE });
+if (page > totalPages) return new Response('Not found', { status: 404 });
 
-const title = '記念日のヒント | Anniv';
+Astro.response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=86400');
+
+const articles = await listPublished({ limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE });
+
+const title = `記念日のヒント（${page}ページ目） | Anniv`;
 const description =
   'プレゼント選びから記念日デートのお店選び、当日のサプライズ演出まで。記念日を成功させるための考え方と段取りをまとめた、Annivのメディアです。';
+
+const hrefOf = (n: number) => (n === 1 ? '/media' : `/media/page/${n}`);
 ---
 
 <MediaLayout title={title} description={description} current="media">
@@ -48,23 +61,23 @@ const description =
       )
     }
 
-    {
-      totalPages > 1 && (
-        <nav class="pager" aria-label="ページ送り">
-          <span class="is-disabled">前へ</span>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) =>
-            n === 1 ? (
-              <span class="is-current" aria-current="page">
-                {n}
-              </span>
-            ) : (
-              <a href={`/media/page/${n}`}>{n}</a>
-            ),
-          )}
-          <a href="/media/page/2">次へ</a>
-        </nav>
-      )
-    }
+    <nav class="pager" aria-label="ページ送り">
+      <a href={hrefOf(page - 1)}>前へ</a>
+      {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) =>
+        n === page ? (
+          <span class="is-current" aria-current="page">{n}</span>
+        ) : (
+          <a href={hrefOf(n)}>{n}</a>
+        ),
+      )}
+      {
+        page < totalPages ? (
+          <a href={hrefOf(page + 1)}>次へ</a>
+        ) : (
+          <span class="is-disabled">次へ</span>
+        )
+      }
+    </nav>
 
     <aside class="list-cta">
       <div>

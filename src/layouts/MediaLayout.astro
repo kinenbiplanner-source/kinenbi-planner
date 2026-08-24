@@ -1,0 +1,125 @@
+---
+/**
+ * メディア配下（一覧・カテゴリ・記事）の共通外枠。
+ *
+ * CSSはここで一括 import する。ページ側で個別に読むと、記事とカテゴリで
+ * 読み込み順が変わってカスケードがズレるため（tokens → base → media → article の順が正）。
+ *
+ * 計測スクリプトもここに1本だけ置く。CTAは記事本文（markdown.ts が出す .cta-box）と
+ * コンポーネント（CtaBox.astro）と一覧末尾（.list-cta）の3か所に出るので、
+ * それぞれにリスナーを付けると二重発火する。document への委譲で1本に寄せている。
+ * イベントの定義は `メディア方針/計測設計.md` が SSOT。
+ */
+import BaseHead from '../components/BaseHead.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+
+import '../styles/tokens.css';
+import '../styles/base.css';
+import '../styles/media.css';
+import '../styles/article.css';
+
+interface Props {
+  title: string;
+  description: string;
+  ogImage?: string;
+  ogType?: 'website' | 'article';
+  current?: 'media';
+  /** 記事ページだけ true。一覧で進捗バーを出しても意味がない。 */
+  showProgress?: boolean;
+}
+
+const { title, description, ogImage, ogType, current, showProgress = false } = Astro.props;
+---
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <BaseHead title={title} description={description} ogImage={ogImage} ogType={ogType} />
+    <slot name="head" />
+  </head>
+  <body>
+    {showProgress && <div class="scroll-progress" id="scroll-progress"></div>}
+    <Nav current={current} />
+    <main class="page">
+      <slot />
+    </main>
+    <Footer />
+
+    <script is:inline>
+      (function () {
+        var bar = document.getElementById('scroll-progress');
+        var nav = document.getElementById('navbar');
+        // 進捗バーは「動き」そのものが目的なので、動きを嫌う設定では動かさない
+        // （width 0 のまま＝実質非表示）。ナビの影は状態表示なので残す。
+        var reduce =
+          window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var ticking = false;
+
+        function paint() {
+          ticking = false;
+          var y = window.scrollY || window.pageYOffset || 0;
+          if (nav) {
+            if (y > 10) nav.classList.add('scrolled');
+            else nav.classList.remove('scrolled');
+          }
+          if (bar && !reduce) {
+            var max = document.documentElement.scrollHeight - window.innerHeight;
+            bar.style.width = (max > 0 ? (y / max) * 100 : 0) + '%';
+          }
+        }
+
+        function onScroll() {
+          if (ticking) return;
+          ticking = true;
+          window.requestAnimationFrame(paint);
+        }
+
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', onScroll, { passive: true });
+        paint();
+
+        document.addEventListener('click', function (e) {
+          var t = e.target;
+          if (!t || !t.closest) return;
+
+          var cta = t.closest('[data-cta]');
+          if (cta) {
+            var kind = cta.getAttribute('data-cta');
+            // 計測設計.md 3章：イベント名＝行為、event_label＝発火場所。
+            // 記事末・本文中・サイドバー・一覧末尾で同じイベント名を使い、labelで区別する。
+            var label = cta.getAttribute('data-cta-label') || 'article_cta';
+            if (typeof gtag === 'function') {
+              if (kind === 'line') {
+                gtag('event', 'line_add_click', {
+                  event_category: 'conversion',
+                  event_label: label,
+                });
+              } else {
+                gtag('event', 'cta_click', {
+                  event_category: 'engagement',
+                  event_label: label,
+                });
+              }
+            }
+            if (typeof fbq === 'function') {
+              fbq('track', kind === 'line' ? 'Contact' : 'Lead');
+            }
+            return;
+          }
+
+          // フッターのLINEアイコン。LPの index_footer と揃えて label だけ分ける。
+          if (t.closest('.footer-social a[href*="lin.ee"]')) {
+            if (typeof gtag === 'function') {
+              gtag('event', 'line_add_click', {
+                event_category: 'conversion',
+                event_label: 'media_footer',
+              });
+            }
+            if (typeof fbq === 'function') fbq('track', 'Contact');
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>

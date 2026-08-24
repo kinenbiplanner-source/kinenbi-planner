@@ -1,0 +1,51 @@
+---
+/**
+ * 一覧・関連記事で使う記事カード。
+ *
+ * related=true は記事ページ下部の関連記事用。カラム幅が本文の中に収まる分だけ狭いので
+ * 説明文を落として2行タイトル＋日付だけにする（.card-grid.is-related と対）。
+ * 見出しレベルも変える：一覧は h1（.section-title）配下なので h2、
+ * 関連記事は h2（.related-head）配下なので h3。
+ */
+import type { ArticleCard } from '../lib/db';
+import { axisShort } from '../lib/axis';
+
+interface Props {
+  article: ArticleCard;
+  related?: boolean;
+}
+
+const { article, related = false } = Astro.props;
+const Title = related ? 'h3' : 'h2';
+
+/** ISO文字列を JST の YYYY.MM.DD に。Worker のタイムゾーンに左右されないよう自前で組む。 */
+function jstDate(iso: string): string {
+  const t = new Date(iso);
+  if (Number.isNaN(t.getTime())) return '';
+  const jst = new Date(t.getTime() + 9 * 60 * 60 * 1000);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${jst.getUTCFullYear()}.${p(jst.getUTCMonth() + 1)}.${p(jst.getUTCDate())}`;
+}
+
+const date = article.published_at ? jstDate(article.published_at) : '';
+---
+
+<a class="card" href={`/media/${article.slug}`}>
+  {
+    article.hero_image ? (
+      <div class="card-thumb">
+        <img src={`/media/img/${article.hero_image}`} alt="" loading="lazy" decoding="async" />
+      </div>
+    ) : (
+      <div class="card-thumb is-empty">
+        <span>Anniv</span>
+      </div>
+    )
+  }
+  <div class="card-body">
+    <span class="card-axis">{axisShort(article.axis)}</span>
+    <Title class="card-title">{article.title}</Title>
+    {!related && <p class="card-desc">{article.description}</p>}
+    {date && <time class="card-date" datetime={article.published_at}>{date}</time>}
+  </div>
+</a>

@@ -6,8 +6,9 @@
  * （color=#88c542 / label="無料相談・お問い合わせ" / https://anniv.gift/contact.html）。
  * 可変にしてよいのはリード文1行だけ。効能保証・煽りはNG（article-style-guide 8章）。
  *
- * クリック計測をコンポーネント側に内蔵しているので、記事側で書く必要はない。
- * 計測の定義は `メディア方針/計測設計.md` が SSOT。
+ * 見た目は article.css の .cta-box 系が持つ（本文中の :::box 版と同じ見た目にするため、
+ * スコープ付き <style> ではなくグローバルCSSに寄せてある）。
+ * クリック計測は MediaLayout の委譲リスナーが data-cta を拾う。ここでリスナーを持つと二重発火する。
  */
 interface Props {
   lead?: string;
@@ -20,7 +21,7 @@ const {
 
 <aside class="cta-box">
   <p class="cta-label">無料相談・お問い合わせ</p>
-  <p class="cta-lead">{lead}</p>
+  <div class="cta-lead"><p>{lead}</p></div>
   <div class="cta-actions">
     <a href="https://anniv.gift/contact.html" class="cta-btn" data-cta="form">無料で相談する</a>
     <a
@@ -32,73 +33,3 @@ const {
     >
   </div>
 </aside>
-
-<script is:inline>
-  document.querySelectorAll('.cta-box [data-cta]').forEach(function (el) {
-    el.addEventListener('click', function () {
-      var kind = el.getAttribute('data-cta');
-      if (typeof gtag === 'function') {
-        if (kind === 'line') {
-          gtag('event', 'line_add_click', {
-            event_category: 'conversion',
-            event_label: 'article_cta',
-          });
-        } else {
-          gtag('event', 'cta_click', {
-            event_category: 'engagement',
-            event_label: 'article_cta',
-          });
-        }
-      }
-      if (typeof fbq === 'function') {
-        fbq('track', kind === 'line' ? 'Contact' : 'Lead');
-      }
-    });
-  });
-</script>
-
-<style>
-  .cta-box {
-    border: 1px solid #88c542;
-    border-left: 4px solid #88c542;
-    border-radius: 10px;
-    background: #f7fcf2;
-    padding: 22px 24px;
-    margin: 40px 0;
-  }
-  .cta-label {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: #4d7a20;
-    letter-spacing: 0.04em;
-    margin: 0 0 8px;
-  }
-  .cta-lead {
-    margin: 0 0 16px;
-    line-height: 1.9;
-    font-size: 0.98rem;
-  }
-  .cta-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-  .cta-btn {
-    display: inline-block;
-    padding: 11px 22px;
-    border-radius: 8px;
-    background: #1a2840;
-    color: #fff;
-    text-decoration: none;
-    font-size: 0.94rem;
-    font-weight: 500;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-  }
-  .cta-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 8px 20px rgba(26, 40, 64, 0.22);
-  }
-  .cta-btn-line {
-    background: #06c755;
-  }
-</style>

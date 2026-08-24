@@ -1,303 +1,221 @@
 ---
-import type { CollectionEntry } from 'astro:content';
-import BaseHead from '../components/BaseHead.astro';
+/**
+ * 記事詳細のレイアウト。
+ *
+ * 本文は D1 の body_html をそのまま流し込む（markdown.ts は保存時に1回だけ通す）。
+ * 目次も toc_json に入っているものを使うので、表示のたびに Markdown を再パースしない。
+ *
+ * 構造化データは Article と BreadcrumbList の2つ。
+ * FAQPage は 2023年8月以降、一般サイトではリッチリザルトが出ないため入れていない。
+ */
+import MediaLayout from './MediaLayout.astro';
+import ArticleCard from '../components/ArticleCard.astro';
 import CtaBox from '../components/CtaBox.astro';
+import type { ArticleRow, ArticleCard as ArticleCardData } from '../lib/db';
+import type { TocItem } from '../lib/markdown';
+import { axisName } from '../lib/axis';
 
-type Props = CollectionEntry<'media'>['data'];
+interface Props {
+  article: ArticleRow;
+  toc: TocItem[];
+  related: ArticleCardData[];
+}
 
-const { title, description, axis, funnel, publishDate, updatedDate, cta } = Astro.props;
+const { article, toc, related } = Astro.props;
 
-const path = Astro.url.pathname.replace(/\/+$/, '');
-const articleUrl = new URL(path, Astro.site).href;
+const SITE = 'https://anniv.gift';
+const axisLabel = axisName(article.axis);
+const categoryPath = `/media/category/${article.axis}`;
+const articleUrl = `${SITE}/media/${article.slug}`;
+// hero_image は R2 のキーだけが入っている。配信は /media/img/<key> が受ける。
+const heroPath = article.hero_image ? `/media/img/${article.hero_image}` : undefined;
 
-const fmt = (d: Date) =>
-  new Intl.DateTimeFormat('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' }).format(d);
+/** ISO文字列を JST の YYYY.MM.DD に。Worker のタイムゾーンに左右されないよう自前で組む。 */
+function jstDate(iso: string): string {
+  const t = new Date(iso);
+  if (Number.isNaN(t.getTime())) return '';
+  const jst = new Date(t.getTime() + 9 * 60 * 60 * 1000);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${jst.getUTCFullYear()}.${p(jst.getUTCMonth() + 1)}.${p(jst.getUTCDate())}`;
+}
 
-// 構造化データ。Article と BreadcrumbList を入れる。
-// FAQPage は 2023年8月以降、一般サイトではリッチリザルトが出ないため入れていない
-// （メディア方針の判断。必要になったら追加する）。
+const publishedText = article.published_at ? jstDate(article.published_at) : '';
+const updatedText = jstDate(article.updated_at);
+// 公開直後は published_at と updated_at がほぼ同時刻になる。同じ日付を2つ並べても
+// 情報が増えないので、日付が変わってから初めて「更新」を出す。
+const showUpdated = updatedText !== '' && updatedText !== publishedText;
+
+// 軸3の記事は本文中に固定CTA（markdown.ts が .cta-box として出す）が入っている。
+// content-axis.md が「1記事に1つだけ」と定めているので、その場合は記事末のCTAを重ねない。
+const hasInlineCta = article.body_html.includes('class="cta-box"');
+
 const articleLd = {
   '@context': 'https://schema.org',
   '@type': 'Article',
-  headline: title,
-  description,
-  datePublished: publishDate.toISOString(),
-  ...(updatedDate ? { dateModified: updatedDate.toISOString() } : {}),
+  headline: article.title,
+  description: article.description,
+  ...(article.published_at ? { datePublished: article.published_at } : {}),
+  dateModified: article.updated_at,
+  ...(heroPath ? { image: `${SITE}${heroPath}` } : {}),
   mainEntityOfPage: { '@type': 'WebPage', '@id': articleUrl },
-  author: { '@type': 'Organization', name: 'Anniv', url: 'https://anniv.gift/' },
-  publisher: { '@type': 'Organization', name: 'Anniv', url: 'https://anniv.gift/' },
+  author: { '@type': 'Organization', name: 'Anniv', url: `${SITE}/` },
+  publisher: { '@type': 'Organization', name: 'Anniv', url: `${SITE}/` },
 };
 
 const breadcrumbLd = {
   '@context': 'https://schema.org',
   '@type': 'BreadcrumbList',
   itemListElement: [
-    { '@type': 'ListItem', position: 1, name: 'Anniv', item: 'https://anniv.gift/' },
-    { '@type': 'ListItem', position: 2, name: 'メディア', item: 'https://anniv.gift/media' },
-    { '@type': 'ListItem', position: 3, name: title, item: articleUrl },
+    { '@type': 'ListItem', position: 1, name: 'Anniv', item: `${SITE}/` },
+    { '@type': 'ListItem', position: 2, name: 'メディア', item: `${SITE}/media` },
+    { '@type': 'ListItem', position: 3, name: axisLabel, item: `${SITE}${categoryPath}` },
+    { '@type': 'ListItem', position: 4, name: article.title, item: articleUrl },
   ],
 };
 ---
 
-<!doctype html>
-<html lang="ja">
-  <head>
-    <BaseHead title={`${title} | Anniv`} description={description} ogType="article" />
+<MediaLayout
+  title={`${article.title} | Anniv`}
+  description={article.description}
+  ogImage={heroPath}
+  ogType="article"
+  current="media"
+  showProgress
+>
+  <Fragment slot="head">
     <script type="application/ld+json" is:inline set:html={JSON.stringify(articleLd)} />
     <script type="application/ld+json" is:inline set:html={JSON.stringify(breadcrumbLd)} />
-  </head>
-  <body>
-    <header class="site-header">
-      <a href="/" class="site-logo">Anniv</a>
-      <nav>
-        <a href="/media">メディア</a>
-        <a href="https://anniv.gift/contact.html" class="header-cta">無料相談</a>
-      </nav>
-    </header>
+  </Fragment>
 
-    <main>
-      <nav class="breadcrumb" aria-label="パンくず">
-        <a href="/">ホーム</a> <span>›</span>
-        <a href="/media">メディア</a> <span>›</span>
-        <span aria-current="page">{title}</span>
-      </nav>
+  <div class="shell">
+    <nav class="breadcrumb" aria-label="パンくず">
+      <a href="/">ホーム</a><span class="sep">›</span>
+      <a href="/media">メディア</a><span class="sep">›</span>
+      <a href={categoryPath}>{axisLabel}</a><span class="sep">›</span>
+      <span aria-current="page">{article.title}</span>
+    </nav>
 
-      <article>
-        <div class="article-meta">
-          <span class="badge">{axis}</span>
-          <span class="badge badge-funnel">{funnel}</span>
+    <div class="article-layout">
+      <article class="article-main">
+        <div class="article-badges">
+          <a class="badge" href={categoryPath}>{axisLabel}</a>
+          <span class="badge badge-funnel">{article.funnel}</span>
         </div>
-        <h1>{title}</h1>
-        <p class="dates">
-          <time datetime={publishDate.toISOString()}>{fmt(publishDate)}公開</time>
+
+        <h1 class="article-title">{article.title}</h1>
+
+        <p class="article-dates">
           {
-            updatedDate && (
-              <time datetime={updatedDate.toISOString()}>／{fmt(updatedDate)}更新</time>
+            article.published_at && (
+              <time datetime={article.published_at}>{publishedText}公開</time>
+            )
+          }
+          {
+            showUpdated && (
+              <Fragment>
+                {article.published_at && ' ／ '}
+                <time datetime={article.updated_at}>{updatedText}更新</time>
+              </Fragment>
             )
           }
         </p>
 
-        <div class="prose">
-          <slot />
-        </div>
+        {
+          heroPath && (
+            <figure class="article-hero">
+              <img src={heroPath} alt="" decoding="async" />
+            </figure>
+          )
+        }
 
-        {cta && <CtaBox />}
+        <div class="prose" set:html={article.body_html} />
+
+        {!hasInlineCta && <CtaBox />}
+
+        {
+          related.length > 0 && (
+            <section class="related">
+              <h2 class="related-head">関連する記事</h2>
+              <div class="card-grid is-related">
+                {related.map((r) => (
+                  <ArticleCard article={r} related />
+                ))}
+              </div>
+            </section>
+          )
+        }
       </article>
-    </main>
 
-    <footer class="site-footer">
-      <div class="footer-links">
-        <a href="/tokutei.html">特定商取引法に基づく表記</a>
-        <a href="/privacy.html">プライバシーポリシー</a>
-        <a href="/contact.html">お問い合わせ</a>
-      </div>
-      <div>© 2026 Anniv</div>
-    </footer>
-  </body>
-</html>
+      <aside class="article-side">
+        {
+          toc.length > 0 && (
+            <div class="toc">
+              <nav class="toc-card" aria-label="目次">
+                <p class="toc-head">Contents</p>
+                <ul>
+                  {toc.map((t) => (
+                    <li class={`toc-l${t.level}`}>
+                      <a href={`#${t.id}`}>{t.text}</a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            </div>
+          )
+        }
+        <div class="side-cta">
+          <p class="side-cta-title">記念日の準備を任せる</p>
+          <p class="side-cta-text">
+            プレゼント選びからお店の予約、当日の演出まで。関係性と予算に合わせて、記念日の準備をまるごとお手伝いします。
+          </p>
+          <a href="https://anniv.gift/contact.html" data-cta="form" data-cta-label="article_side">無料で相談する</a>
+        </div>
+      </aside>
+    </div>
+  </div>
 
-<style is:global>
-  :root {
-    --navy: #1a2840;
-    --blue-mid: #4a8ab5;
-    --gold: #c4a35a;
-    --text: #2d3748;
-    --text-light: #64748b;
-    --border: #d1e8f5;
-    --ivory: #fafaf8;
-    --font-serif-jp: 'Cormorant Garamond', 'Noto Serif JP', serif;
-  }
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-  body {
-    font-family: 'Noto Sans JP', sans-serif;
-    color: var(--text);
-    background: #fff;
-    line-height: 1.9;
-  }
-  .site-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 28px;
-    border-bottom: 1px solid var(--border);
-    position: sticky;
-    top: 0;
-    background: rgba(255, 255, 255, 0.92);
-    backdrop-filter: blur(12px);
-    z-index: 10;
-  }
-  .site-logo {
-    font-family: var(--font-serif-jp);
-    font-size: 1.6rem;
-    font-weight: 600;
-    color: var(--navy);
-    text-decoration: none;
-    letter-spacing: 0.05em;
-  }
-  .site-header nav {
-    display: flex;
-    gap: 20px;
-    align-items: center;
-  }
-  .site-header nav a {
-    color: var(--text-light);
-    text-decoration: none;
-    font-size: 0.94rem;
-  }
-  .site-header nav a:hover {
-    color: var(--navy);
-  }
-  .header-cta {
-    background: var(--navy);
-    color: #fff !important;
-    padding: 9px 18px;
-    border-radius: 8px;
-  }
-  main {
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 32px 24px 80px;
-  }
-  .breadcrumb {
-    font-size: 0.82rem;
-    color: var(--text-light);
-    margin-bottom: 28px;
-  }
-  .breadcrumb a {
-    color: var(--text-light);
-    text-decoration: none;
-  }
-  .breadcrumb a:hover {
-    text-decoration: underline;
-  }
-  .breadcrumb span {
-    margin: 0 6px;
-  }
-  .article-meta {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 14px;
-  }
-  .badge {
-    font-size: 0.76rem;
-    padding: 4px 12px;
-    border-radius: 999px;
-    background: #f0f7fc;
-    color: var(--blue-mid);
-    border: 1px solid var(--border);
-  }
-  .badge-funnel {
-    background: var(--ivory);
-    color: var(--text-light);
-    border-color: #e6e6e0;
-  }
-  h1 {
-    font-size: 2rem;
-    line-height: 1.5;
-    color: var(--navy);
-    margin-bottom: 12px;
-    font-weight: 700;
-  }
-  .dates {
-    font-size: 0.84rem;
-    color: var(--text-light);
-    margin-bottom: 36px;
-  }
-  .prose h2 {
-    font-size: 1.5rem;
-    color: var(--navy);
-    margin: 48px 0 16px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid var(--border);
-    line-height: 1.5;
-  }
-  .prose h3 {
-    font-size: 1.18rem;
-    color: var(--navy);
-    margin: 32px 0 12px;
-    line-height: 1.6;
-  }
-  .prose p {
-    margin: 0 0 20px;
-  }
-  .prose ul,
-  .prose ol {
-    margin: 0 0 20px;
-    padding-left: 1.4em;
-  }
-  .prose li {
-    margin-bottom: 8px;
-  }
-  .prose a {
-    color: var(--blue-mid);
-  }
-  .prose img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 10px;
-  }
-  .prose table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 0 0 24px;
-    font-size: 0.94rem;
-  }
-  .prose th,
-  .prose td {
-    border: 1px solid var(--border);
-    padding: 10px 12px;
-    text-align: left;
-  }
-  .prose th {
-    background: #f0f7fc;
-    font-weight: 600;
-  }
-  .prose blockquote {
-    border-left: 3px solid var(--gold);
-    padding: 4px 0 4px 18px;
-    margin: 0 0 20px;
-    color: var(--text-light);
-  }
-  .prose code {
-    background: var(--ivory);
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.9em;
-  }
-  .site-footer {
-    border-top: 1px solid var(--border);
-    padding: 28px 24px;
-    text-align: center;
-    font-size: 0.84rem;
-    color: var(--text-light);
-  }
-  .footer-links {
-    display: flex;
-    gap: 18px;
-    justify-content: center;
-    flex-wrap: wrap;
-    margin-bottom: 10px;
-  }
-  .footer-links a {
-    color: var(--text-light);
-    text-decoration: none;
-  }
-  .footer-links a:hover {
-    text-decoration: underline;
-  }
-  @media (max-width: 640px) {
-    h1 {
-      font-size: 1.55rem;
-    }
-    .prose h2 {
-      font-size: 1.28rem;
-    }
-    main {
-      padding: 24px 18px 60px;
-    }
-  }
-</style>
+  <script is:inline>
+    (function () {
+      var links = document.querySelectorAll('.toc-card a[href^="#"]');
+      if (!links.length || !('IntersectionObserver' in window)) return;
+
+      var map = {};
+      var ids = [];
+      Array.prototype.forEach.call(links, function (a) {
+        var id = decodeURIComponent(a.getAttribute('href').slice(1));
+        map[id] = a;
+        ids.push(id);
+      });
+
+      var visible = {};
+      var observer = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (e) {
+            visible[e.target.id] = e.isIntersecting;
+          });
+          // 画面内にある見出しのうち、本文の並び順で最初のものを現在地とする
+          var current = null;
+          for (var i = 0; i < ids.length; i++) {
+            if (visible[ids[i]]) {
+              current = ids[i];
+              break;
+            }
+          }
+          // どの見出しも帯から外れている間は直前のハイライトを保つ（点滅防止）
+          if (!current) return;
+          for (var id in map) {
+            map[id].classList.toggle('is-current', id === current);
+          }
+        },
+        // 固定ナビの下から画面上部30%だけを判定帯にする。下端を切らないと
+        // 一度に複数の見出しが可視になり、現在地が先に進みすぎる。
+        { rootMargin: '-120px 0px -70% 0px', threshold: 0 },
+      );
+
+      ids.forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) observer.observe(el);
+      });
+    })();
+  </script>
+</MediaLayout>

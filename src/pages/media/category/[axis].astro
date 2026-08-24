@@ -1,0 +1,84 @@
+---
+/**
+ * 軸ごとの一覧。
+ *
+ * ページネーションは持たせない。1軸あたりの記事数が PAGE_SIZE を超えるのは当分先で、
+ * 中身の薄い2ページ目を先に作っても内部リンクが散るだけなので、超えたときに
+ * ここを「全件表示」に変える（メディア戦略.md の着手順どおり軸1から埋まっていく想定）。
+ */
+export const prerender = false;
+
+import MediaLayout from '../../../layouts/MediaLayout.astro';
+import ArticleCard from '../../../components/ArticleCard.astro';
+import { AXES, getAxis, isAxisSlug } from '../../../lib/axis';
+import { listPublished, PAGE_SIZE } from '../../../lib/db';
+
+const slug = Astro.params.axis ?? '';
+if (!isAxisSlug(slug)) return new Response('Not found', { status: 404 });
+
+const axis = getAxis(slug)!;
+
+Astro.response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=86400');
+
+const articles = await listPublished({ axis: slug, limit: PAGE_SIZE });
+
+const title = `${axis.name} | Anniv`;
+const description = `${axis.description}「${axis.name}」の記事一覧です。`;
+---
+
+<MediaLayout title={title} description={description} current="media">
+  <div class="shell">
+    <header class="section-header">
+      <p class="section-label">MEDIA</p>
+      <h1 class="section-title">{axis.name}</h1>
+      <p class="section-sub">{axis.description}</p>
+    </header>
+
+    <nav class="axis-filter" aria-label="カテゴリ">
+      <a class="axis-pill" href="/media">すべて</a>
+      {
+        AXES.map((a) => (
+          <a
+            class="axis-pill"
+            href={`/media/category/${a.slug}`}
+            aria-current={a.slug === slug ? 'page' : undefined}
+          >
+            {a.name}
+          </a>
+        ))
+      }
+    </nav>
+
+    {
+      articles.length === 0 ? (
+        <p class="empty">記事は準備中です。</p>
+      ) : (
+        <div class="card-grid">
+          {articles.map((a) => (
+            <ArticleCard article={a} />
+          ))}
+        </div>
+      )
+    }
+
+    <aside class="list-cta">
+      <div>
+        <p class="list-cta-title">記念日の準備に迷ったら</p>
+        <p class="list-cta-text">
+          プレゼント選び・お店の予約・当日の演出まで、まるごとご相談いただけます。予算や希望が固まっていない段階でも大丈夫です。
+        </p>
+      </div>
+      <div class="list-cta-actions">
+        <a href="https://anniv.gift/contact.html" class="cta-btn" data-cta="form" data-cta-label="media_list">無料で相談する</a>
+        <a
+          href="https://lin.ee/U4deTzi"
+          class="cta-btn cta-btn-line"
+          target="_blank"
+          rel="noopener noreferrer"
+          data-cta="line"
+          data-cta-label="media_list">LINEで相談する</a
+        >
+      </div>
+    </aside>
+  </div>
+</MediaLayout>

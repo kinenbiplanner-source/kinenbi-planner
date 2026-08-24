@@ -1,0 +1,40 @@
+---
+/**
+ * 記事詳細。/media/<slug> のフラット構成（軸を変えてもURLが壊れないようにするため）。
+ * 本文HTMLも目次も D1 に保存済みのものを使い、ここでは Markdown を再パースしない。
+ */
+export const prerender = false;
+
+import MediaArticle from '../../layouts/MediaArticle.astro';
+import { getPublishedBySlug, listRelated } from '../../lib/db';
+import type { TocItem } from '../../lib/markdown';
+
+const { slug } = Astro.params;
+const article = slug ? await getPublishedBySlug(slug) : null;
+if (!article) return new Response('Not found', { status: 404 });
+
+Astro.response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=86400');
+
+/** toc_json は管理画面が書いた値。壊れていても記事本体は出せるので、目次だけ捨てる。 */
+function parseToc(raw: string): TocItem[] {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (t): t is TocItem =>
+        typeof t === 'object' &&
+        t !== null &&
+        typeof (t as TocItem).id === 'string' &&
+        typeof (t as TocItem).text === 'string' &&
+        ((t as TocItem).level === 2 || (t as TocItem).level === 3),
+    );
+  } catch {
+    return [];
+  }
+}
+
+const toc = parseToc(article.toc_json);
+const related = await listRelated(article.axis, article.id);
+---
+
+<MediaArticle article={article} toc={toc} related={related} />
