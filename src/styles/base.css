@@ -41,7 +41,10 @@ img {
 }
 
 /* ── NAV ── */
-nav {
+/* 要素セレクタ（bare `nav`）にしないこと。
+   一覧の軸フィルタ・ページャ・パンくず・目次も <nav> なので、
+   position:fixed が全部に当たってレイアウトが壊れる。 */
+#navbar {
   position: fixed;
   top: 0;
   left: 0;
@@ -57,7 +60,7 @@ nav {
   border-bottom: 1px solid transparent;
   transition: box-shadow 0.3s, border-color 0.3s, padding 0.3s;
 }
-nav.scrolled {
+#navbar.scrolled {
   box-shadow: 0 6px 28px rgba(26, 40, 64, 0.08);
   border-bottom-color: var(--border);
   padding: 8px 60px;
@@ -271,8 +274,8 @@ summary:focus-visible {
   html {
     scroll-padding-top: 90px;
   }
-  nav,
-  nav.scrolled {
+  #navbar,
+  #navbar.scrolled {
     padding: 10px 20px;
   }
   .nav-logo {

@@ -7,6 +7,15 @@
  */
 
 /* ── レイアウト ── */
+
+/* 記事ページだけシェルを広げる。
+   一覧と同じ 1100px のままだと本文カラムが 644px まで詰まり、
+   --article-max（760px）に届かない＝トークンが実態と食い違う。
+   760 + gap56 + サイドバー280 + 左右padding120 = 1216px。 */
+.shell-article {
+  max-width: 1216px;
+}
+
 .article-layout {
   display: grid;
   grid-template-columns: minmax(0, var(--article-max)) 280px;
