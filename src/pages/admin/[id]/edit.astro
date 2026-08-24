@@ -1,0 +1,28 @@
+---
+/**
+ * 記事の編集（/admin/[id]/edit）。
+ *
+ * 画面そのものは新規作成ページ（../new.astro）と1文字も違わないので、
+ * あちらを「記事エディタ」として読み込み、記事レコードだけ渡している。
+ * フォーム・プレビュー・自動退避のコードを2か所に写経すると
+ * 片方だけ直して壊すのが目に見えているため、差分はプロップ1つに閉じ込める。
+ */
+import Editor from '../new.astro';
+import { getById } from '../../../lib/db';
+
+export const prerender = false;
+
+const raw = Astro.params.id;
+const id = Number(raw);
+const article = Number.isInteger(id) && id > 0 ? await getById(id) : null;
+
+if (!article) {
+  // 存在しないIDは404。管理画面なので凝ったページは作らない。
+  return new Response('記事が見つかりません', {
+    status: 404,
+    headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'private, no-store' },
+  });
+}
+---
+
+<Editor article={article} />

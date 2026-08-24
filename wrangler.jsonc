@@ -11,6 +11,21 @@
 
   "observability": { "enabled": true },
 
+  // 静的アセットの既定は html_handling="auto-trailing-slash" で、
+  // /contact.html を /contact へ 307 で飛ばしてしまう。
+  // 本番の正規URLは .html 付き（content-axis.md の軸3固定CTA・LPフッター・
+  // sitemap・Search Console の登録URLがすべて .html）なので、この既定を切る。
+  // 拡張子なし形（Vercel の cleanUrls で拾えていた /contact 等）は
+  // astro.config.mjs の redirects で .html へ 301 する。
+  // not_found_handling は "none"（＝アセットに無ければWorkerへ渡す）。
+  // /media 配下や /admin の SSR ルートと Astro の404はWorker側で処理する。
+  "assets": {
+    "binding": "ASSETS",
+    "html_handling": "none",
+    "not_found_handling": "none"
+  },
+
+
   // 記事本体。database_id は `wrangler d1 create anniv` の出力で置き換える。
   "d1_databases": [
     {

@@ -1,0 +1,63 @@
+---
+/**
+ * 管理画面の外枠。
+ *
+ * BaseHead は使わない。あちらは GA4 と Meta Pixel を必ず読むので、
+ * 管理画面の操作（記事を開く・保存する）が計測データに混ざってしまう。
+ * 管理画面のPVは「メディアの閲覧数」ではないので、ここでは計測タグを一切入れない。
+ * 同じ理由と、そもそもインデックスされては困るので robots は noindex,nofollow。
+ *
+ * 認証は src/middleware.ts が済ませている。ここに来ている時点で
+ * Astro.locals.user は入っている前提だが、型は optional のままなので ?. で読む。
+ */
+import '../styles/admin.css';
+
+interface Props {
+  title: string;
+  /** ヘッダーのナビで現在地を出すためのキー。 */
+  current?: 'list' | 'new' | 'edit';
+}
+
+const { title, current } = Astro.props;
+const email = Astro.locals.user?.email ?? '';
+---
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <meta name="referrer" content="same-origin" />
+    <link rel="icon" href="/favicon.png" type="image/png" />
+    <title>{title} | Anniv 管理</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    {/*
+      管理画面のUI自体は Noto Sans JP だけで組んでいるが、プレビュー領域は
+      article.css をそのまま当てて本番の見た目を再現する。本番の見出しは
+      --font-serif-jp（Cormorant Garamond / Noto Serif JP）なので、
+      それを読まないとプレビューだけ字面が変わってしまう。
+    */}
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="admin">
+    <header class="admin-header">
+      <a href="/admin" class="admin-brand">Anniv 管理</a>
+      <nav class="admin-nav">
+        <a href="/admin" aria-current={current === 'list' ? 'page' : undefined}>記事一覧</a>
+        <a href="/admin/new" aria-current={current === 'new' ? 'page' : undefined}>新規作成</a>
+        <a href="/api/export.csv">CSVエクスポート</a>
+      </nav>
+      {email && <span class="admin-user" title={email}>{email}</span>}
+    </header>
+
+    <main class="admin-main">
+      <slot />
+    </main>
+  </body>
+</html>

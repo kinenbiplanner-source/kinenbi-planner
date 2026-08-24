@@ -1,0 +1,562 @@
+/*
+ * 管理画面のスタイル。公開側（base.css / media.css）とは別系統にしている。
+ *
+ * 公開側は「読ませる」ためのデザインなので余白も装飾も大きいが、こちらは
+ * 記事を1日に何本も出し入れする実務ツール。判断に要る情報の密度を上げ、
+ * セリフ体・グラデーション・大きな影といった飾りは落とす。
+ *
+ * 色は tokens.css を正として使う。管理画面用にトークンを増やすときは
+ * --admin-* の接頭辞を付け、公開側の変数は上書きしない
+ * （--radius を上書きすると、下のプレビュー内の .prose まで本番と形が変わってしまう）。
+ */
+@import './tokens.css';
+/*
+ * プレビュー領域を本番と同じ見た目にするために、記事CSSをそのまま読む。
+ * 「プレビューでは崩れていないのに本番で崩れる」を構造的に無くすのが狙いで、
+ * 管理画面側で .prose を再現しないのはそのため。
+ */
+@import './article.css';
+
+:root {
+  /* 管理画面は角丸を控えめにする（実務ツールらしい硬さ） */
+  --admin-radius: 8px;
+  --admin-radius-sm: 5px;
+  --admin-mono: ui-monospace, 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  --admin-danger: #c0392b;
+  --admin-ok: #2f855a;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body.admin {
+  /* 管理画面はセリフ体を使わない。読み物ではないので字面は一定に保つ */
+  font-family: 'Noto Sans JP', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text);
+  background: var(--ivory);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── ヘッダー ── */
+.admin-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  padding: 0 22px;
+  height: 54px;
+  background: var(--navy);
+  color: #e8eef7;
+}
+.admin-brand {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--white);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.admin-nav {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.admin-nav a {
+  font-size: 13px;
+  color: #b9cbe4;
+  text-decoration: none;
+  padding: 4px 0;
+  border-bottom: 2px solid transparent;
+}
+.admin-nav a:hover {
+  color: var(--white);
+}
+.admin-nav a[aria-current='page'] {
+  color: var(--white);
+  border-bottom-color: var(--gold);
+}
+.admin-user {
+  margin-left: auto;
+  font-size: 12px;
+  color: #9db2cf;
+  font-family: var(--admin-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+}
+
+/* ── ページ枠 ── */
+.admin-main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 26px 22px 80px;
+}
+.admin-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.admin-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-right: auto;
+}
+.admin-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--shadow-sm);
+}
+.admin-card + .admin-card {
+  margin-top: 18px;
+}
+.admin-card-head {
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--navy);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.admin-card-body {
+  padding: 18px;
+}
+.admin-hint {
+  font-size: 12px;
+  color: var(--text-light);
+  font-weight: 400;
+}
+
+/* ── ボタン ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--admin-radius-sm);
+  background: var(--white);
+  color: var(--navy);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+  white-space: nowrap;
+}
+.btn:hover {
+  background: var(--blue-pale);
+  border-color: var(--blue-pastel);
+}
+.btn:disabled,
+.btn[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: var(--white);
+}
+.btn-primary:hover {
+  background: var(--navy-soft);
+  border-color: var(--navy-soft);
+}
+.btn-danger {
+  color: var(--admin-danger);
+  border-color: #eccac5;
+}
+.btn-danger:hover {
+  background: #fdf1ef;
+  border-color: #e4a79f;
+}
+.btn-sm {
+  height: 29px;
+  padding: 0 11px;
+  font-size: 12px;
+}
+
+/* ── テーブル（記事一覧）── */
+.admin-table-wrap {
+  overflow-x: auto;
+}
+table.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.admin-table th {
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-light);
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--blue-pale);
+  white-space: nowrap;
+}
+.admin-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #eef4f9;
+  vertical-align: middle;
+}
+.admin-table tr:last-child td {
+  border-bottom: 0;
+}
+.admin-table tbody tr:hover {
+  background: #fbfdff;
+}
+.admin-table .col-title a {
+  color: var(--navy);
+  font-weight: 500;
+  text-decoration: none;
+}
+.admin-table .col-title a:hover {
+  text-decoration: underline;
+}
+.cell-slug,
+.cell-date {
+  font-family: var(--admin-mono);
+  font-size: 12px;
+  color: var(--text-light);
+  white-space: nowrap;
+}
+.admin-empty {
+  padding: 48px 18px;
+  text-align: center;
+  color: var(--text-light);
+  font-size: 13px;
+}
+
+/* ステータスバッジ（公開／下書きが一目で分かることだけが目的） */
+.status {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.status-published {
+  background: #e6f4ec;
+  color: var(--admin-ok);
+}
+.status-draft {
+  background: #eef1f5;
+  color: var(--text-light);
+}
+
+/* ── フォーム ── */
+.field {
+  margin-bottom: 16px;
+}
+.field:last-child {
+  margin-bottom: 0;
+}
+.field > label,
+.field-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 6px;
+}
+.field .req {
+  color: var(--admin-danger);
+  margin-left: 3px;
+}
+.field-note {
+  font-size: 11.5px;
+  color: var(--text-light);
+  margin-top: 5px;
+  line-height: 1.7;
+}
+.field-note.is-warn {
+  color: #b7791f;
+}
+.field-note.is-error {
+  color: var(--admin-danger);
+}
+
+input[type='text'],
+input[type='url'],
+textarea,
+select {
+  width: 100%;
+  padding: 8px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--admin-radius-sm);
+  background: var(--white);
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--text);
+}
+input[type='text']:focus,
+input[type='url']:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid var(--blue-mid);
+  outline-offset: -1px;
+  border-color: var(--blue-mid);
+}
+input.is-invalid {
+  border-color: var(--admin-danger);
+}
+input.mono,
+textarea.mono {
+  font-family: var(--admin-mono);
+  font-size: 13px;
+}
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.checkbox input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--navy);
+}
+
+/* メタ情報は2〜3列で畳んで、本文編集の縦位置を稼ぐ */
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0 16px;
+}
+
+/* ── 取り込みエリア ── */
+.import-area textarea {
+  min-height: 110px;
+  font-family: var(--admin-mono);
+  font-size: 12.5px;
+}
+.import-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+/* ── ヒーロー画像 ── */
+.hero-box {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.hero-preview {
+  width: 200px;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--border);
+  border-radius: var(--admin-radius-sm);
+  background: var(--ivory);
+  object-fit: cover;
+  display: block;
+}
+.hero-meta {
+  flex: 1;
+  min-width: 200px;
+}
+.hero-key {
+  font-family: var(--admin-mono);
+  font-size: 11.5px;
+  color: var(--text-light);
+  word-break: break-all;
+  margin-bottom: 8px;
+}
+
+/* ── 2ペイン（編集／プレビュー）── */
+.pane-tabs {
+  display: none;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.pane-tab {
+  flex: 1;
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: var(--admin-radius-sm);
+  background: var(--white);
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-light);
+  cursor: pointer;
+}
+.pane-tab[aria-selected='true'] {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: var(--white);
+}
+.panes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.pane {
+  min-width: 0;
+}
+/*
+ * 900px以下でどちらのペインを見せるかは、下のメディアクエリが
+ * .panes[data-tab] を見て決める。JS は data-tab を書き換えるだけで、
+ * 幅の判定を持たない（リサイズで状態がズレる余地を作らないため）。
+ */
+.pane-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 7px;
+  min-height: 20px;
+}
+.pane-head .admin-hint {
+  margin-left: auto;
+}
+.editor {
+  width: 100%;
+  /* ヘッダー・メタ欄を除いた残りを本文に回す。スクロールを二重に作らない */
+  height: calc(100vh - 300px);
+  min-height: 420px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--admin-radius);
+  background: var(--white);
+  font-family: var(--admin-mono);
+  font-size: 13.5px;
+  line-height: 1.85;
+  resize: vertical;
+  tab-size: 2;
+}
+.preview {
+  height: calc(100vh - 300px);
+  min-height: 420px;
+  overflow-y: auto;
+  padding: 22px 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--admin-radius);
+  background: var(--white);
+}
+/* プレビュー内は本番の記事幅に合わせる（.prose 自体は article.css が持つ） */
+.preview .prose {
+  max-width: var(--article-max);
+}
+.preview-empty {
+  color: var(--text-light);
+  font-size: 13px;
+}
+
+/* ── 通知（保存結果・警告）── */
+.notice {
+  border-radius: var(--admin-radius-sm);
+  padding: 12px 15px;
+  font-size: 13px;
+  line-height: 1.8;
+  margin-bottom: 16px;
+  border: 1px solid transparent;
+}
+.notice ul {
+  margin: 6px 0 0 1.2em;
+}
+.notice-ok {
+  background: #edf7f1;
+  border-color: #bfe3ce;
+  color: #276749;
+}
+.notice-warn {
+  background: #fdf6e7;
+  border-color: #eddcb0;
+  color: #8a6d2f;
+}
+.notice-error {
+  background: #fdf1ef;
+  border-color: #eccac5;
+  color: var(--admin-danger);
+}
+.notice-info {
+  background: var(--blue-pale);
+  border-color: var(--border);
+  color: var(--navy);
+}
+.notice[hidden] {
+  display: none;
+}
+.notice-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* ── 保存バー ── */
+.save-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding: 13px 18px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--shadow-md);
+}
+.save-bar .spacer {
+  margin-left: auto;
+}
+.save-state {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* ── 900px 以下：2ペインはタブ切替に畳む ── */
+@media (max-width: 900px) {
+  .pane-tabs {
+    display: flex;
+  }
+  .panes {
+    grid-template-columns: 1fr;
+  }
+  /* 表示中のタブと逆のペインだけ畳む。判断はここ（CSS）に一本化してある */
+  .panes[data-tab='edit'] .pane[data-pane='preview'],
+  .panes[data-tab='preview'] .pane[data-pane='edit'] {
+    display: none;
+  }
+  .editor,
+  .preview {
+    height: calc(100vh - 340px);
+  }
+  .admin-user {
+    display: none;
+  }
+  .admin-main {
+    padding: 18px 14px 70px;
+  }
+}

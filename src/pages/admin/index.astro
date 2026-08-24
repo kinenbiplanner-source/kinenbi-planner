@@ -1,0 +1,132 @@
+---
+/**
+ * 記事一覧（/admin）。
+ *
+ * 下書きも含めて全部出す。並び順は db.listForAdmin（公開日、無ければ更新日の新しい順）。
+ * 一覧で見たいのは「何が公開済みで、どれがまだ下書きか」なので、
+ * ステータスを左端に置いて視線の最初に来るようにしている。
+ */
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { listForAdmin } from '../../lib/db';
+import { axisShort } from '../../lib/axis';
+
+export const prerender = false;
+
+const articles = await listForAdmin();
+
+// 日付は JST で表示する。DB は ISO8601（UTC）なので、そのまま切ると
+// 夜に保存した記事が前日扱いになる。
+const JST = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Tokyo',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+const fmt = (iso: string | null): string => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '—' : JST.format(d);
+};
+---
+
+<AdminLayout title="記事一覧" current="list">
+  <div class="admin-bar">
+    <h1 class="admin-title">記事一覧<span class="admin-hint">（{articles.length}件）</span></h1>
+    <a class="btn" href="/api/export.csv">CSVエクスポート</a>
+    <button class="btn" type="button" id="rerender">全記事を再レンダリング</button>
+    <a class="btn btn-primary" href="/admin/new">新規作成</a>
+  </div>
+
+  <div class="notice notice-info" id="rerender-result" hidden></div>
+
+  <div class="admin-card">
+    {
+      articles.length === 0 ? (
+        <p class="admin-empty">
+          まだ記事がありません。「新規作成」から <code>article.md</code> を貼り付けて取り込めます。
+        </p>
+      ) : (
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>状態</th>
+                <th>タイトル</th>
+                <th>slug</th>
+                <th>軸</th>
+                <th>ファネル</th>
+                <th>公開日</th>
+                <th>更新日</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {articles.map((a) => (
+                <tr>
+                  <td>
+                    <span class={`status status-${a.status}`}>
+                      {a.status === 'published' ? '公開' : '下書き'}
+                    </span>
+                  </td>
+                  <td class="col-title">
+                    <a href={`/admin/${a.id}/edit`}>{a.title}</a>
+                  </td>
+                  <td class="cell-slug">{a.slug}</td>
+                  <td>{axisShort(a.axis)}</td>
+                  <td>{a.funnel}</td>
+                  <td class="cell-date">{fmt(a.published_at)}</td>
+                  <td class="cell-date">{fmt(a.updated_at)}</td>
+                  <td>
+                    {a.status === 'published' && (
+                      <a
+                        class="btn btn-sm"
+                        href={`/media/${a.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        公開ページ
+                      </a>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+  </div>
+</AdminLayout>
+
+<script>
+  // 再レンダリングは全記事の body_html を作り直す破壊的な操作なので、
+  // 押し間違い防止に確認を挟む（元の Markdown は触らないので復旧はできるが、
+  // 記事数が増えると時間が掛かるため軽い気持ちで叩けないようにしておく）。
+  const btn = document.getElementById('rerender') as HTMLButtonElement | null;
+  const result = document.getElementById('rerender-result');
+
+  btn?.addEventListener('click', async () => {
+    if (!confirm('全記事の本文HTMLを作り直します。よろしいですか？')) return;
+
+    btn.disabled = true;
+    btn.textContent = '再レンダリング中…';
+    try {
+      const res = await fetch('/api/rerender', { method: 'POST' });
+      const data = (await res.json()) as { message?: string; error?: string };
+      if (result) {
+        result.hidden = false;
+        result.className = res.ok ? 'notice notice-ok' : 'notice notice-error';
+        result.textContent = res.ok ? (data.message ?? '完了しました') : (data.error ?? '失敗しました');
+      }
+    } catch {
+      if (result) {
+        result.hidden = false;
+        result.className = 'notice notice-error';
+        result.textContent = '通信に失敗しました';
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '全記事を再レンダリング';
+    }
+  });
+</script>

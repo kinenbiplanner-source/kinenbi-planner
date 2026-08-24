@@ -12,6 +12,18 @@ export default defineConfig({
   trailingSlash: 'never',
   build: { format: 'file' },
 
+  // 旧構成（Vercel の cleanUrls）では /contact と /contact.html の両方が 200 を返していた。
+  // 正規URLは .html 付きなので、拡張子なし形は 301 で寄せて重複を潰す。
+  // （Workers Assets 側は wrangler.jsonc の html_handling:"none" で
+  //   .html → 拡張子なし の逆向きリダイレクトを止めてある）
+  redirects: {
+    '/contact': { status: 301, destination: '/contact.html' },
+    '/thanks': { status: 301, destination: '/thanks.html' },
+    '/links': { status: 301, destination: '/links.html' },
+    '/privacy': { status: 301, destination: '/privacy.html' },
+    '/tokutei': { status: 301, destination: '/tokutei.html' },
+  },
+
   // Cloudflare Workers へ。記事は D1、画像は R2 に置き、/media 配下と /admin・/api は
   // ページ側の `export const prerender = false` でオンデマンドレンダリングにする。
   // LP（public/ 配下の素の HTML）は静的アセットとしてそのまま配信される。
