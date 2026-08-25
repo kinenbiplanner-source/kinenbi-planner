@@ -1,0 +1,142 @@
+---
+/**
+ * 記事検索（/media/search?q=...）。
+ *
+ * D1 の LIKE 検索。件数が数百本になるまではこれで足りるし、FTS5 の仮想テーブルを
+ * 足すと schema.sql と保存経路（管理画面）にも手が要るので、今は入れない。
+ *
+ * **必ずバインドパラメータで渡す。** q をSQLに埋め込むとインジェクションになる。
+ * LIKE のワイルドカード（% _）と ESCAPE 用のバックスラッシュも自前で潰しておく
+ * （潰さないと「100%」のような検索語が全件マッチする）。
+ *
+ * 検索結果ページは noindex。クエリの数だけ薄いURLが増えてインデックスが荒れるため。
+ */
+export const prerender = false;
+
+import MediaLayout from '../../layouts/MediaLayout.astro';
+import ArticleCard from '../../components/ArticleCard.astro';
+import { AXES } from '../../lib/axis';
+import { db, type ArticleCard as ArticleCardData } from '../../lib/db';
+
+/** 検索結果の上限。ページングは付けない（増えたら付ける）。 */
+const LIMIT = 24;
+
+// 長すぎる入力はDBに投げる前に切る。全角も含めて60字あれば実用上足りる。
+const q = (Astro.url.searchParams.get('q') ?? '').trim().slice(0, 60);
+
+let results: ArticleCardData[] = [];
+
+if (q) {
+  // \ % _ をエスケープしてから前後にワイルドカードを付ける。
+  const like = `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+  const { results: rows } = await db()
+    .prepare(
+      `SELECT id, slug, title, description, axis, funnel, hero_image, published_at
+       FROM articles
+       WHERE status='published'
+         AND (title LIKE ? ESCAPE '\\'
+           OR description LIKE ? ESCAPE '\\'
+           OR keyword LIKE ? ESCAPE '\\'
+           OR body_md LIKE ? ESCAPE '\\')
+       ORDER BY published_at DESC, id DESC
+       LIMIT ?`,
+    )
+    .bind(like, like, like, like, LIMIT)
+    .all<ArticleCardData>();
+  results = rows ?? [];
+}
+
+Astro.response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=86400');
+
+const title = q ? `「${q}」の検索結果 | Anniv` : '記事を探す | Anniv';
+const description = '記念日のプレゼント・デート・代行サービスの記事を検索できます。';
+---
+
+<MediaLayout title={title} description={description} current="media" noindex>
+  <div class="shell shell-media">
+    <nav class="art-crumb" aria-label="パンくず">
+      <a href="/">ホーム</a><span class="sep">›</span>
+      <a href="/media">メディア</a><span class="sep">›</span>
+      <span aria-current="page">検索</span>
+    </nav>
+
+    <header class="section-header">
+      <p class="section-label">SEARCH</p>
+      <h1 class="section-title">記事を探す</h1>
+      {
+        q && (
+          <p class="section-sub">
+            「{q}」の検索結果：{results.length}件
+            {results.length === LIMIT && `（上位${LIMIT}件まで）`}
+          </p>
+        )
+      }
+    </header>
+
+    <section class="findbar" aria-label="記事を探す">
+      <form class="findbar-form" action="/media/search" method="get" role="search">
+        <input
+          class="findbar-input"
+          type="search"
+          name="q"
+          value={q}
+          placeholder="記念日、プレゼント、レストラン…"
+          aria-label="記事を検索"
+        />
+        <button class="findbar-submit" type="submit">探す</button>
+      </form>
+      <div class="findbar-tags">
+        <span class="findbar-tags-label">タグから探す</span>
+        {
+          AXES.map((a) => (
+            <a class="findbar-tag is-axis" href={`/media/category/${a.slug}`}>
+              {a.short}
+            </a>
+          ))
+        }
+      </div>
+    </section>
+
+    {
+      !q ? (
+        <p class="empty">
+          探したい言葉を入れてください。
+          <br />
+          <a href="/media">記事の一覧を見る</a>
+        </p>
+      ) : results.length === 0 ? (
+        <p class="empty">
+          「{q}」に一致する記事は見つかりませんでした。
+          <br />
+          別の言葉で探すか、<a href="/media">記事の一覧</a>からご覧ください。
+        </p>
+      ) : (
+        <div class="card-grid">
+          {results.map((a) => (
+            <ArticleCard article={a} />
+          ))}
+        </div>
+      )
+    }
+
+    <aside class="list-cta">
+      <div>
+        <p class="list-cta-title">探しているものが見つからないときは</p>
+        <p class="list-cta-text">
+          記念日の準備で困っていることを直接お聞かせください。プレゼント選び・お店の予約・当日の演出まで、まるごとご相談いただけます。
+        </p>
+      </div>
+      <div class="list-cta-actions">
+        <a href="https://anniv.gift/contact" class="cta-btn" data-cta="form" data-cta-label="media_search">無料で相談する</a>
+        <a
+          href="https://lin.ee/U4deTzi"
+          class="cta-btn cta-btn-line"
+          target="_blank"
+          rel="noopener noreferrer"
+          data-cta="line"
+          data-cta-label="media_search">LINEで相談する</a
+        >
+      </div>
+    </aside>
+  </div>
+</MediaLayout>

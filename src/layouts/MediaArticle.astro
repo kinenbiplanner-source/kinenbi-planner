@@ -5,13 +5,23 @@
  * 本文は D1 の body_html をそのまま流し込む（markdown.ts は保存時に1回だけ通す）。
  * 目次も toc_json に入っているものを使うので、表示のたびに Markdown を再パースしない。
  *
+ * 構造は apptime.co.jp/media/ の記事ページを参照した3カラム：
+ *   左＝将来の広告枠（今は空。1440px 以上でだけ場所を取る）
+ *   中央＝パンくず／ヘッダー／カバー／本文／CTA／評価／前後ナビ／関連
+ *   右＝目次＋CTAカード（追従）
+ * ＋モバイル下部の固定CTAバーと、トップへ戻るボタン。
+ *
+ * レイアウトのクラスは media.css の `.art-*` に新設してある。
+ * article.css にも旧レイアウト（.article-layout など）が残っているが、
+ * あちらは本文（.prose）担当なので依存しない。
+ *
  * 構造化データは Article と BreadcrumbList の2つ。
  * FAQPage は 2023年8月以降、一般サイトではリッチリザルトが出ないため入れていない。
  */
 import MediaLayout from './MediaLayout.astro';
 import ArticleCard from '../components/ArticleCard.astro';
 import CtaBox from '../components/CtaBox.astro';
-import type { ArticleRow, ArticleCard as ArticleCardData } from '../lib/db';
+import { db, type ArticleRow, type ArticleCard as ArticleCardData } from '../lib/db';
 import type { TocItem } from '../lib/markdown';
 import { axisName } from '../lib/axis';
 
@@ -49,6 +59,47 @@ const showUpdated = updatedText !== '' && updatedText !== publishedText;
 // content-axis.md が「1記事に1つだけ」と定めているので、その場合は記事末のCTAを重ねない。
 const hasInlineCta = article.body_html.includes('class="cta-box"');
 
+/**
+ * 前後の記事（公開日順・軸をまたぐ）。
+ *
+ * db.ts に関数を足すのが本来だが、あのファイルは他の作業と衝突するのでここで引く。
+ * 並び順は一覧（published_at DESC, id DESC）と同じ基準に揃える。ズレると
+ * 「次へ進んだのに一覧では前にいる」ことになる。published_at が入っていない
+ * 公開記事は理屈上ありえないが、COALESCE で updated_at に逃がして落ちないようにする。
+ */
+type Neighbor = { slug: string; title: string } | null;
+
+async function neighbors(a: ArticleRow): Promise<{ prev: Neighbor; next: Neighbor }> {
+  const key = a.published_at ?? a.updated_at;
+  const [prev, next] = await Promise.all([
+    // 前＝これより古い記事
+    db()
+      .prepare(
+        `SELECT slug, title FROM articles
+         WHERE status='published'
+           AND (COALESCE(published_at, updated_at) < ?
+             OR (COALESCE(published_at, updated_at) = ? AND id < ?))
+         ORDER BY COALESCE(published_at, updated_at) DESC, id DESC LIMIT 1`,
+      )
+      .bind(key, key, a.id)
+      .first<{ slug: string; title: string }>(),
+    // 次＝これより新しい記事
+    db()
+      .prepare(
+        `SELECT slug, title FROM articles
+         WHERE status='published'
+           AND (COALESCE(published_at, updated_at) > ?
+             OR (COALESCE(published_at, updated_at) = ? AND id > ?))
+         ORDER BY COALESCE(published_at, updated_at) ASC, id ASC LIMIT 1`,
+      )
+      .bind(key, key, a.id)
+      .first<{ slug: string; title: string }>(),
+  ]);
+  return { prev, next };
+}
+
+const { prev, next } = await neighbors(article);
+
 const articleLd = {
   '@context': 'https://schema.org',
   '@type': 'Article',
@@ -81,48 +132,54 @@ const breadcrumbLd = {
   ogType="article"
   current="media"
   showProgress
+  pvSlug={article.slug}
 >
   <Fragment slot="head">
     <script type="application/ld+json" is:inline set:html={JSON.stringify(articleLd)} />
     <script type="application/ld+json" is:inline set:html={JSON.stringify(breadcrumbLd)} />
   </Fragment>
 
-  <div class="shell shell-article">
-    <nav class="breadcrumb" aria-label="パンくず">
-      <a href="/">ホーム</a><span class="sep">›</span>
-      <a href="/media">メディア</a><span class="sep">›</span>
-      <a href={categoryPath}>{axisLabel}</a><span class="sep">›</span>
-      <span aria-current="page">{article.title}</span>
-    </nav>
+  <div class="shell shell-art">
+    <div class="art-grid">
+      {/* 将来の広告枠。今は空だが、後から入れたときに本文幅が動かないよう場所だけ取る。 */}
+      <aside class="art-ad" aria-hidden="true"><div class="art-ad-slot"></div></aside>
 
-    <div class="article-layout">
-      <article class="article-main">
-        <div class="article-badges">
-          <a class="badge" href={categoryPath}>{axisLabel}</a>
-          <span class="badge badge-funnel">{article.funnel}</span>
-        </div>
+      <article class="art-main">
+        <nav class="art-crumb" aria-label="パンくず">
+          <a href="/">ホーム</a><span class="sep">›</span>
+          <a href="/media">メディア</a><span class="sep">›</span>
+          <a href={categoryPath}>{axisLabel}</a><span class="sep">›</span>
+          <span aria-current="page">{article.title}</span>
+        </nav>
 
-        <h1 class="article-title">{article.title}</h1>
+        <header class="art-head">
+          <div class="art-tags">
+            <a class="art-tag" href={categoryPath}>{axisLabel}</a>
+            <span class="art-tag is-funnel">{article.funnel}</span>
+          </div>
 
-        <p class="article-dates">
-          {
-            article.published_at && (
-              <time datetime={article.published_at}>{publishedText}公開</time>
-            )
-          }
-          {
-            showUpdated && (
-              <Fragment>
-                {article.published_at && ' ／ '}
-                <time datetime={article.updated_at}>{updatedText}更新</time>
-              </Fragment>
-            )
-          }
-        </p>
+          <h1 class="art-title">{article.title}</h1>
+
+          <p class="art-meta">
+            {
+              article.published_at && (
+                <time datetime={article.published_at}>{publishedText}公開</time>
+              )
+            }
+            {
+              showUpdated && (
+                <Fragment>
+                  {article.published_at && ' ／ '}
+                  <time datetime={article.updated_at}>{updatedText}更新</time>
+                </Fragment>
+              )
+            }
+          </p>
+        </header>
 
         {
           heroPath && (
-            <figure class="article-hero">
+            <figure class="art-cover">
               <img src={heroPath} alt="" decoding="async" />
             </figure>
           )
@@ -132,13 +189,44 @@ const breadcrumbLd = {
 
         {!hasInlineCta && <CtaBox />}
 
+        {/* 記事の評価。送信先は持たず GA4 のイベントだけ飛ばす（計測設計.md 参照）。 */}
+        <section class="art-fb" id="art-fb">
+          <p class="art-fb-q">この記事は役に立ちましたか？</p>
+          <div class="art-fb-actions">
+            <button type="button" data-fb="yes">役に立った</button>
+            <button type="button" data-fb="no">物足りない</button>
+          </div>
+          <p class="art-fb-thanks">
+            ありがとうございます。いただいた反応は、次の記事の題材選びに使わせていただきます。
+          </p>
+        </section>
+
+        {
+          (prev || next) && (
+            <nav class="art-pn" aria-label="前後の記事">
+              {prev && (
+                <a class="art-pn-item" href={`/media/${prev.slug}`}>
+                  <span class="art-pn-dir">‹ 前の記事</span>
+                  <span class="art-pn-title">{prev.title}</span>
+                </a>
+              )}
+              {next && (
+                <a class="art-pn-item is-next" href={`/media/${next.slug}`}>
+                  <span class="art-pn-dir">次の記事 ›</span>
+                  <span class="art-pn-title">{next.title}</span>
+                </a>
+              )}
+            </nav>
+          )
+        }
+
         {
           related.length > 0 && (
-            <section class="related">
-              <h2 class="related-head">関連する記事</h2>
+            <section class="art-rel">
+              <h2 class="art-rel-head">関連する記事</h2>
               <div class="card-grid is-related">
                 {related.map((r) => (
-                  <ArticleCard article={r} related />
+                  <ArticleCard article={r} variant="compact" headingLevel={3} />
                 ))}
               </div>
             </section>
@@ -146,26 +234,24 @@ const breadcrumbLd = {
         }
       </article>
 
-      <aside class="article-side">
+      <aside class="art-side">
         {
           toc.length > 0 && (
-            <div class="toc">
-              <nav class="toc-card" aria-label="目次">
-                <p class="toc-head">Contents</p>
-                <ul>
-                  {toc.map((t) => (
-                    <li class={`toc-l${t.level}`}>
-                      <a href={`#${t.id}`}>{t.text}</a>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
-            </div>
+            <nav class="art-toc" aria-label="目次">
+              <p class="art-toc-head">Contents</p>
+              <ul>
+                {toc.map((t) => (
+                  <li class={t.level === 3 ? 'is-l3' : 'is-l2'}>
+                    <a href={`#${t.id}`}>{t.text}</a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
           )
         }
-        <div class="side-cta">
-          <p class="side-cta-title">記念日の準備を任せる</p>
-          <p class="side-cta-text">
+        <div class="art-sidecta">
+          <p class="art-sidecta-title">記念日の準備を任せる</p>
+          <p class="art-sidecta-text">
             プレゼント選びからお店の予約、当日の演出まで。関係性と予算に合わせて、記念日の準備をまるごとお手伝いします。
           </p>
           <a href="https://anniv.gift/contact" data-cta="form" data-cta-label="article_side">無料で相談する</a>
@@ -174,48 +260,118 @@ const breadcrumbLd = {
     </div>
   </div>
 
+  {/* モバイル下部の固定バー。デスクトップは右サイドのCTAが常に見えているので出さない。 */}
+  <div class="art-bar" id="art-bar">
+    <a
+      class="art-bar-form"
+      href="https://anniv.gift/contact"
+      data-cta="form"
+      data-cta-label="article_mobilebar">無料で相談する</a
+    >
+    <a
+      class="art-bar-line"
+      href="https://lin.ee/U4deTzi"
+      target="_blank"
+      rel="noopener noreferrer"
+      data-cta="line"
+      data-cta-label="article_mobilebar">LINEで相談</a
+    >
+  </div>
+
+  <button class="art-top" id="art-top" type="button" aria-label="ページの先頭へ戻る">▲</button>
+
   <script is:inline>
     (function () {
-      var links = document.querySelectorAll('.toc-card a[href^="#"]');
-      if (!links.length || !('IntersectionObserver' in window)) return;
+      /* ── 目次の現在地ハイライト ── */
+      var links = document.querySelectorAll('.art-toc a[href^="#"]');
+      if (links.length && 'IntersectionObserver' in window) {
+        var map = {};
+        var ids = [];
+        Array.prototype.forEach.call(links, function (a) {
+          var id = decodeURIComponent(a.getAttribute('href').slice(1));
+          map[id] = a;
+          ids.push(id);
+        });
 
-      var map = {};
-      var ids = [];
-      Array.prototype.forEach.call(links, function (a) {
-        var id = decodeURIComponent(a.getAttribute('href').slice(1));
-        map[id] = a;
-        ids.push(id);
-      });
-
-      var visible = {};
-      var observer = new IntersectionObserver(
-        function (entries) {
-          entries.forEach(function (e) {
-            visible[e.target.id] = e.isIntersecting;
-          });
-          // 画面内にある見出しのうち、本文の並び順で最初のものを現在地とする
-          var current = null;
-          for (var i = 0; i < ids.length; i++) {
-            if (visible[ids[i]]) {
-              current = ids[i];
-              break;
+        var visible = {};
+        var observer = new IntersectionObserver(
+          function (entries) {
+            entries.forEach(function (e) {
+              visible[e.target.id] = e.isIntersecting;
+            });
+            // 画面内にある見出しのうち、本文の並び順で最初のものを現在地とする
+            var current = null;
+            for (var i = 0; i < ids.length; i++) {
+              if (visible[ids[i]]) {
+                current = ids[i];
+                break;
+              }
             }
-          }
-          // どの見出しも帯から外れている間は直前のハイライトを保つ（点滅防止）
-          if (!current) return;
-          for (var id in map) {
-            map[id].classList.toggle('is-current', id === current);
-          }
-        },
-        // 固定ナビの下から画面上部30%だけを判定帯にする。下端を切らないと
-        // 一度に複数の見出しが可視になり、現在地が先に進みすぎる。
-        { rootMargin: '-120px 0px -70% 0px', threshold: 0 },
-      );
+            // どの見出しも帯から外れている間は直前のハイライトを保つ（点滅防止）
+            if (!current) return;
+            for (var id in map) {
+              map[id].classList.toggle('is-current', id === current);
+            }
+          },
+          // 固定ナビの下から画面上部30%だけを判定帯にする。下端を切らないと
+          // 一度に複数の見出しが可視になり、現在地が先に進みすぎる。
+          { rootMargin: '-120px 0px -70% 0px', threshold: 0 },
+        );
 
-      ids.forEach(function (id) {
-        var el = document.getElementById(id);
-        if (el) observer.observe(el);
-      });
+        ids.forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el) observer.observe(el);
+        });
+      }
+
+      /* ── 記事の評価 ── */
+      var fb = document.getElementById('art-fb');
+      if (fb) {
+        fb.addEventListener('click', function (e) {
+          var btn = e.target && e.target.closest ? e.target.closest('[data-fb]') : null;
+          if (!btn) return;
+          if (typeof gtag === 'function') {
+            // 命名規則（計測設計.md 3章）に合わせ、イベント名＝行為・labelで種類を分ける
+            gtag('event', 'article_feedback', {
+              event_category: 'engagement',
+              event_label: btn.getAttribute('data-fb') === 'yes' ? 'helpful_yes' : 'helpful_no',
+            });
+          }
+          fb.classList.add('is-done');
+        });
+      }
+
+      /* ── 下部固定バー／トップへ戻る ── */
+      var bar = document.getElementById('art-bar');
+      var top = document.getElementById('art-top');
+      var ticking = false;
+
+      function paint() {
+        ticking = false;
+        var y = window.scrollY || window.pageYOffset || 0;
+        var doc = document.documentElement;
+        // フッターに差し掛かったらバーを引っ込める。CSS だけだとフッターに被さり、
+        // 特商法・プライバシーポリシーのリンクが押せなくなる。
+        var atBottom = y + window.innerHeight > doc.scrollHeight - 160;
+        if (bar) bar.classList.toggle('is-on', y > 400 && !atBottom);
+        if (top) top.classList.toggle('is-on', y > 600);
+      }
+
+      function onScroll() {
+        if (ticking) return;
+        ticking = true;
+        window.requestAnimationFrame(paint);
+      }
+
+      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', onScroll, { passive: true });
+      paint();
+
+      if (top) {
+        top.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
     })();
   </script>
 </MediaLayout>

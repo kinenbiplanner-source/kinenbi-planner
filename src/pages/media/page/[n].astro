@@ -4,6 +4,9 @@
  *
  * /media/page/1 は /media と中身が同じになるため 301 で寄せる（重複URL防止）。
  * 存在しないページ番号は 404。空ページをそのまま返すと薄いページが無限に増える。
+ *
+ * トップと違って軸レール・サイドバーは持たせない。2ページ目以降は
+ * 「続きを読む人」しか来ないので、記事の一覧そのものだけを出す。
  */
 export const prerender = false;
 
@@ -35,7 +38,7 @@ const hrefOf = (n: number) => (n === 1 ? '/media' : `/media/page/${n}`);
 ---
 
 <MediaLayout title={title} description={description} current="media">
-  <div class="shell">
+  <div class="shell shell-media">
     <header class="section-header">
       <p class="section-label">MEDIA</p>
       <h1 class="section-title">記念日のヒント</h1>
@@ -43,6 +46,29 @@ const hrefOf = (n: number) => (n === 1 ? '/media' : `/media/page/${n}`);
         プレゼント選びから当日の演出まで、記念日を成功させるための考え方をまとめています。
       </p>
     </header>
+
+    <section class="findbar" aria-label="記事を探す">
+      <form class="findbar-form" action="/media/search" method="get" role="search">
+        <input
+          class="findbar-input"
+          type="search"
+          name="q"
+          placeholder="記念日、プレゼント、レストラン…"
+          aria-label="記事を検索"
+        />
+        <button class="findbar-submit" type="submit">探す</button>
+      </form>
+      <div class="findbar-tags">
+        <span class="findbar-tags-label">タグから探す</span>
+        {
+          AXES.map((a) => (
+            <a class="findbar-tag is-axis" href={`/media/category/${a.slug}`}>
+              {a.short}
+            </a>
+          ))
+        }
+      </div>
+    </section>
 
     <nav class="axis-filter" aria-label="カテゴリ">
       <a class="axis-pill" href="/media" aria-current="page">すべて</a>

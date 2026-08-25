@@ -14,6 +14,7 @@
  *   1. article.md の貼り付け取り込み（frontmatter のパースは /api/preview の mode:'import'）
  *   2. メタ情報（slug / title / description / keyword / 軸 / ファネル / 状態 / PR / ヒーロー画像）
  *   3. 2ペイン（Markdown / プレビュー）。プレビューは保存時と同じ renderArticle を通す
+ *      Markdown側には記法を差し込むツールバーが付く（記法の正は article-style-guide.md 9章）
  *   4. 保存バー（下書き保存 / 公開する）
  */
 import AdminLayout from '../../layouts/AdminLayout.astro';
@@ -41,6 +42,54 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
 
 <AdminLayout title={isEdit ? '記事を編集' : '新規作成'} current={isEdit ? 'edit' : 'new'}>
   <script id="editor-boot" type="application/json" is:inline set:html={boot} />
+
+  {/*
+    ツールバーのアイコン。ボタンごとにSVGを直書きするとマークアップが読めなくなるので
+    symbol にまとめて <use> で参照する。線の色は .md-ic の stroke:currentColor 任せ。
+  */}
+  <svg class="md-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="display:none">
+    <symbol id="i-link" viewBox="0 0 16 16">
+      <path d="M6.8 9.2a2.8 2.8 0 0 0 4 0l2.1-2.1a2.8 2.8 0 0 0-4-4L7.8 4.2"></path>
+      <path d="M9.2 6.8a2.8 2.8 0 0 0-4 0L3.1 8.9a2.8 2.8 0 0 0 4 4l1.1-1.1"></path>
+    </symbol>
+    <symbol id="i-ul" viewBox="0 0 16 16">
+      <circle cx="3.2" cy="4.2" r="0.95" fill="currentColor" stroke="none"></circle>
+      <circle cx="3.2" cy="8" r="0.95" fill="currentColor" stroke="none"></circle>
+      <circle cx="3.2" cy="11.8" r="0.95" fill="currentColor" stroke="none"></circle>
+      <path d="M6.4 4.2h7M6.4 8h7M6.4 11.8h7"></path>
+    </symbol>
+    {/*
+      数字は CSS ではなく属性で指定する。<use> で複製された中身には外側の
+      セレクタ（.md-ic .ic-num のような子孫指定）が届かず、font-size が
+      ボタンの11.5pxのまま巨大化してしまうため。
+    */}
+    <symbol id="i-ol" viewBox="0 0 16 16">
+      <path d="M6.4 4.2h7M6.4 8h7M6.4 11.8h7"></path>
+      <text x="0.6" y="6" font-size="5.4" fill="currentColor" stroke="none">1</text>
+      <text x="0.6" y="9.8" font-size="5.4" fill="currentColor" stroke="none">2</text>
+      <text x="0.6" y="13.6" font-size="5.4" fill="currentColor" stroke="none">3</text>
+    </symbol>
+    <symbol id="i-quote" viewBox="0 0 16 16">
+      <path d="M2.9 3.4v9.2" stroke-width="2.2"></path>
+      <path d="M6.4 5.2h7.2M6.4 8h5.4M6.4 10.8h7.2"></path>
+    </symbol>
+    <symbol id="i-table" viewBox="0 0 16 16">
+      <rect x="2" y="3.2" width="12" height="9.6" rx="1.2"></rect>
+      <path d="M2 6.6h12M6 6.6v6.2M10 6.6v6.2"></path>
+    </symbol>
+    <symbol id="i-toc" viewBox="0 0 16 16">
+      <path d="M2.4 4.2h2.6M7.2 4.2h6.4M2.4 8h2.6M7.2 8h6.4M2.4 11.8h2.6M7.2 11.8h6.4"></path>
+    </symbol>
+    <symbol id="i-image" viewBox="0 0 16 16">
+      <rect x="2" y="3.2" width="12" height="9.6" rx="1.2"></rect>
+      <circle cx="5.6" cy="6.6" r="1" fill="currentColor" stroke="none"></circle>
+      <path d="M2.4 11.4 6 8.2l2.6 2.4 2-1.6 2.9 2.4"></path>
+    </symbol>
+    <symbol id="i-upload" viewBox="0 0 16 16">
+      <path d="M8 10.4V3.2M5.4 5.8 8 3.2l2.6 2.6"></path>
+      <path d="M2.9 9.8v2.4a.9.9 0 0 0 .9.9h8.4a.9.9 0 0 0 .9-.9V9.8"></path>
+    </symbol>
+  </svg>
 
   <div class="admin-bar">
     <h1 class="admin-title">{isEdit ? '記事を編集' : '新規作成'}</h1>
@@ -203,8 +252,324 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
 
       <div class="panes" id="panes" data-tab="edit">
         <div class="pane" data-pane="edit">
-          <div class="pane-head">Markdown</div>
-          <textarea id="f-body" class="editor" spellcheck="false">{article?.body_md ?? ''}</textarea>
+          <div class="pane-head">
+            Markdown
+            <span class="admin-hint" id="body-count"></span>
+            {/* ?は記法を挿入するボタンではないので、ツールバーではなく見出し側に置く */}
+            <button
+              class="md-btn"
+              type="button"
+              id="md-help-toggle"
+              aria-expanded="false"
+              data-tip="ショートカット一覧"
+              aria-label="ショートカット一覧"><span class="md-txt">?</span></button
+            >
+          </div>
+
+          <div class="editor-shell">
+            {/*
+              ツールバーは編集ペインの中に置く。プレビュー側の上に跨がせると
+              900px以下でタブを切り替えたときに「プレビューを見ているのに
+              装飾ボタンが並んでいる」状態になるため。
+            */}
+            <div class="md-toolbar" id="md-toolbar" role="toolbar" aria-label="Markdown装飾">
+              {/* 上段：文字と行に効くもの */}
+              <div class="md-row">
+                <div class="md-group">
+                  <button
+                    class="md-btn"
+                    type="button"
+                    data-cmd="h2"
+                    data-tip="見出し2 (Ctrl+Alt+2)"
+                    aria-label="見出し2"><span class="md-txt">H2</span></button
+                  >
+                  <button
+                    class="md-btn"
+                    type="button"
+                    data-cmd="h3"
+                    data-tip="見出し3 (Ctrl+Alt+3)"
+                    aria-label="見出し3"><span class="md-txt">H3</span></button
+                  >
+                </div>
+                <span class="md-sep"></span>
+
+                <div class="md-group">
+                  <button
+                    class="md-btn"
+                    type="button"
+                    data-cmd="bold"
+                    data-tip="太字 (Ctrl+B)"
+                    aria-label="太字"><span class="md-txt">B</span></button
+                  >
+                  <button
+                    class="md-btn"
+                    type="button"
+                    data-cmd="marker"
+                    data-tip="マーカー・標準 (Ctrl+Shift+M)"
+                    aria-label="マーカー・標準"
+                    ><span class="md-mk" style="--mk:var(--marker-y)">A</span></button
+                  >
+                  <button
+                    class="md-btn"
+                    type="button"
+                    data-cmd="marker-g"
+                    data-tip="マーカー・緑（おすすめ・結論）"
+                    aria-label="マーカー・緑"
+                    ><span class="md-mk" style="--mk:var(--marker-g)">A</span></button
+                  >
+                  <button
+                    class="md-btn"
+                    type="button"
+                    data-cmd="marker-p"
+                    data-tip="マーカー・ピンク（注意・差別化）"
+                    aria-label="マーカー・ピンク"
+                    ><span class="md-mk" style="--mk:var(--marker-p)">A</span></button
+                  >
+                  <button
+                    class="md-btn"
+                    type="button"
+                    data-cmd="link"
+                    data-tip="リンク (Ctrl+K)"
+                    aria-label="リンク"
+                    ><svg class="md-ic"><use href="#i-link"></use></svg></button
+                  >
+                </div>
+                <span class="md-sep"></span>
+
+                <div class="md-group">
+                  <button
+                    class="md-btn"
+                    type="button"
+                    data-cmd="ul"
+                    data-tip="箇条書き (Ctrl+Shift+8)"
+                    aria-label="箇条書き"
+                    ><svg class="md-ic"><use href="#i-ul"></use></svg></button
+                  >
+                  <button
+                    class="md-btn"
+                    type="button"
+                    data-cmd="ol"
+                    data-tip="番号リスト (Ctrl+Shift+7)"
+                    aria-label="番号リスト"
+                    ><svg class="md-ic"><use href="#i-ol"></use></svg></button
+                  >
+                  <button
+                    class="md-btn"
+                    type="button"
+                    data-cmd="quote"
+                    data-tip="引用 (Ctrl+Shift+.)"
+                    aria-label="引用"
+                    ><svg class="md-ic"><use href="#i-quote"></use></svg></button
+                  >
+                  <button
+                    class="md-btn"
+                    type="button"
+                    data-cmd="table"
+                    data-tip="表（3列2行）"
+                    aria-label="表"
+                    ><svg class="md-ic"><use href="#i-table"></use></svg></button
+                  >
+                </div>
+                <span class="md-sep"></span>
+
+                <div class="md-group">
+                  <button
+                    class="md-btn"
+                    type="button"
+                    data-cmd="toc"
+                    data-tip="目次 [[toc]]"
+                    aria-label="目次"
+                    ><svg class="md-ic"><use href="#i-toc"></use></svg></button
+                  >
+                  <button
+                    class="md-btn"
+                    type="button"
+                    data-cmd="image"
+                    data-tip="画像プレースホルダー［画像：…］"
+                    aria-label="画像プレースホルダー"
+                    ><svg class="md-ic"><use href="#i-image"></use></svg></button
+                  >
+                  <button
+                    class="md-btn"
+                    type="button"
+                    id="btn-upload-img"
+                    data-cmd="upload"
+                    data-tip="画像をアップロードして挿入"
+                    aria-label="画像をアップロードして挿入"
+                    ><svg class="md-ic"><use href="#i-upload"></use></svg></button
+                  >
+                </div>
+              </div>
+
+              {/* 下段：ブロックを丸ごと差し込むもの。色チップは記事側の枠線色と同じ */}
+              <div class="md-row md-row-block">
+                <div class="md-group">
+                  <button
+                    class="md-btn md-blk"
+                    type="button"
+                    data-cmd="summary"
+                    data-tip="要点まとめ :::summary"
+                    style="--chip:var(--gold)"><span class="md-chip"></span>要点</button
+                  >
+                  <button
+                    class="md-btn md-blk"
+                    type="button"
+                    data-cmd="info"
+                    data-tip="補足 :::info"
+                    style="--chip:var(--c-info)"><span class="md-chip"></span>補足</button
+                  >
+                  <button
+                    class="md-btn md-blk"
+                    type="button"
+                    data-cmd="warning"
+                    data-tip="注意 :::warning"
+                    style="--chip:var(--c-warning)"><span class="md-chip"></span>注意</button
+                  >
+                  <button
+                    class="md-btn md-blk"
+                    type="button"
+                    data-cmd="danger"
+                    data-tip="警告 :::danger"
+                    style="--chip:var(--c-danger)"><span class="md-chip"></span>警告</button
+                  >
+                  <button
+                    class="md-btn md-blk"
+                    type="button"
+                    data-cmd="tip"
+                    data-tip="コツ :::tip"
+                    style="--chip:var(--c-tip)"><span class="md-chip"></span>コツ</button
+                  >
+                  <span class="md-has-menu">
+                    <button
+                      class="md-btn md-blk"
+                      type="button"
+                      data-menu="menu-box"
+                      aria-haspopup="true"
+                      aria-expanded="false"
+                      data-tip="ラベルボックス :::box（色を選ぶ）"
+                      style="--chip:var(--c-tip)"><span class="md-chip"></span>ラベル ▾</button
+                    >
+                    <div class="md-menu" id="menu-box" hidden>
+                      <button type="button" data-cmd="box-green">
+                        <span class="md-swatch" style="--sw:#88c542"></span>メリット・おすすめ
+                      </button>
+                      <button type="button" data-cmd="box-red">
+                        <span class="md-swatch" style="--sw:#e74c3c"></span>デメリット・注意点
+                      </button>
+                      <button type="button" data-cmd="box-blue">
+                        <span class="md-swatch" style="--sw:#3498db"></span>補足・情報
+                      </button>
+                    </div>
+                  </span>
+                </div>
+                <span class="md-sep"></span>
+
+                <div class="md-group">
+                  <button
+                    class="md-btn md-blk"
+                    type="button"
+                    data-cmd="faq"
+                    data-tip="FAQ :::faq（Q. / A.）"
+                    style="--chip:var(--navy)"><span class="md-chip"></span>Q&A</button
+                  >
+                  <button
+                    class="md-btn md-blk"
+                    type="button"
+                    data-cmd="timeline"
+                    data-tip="タイムライン :::timeline"
+                    style="--chip:var(--navy)"><span class="md-chip"></span>手順</button
+                  >
+                  <button
+                    class="md-btn md-blk"
+                    type="button"
+                    data-cmd="details"
+                    data-tip="折りたたみ :::details"
+                    style="--chip:var(--navy)"><span class="md-chip"></span>詳細</button
+                  >
+                </div>
+                <span class="md-sep"></span>
+
+                <div class="md-group">
+                  <button
+                    class="md-btn md-blk"
+                    type="button"
+                    data-cmd="col2"
+                    data-tip="2カラム ::::columns cols=2"
+                    style="--chip:var(--blue-mid)"><span class="md-chip"></span>2列</button
+                  >
+                  <button
+                    class="md-btn md-blk"
+                    type="button"
+                    data-cmd="col3"
+                    data-tip="3カラム ::::columns cols=3"
+                    style="--chip:var(--blue-mid)"><span class="md-chip"></span>3列</button
+                  >
+                </div>
+                <span class="md-sep"></span>
+
+                <div class="md-group">
+                  <span class="md-has-menu">
+                    <button
+                      class="md-btn md-blk"
+                      type="button"
+                      data-menu="menu-banner"
+                      aria-haspopup="true"
+                      aria-expanded="false"
+                      data-tip="送客バナー :::banner（テーマを選ぶ）"
+                      style="--chip:var(--navy)"><span class="md-chip"></span>バナー ▾</button
+                    >
+                    <div class="md-menu" id="menu-banner" hidden>
+                      <button type="button" data-cmd="banner-navy">
+                        <span class="md-swatch" style="--sw:var(--navy)"></span>navy（標準）
+                      </button>
+                      <button type="button" data-cmd="banner-gold">
+                        <span class="md-swatch" style="--sw:var(--gold)"></span>gold（特別感）
+                      </button>
+                      <button type="button" data-cmd="banner-line">
+                        <span class="md-swatch" style="--sw:#06c755"></span>line（LINE誘導）
+                      </button>
+                    </div>
+                  </span>
+                  <button
+                    class="md-btn md-blk"
+                    type="button"
+                    data-cmd="cta"
+                    data-tip="無料相談CTA（軸3の固定ブロック）"
+                    style="--chip:#88c542"><span class="md-chip"></span>CTA</button
+                  >
+                </div>
+              </div>
+            </div>
+
+            <div class="md-help" id="md-help" hidden>
+              <div class="md-help-head">
+                キーボードショートカット
+                <span class="admin-hint">選択してから押すと、その範囲に効く</span>
+              </div>
+              <ul class="md-help-list">
+                <li><kbd>Ctrl</kbd>+<kbd>B</kbd><span>太字</span></li>
+                <li><kbd>Ctrl</kbd>+<kbd>K</kbd><span>リンク</span></li>
+                <li><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>2</kbd><span>H2見出し</span></li>
+                <li><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>3</kbd><span>H3見出し</span></li>
+                <li><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd><span>マーカー（標準）</span></li>
+                <li><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>8</kbd><span>箇条書き</span></li>
+                <li><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>7</kbd><span>番号リスト</span></li>
+                <li><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>.</kbd><span>引用</span></li>
+                <li><kbd>Ctrl</kbd>+<kbd>S</kbd><span>今の状態のまま保存（移動しない）</span></li>
+                <li><kbd>Enter</kbd><span>リスト・引用を次の行へ継ぐ（空なら解除）</span></li>
+                <li><kbd>Esc</kbd><span>メニュー・この一覧を閉じる</span></li>
+              </ul>
+            </div>
+
+            <textarea id="f-body" class="editor" spellcheck="false">{article?.body_md ?? ''}</textarea>
+            {/* 本文中の画像アップロード用。ボタンから click() して開く */}
+            <input
+              type="file"
+              id="body-img-file"
+              accept="image/jpeg,image/png,image/webp,image/avif"
+              hidden
+            />
+          </div>
         </div>
         {/* 900px以下でどちらを見せるかは .panes[data-tab] とCSSが決める */}
         <div class="pane" data-pane="preview">
@@ -337,6 +702,8 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
     if (p.body_md !== undefined) fBody.value = p.body_md;
     if (p.hero_image !== undefined) setHero(p.hero_image);
     if (p.is_ad !== undefined) fIsAd.checked = p.is_ad;
+    // 取り込み・復元で本文が入れ替わるので、字数表示もここで揃える
+    updateBodyCount();
   }
 
   /* ── ヒーロー画像 ── */
@@ -594,12 +961,435 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
   tabEdit.addEventListener('click', () => selectTab('edit'));
   tabPreview.addEventListener('click', () => selectTab('preview'));
 
+  /* ── ツールバー（Markdown記法の挿入）──
+   *
+   * 記法の正は article-style-guide.md 9章と content-axis.md（CTA）。
+   * ここは「その記法を手で打つ手間」を省くだけで、独自の記法は増やさない。
+   * 挿入は execCommand('insertText') 経由にしている。textarea.value を直接
+   * 書き換えるとブラウザの undo 履歴が切れて Ctrl+Z が効かなくなるため。
+   */
+
+  /** 雛形の中で「カーソルを置く位置」を示す目印。本文に現れない制御文字を使う。 */
+  const MARK = String.fromCharCode(1);
+
+  /** [start,end) を text で置き換える。execCommand は非推奨だが、textarea の undo に
+   *  載せる手段がこれしかないので承知の上で使う（駄目なら下の保険に落ちる）。 */
+  function replaceRange(start: number, end: number, text: string) {
+    fBody.focus();
+    fBody.setSelectionRange(start, end);
+    let ok = false;
+    try {
+      ok = document.execCommand('insertText', false, text);
+    } catch {
+      ok = false;
+    }
+    if (!ok) {
+      // execCommand が使えない環境の保険。undo 履歴は諦めるが挿入自体は通す。
+      fBody.setRangeText(text, start, end, 'end');
+      fBody.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
+
+  /**
+   * MARK を取り除いて挿入し、その位置にカーソルを戻す。
+   * MARK が2つなら間を選択（打てば置き換わる）、1つならその位置にキャレット、
+   * 0個なら挿入した文字列の末尾＝次に書き始めたい場所に残る。
+   */
+  function insertTemplate(start: number, end: number, tpl: string) {
+    const marks: number[] = [];
+    let text = '';
+    for (const ch of tpl) {
+      if (ch === MARK) marks.push(text.length);
+      else text += ch;
+    }
+    replaceRange(start, end, text);
+    if (marks.length >= 2) fBody.setSelectionRange(start + marks[0], start + marks[1]);
+    else if (marks.length === 1) fBody.setSelectionRange(start + marks[0], start + marks[0]);
+  }
+
+  /** 選択範囲。前後の空白は含めない（`** 太字 **` は太字にならないため）。 */
+  function selection(): { s: number; e: number; text: string } {
+    const v = fBody.value;
+    let s = fBody.selectionStart;
+    let e = fBody.selectionEnd;
+    const raw = v.slice(s, e);
+    s += raw.length - raw.trimStart().length;
+    e -= raw.length - raw.trimEnd().length;
+    if (e < s) e = s;
+    return { s, e, text: v.slice(s, e) };
+  }
+
+  /** カーソル（または選択）がまたぐ行の、行頭〜行末。 */
+  function lineRange(): { start: number; end: number } {
+    const v = fBody.value;
+    const start = v.lastIndexOf('\n', fBody.selectionStart - 1) + 1;
+    // 選択が改行で終わっているとき、次の行まで巻き込まないように1文字戻して探す
+    const from =
+      fBody.selectionEnd > fBody.selectionStart && v[fBody.selectionEnd - 1] === '\n'
+        ? fBody.selectionEnd - 1
+        : fBody.selectionEnd;
+    let end = v.indexOf('\n', from);
+    if (end === -1) end = v.length;
+    return { start, end };
+  }
+
+  /** `**〜**` のような囲み。もう一度押したら外れる。 */
+  function wrap(before: string, after: string, placeholder: string) {
+    const { s, e, text } = selection();
+    const v = fBody.value;
+
+    if (text.length >= before.length + after.length && text.startsWith(before) && text.endsWith(after)) {
+      const inner = text.slice(before.length, text.length - after.length);
+      replaceRange(s, e, inner);
+      fBody.setSelectionRange(s, s + inner.length);
+      return;
+    }
+    // 中身だけ選んで押した場合（囲みが選択の外側にある）も外す
+    const outer = s - before.length;
+    if (outer >= 0 && v.slice(outer, s) === before && v.slice(e, e + after.length) === after) {
+      replaceRange(outer, e + after.length, text);
+      fBody.setSelectionRange(outer, outer + text.length);
+      return;
+    }
+    insertTemplate(
+      s,
+      e,
+      text ? `${before}${MARK}${text}${MARK}${after}` : `${before}${MARK}${placeholder}${MARK}${after}`,
+    );
+  }
+
+  const URL_LIKE = /^(?:https?:\/\/|\/)\S*$/;
+
+  /** リンク。URLを選んでいたか本文を選んでいたかで、次に打ちたい場所が変わる。 */
+  function link() {
+    const { s, e, text } = selection();
+    if (text && URL_LIKE.test(text)) {
+      insertTemplate(s, e, `[${MARK}リンクテキスト${MARK}](${text})`);
+      return;
+    }
+    if (text) {
+      insertTemplate(s, e, `[${text}](${MARK}https://${MARK})`);
+      return;
+    }
+    insertTemplate(s, e, `[${MARK}リンクテキスト${MARK}](https://)`);
+  }
+
+  /** 見出し。同じレベルをもう一度押したら解除、違うレベルなら付け替える。 */
+  function heading(level: 2 | 3) {
+    const { start, end } = lineRange();
+    const line = fBody.value.slice(start, end);
+    const hashes = `${'#'.repeat(level)} `;
+    const body = line.replace(/^#{1,6}\s*/, '');
+    if (line.startsWith(hashes)) {
+      insertTemplate(start, end, body);
+      return;
+    }
+    insertTemplate(start, end, body ? hashes + body : `${hashes}${MARK}見出し${MARK}`);
+  }
+
+  const LIST_MARK = /^(?:- |\d+\. )/;
+
+  /** 行頭の記号（- / 1. / >）。全行に付いていたら外す。 */
+  function linePrefix(kind: 'ul' | 'ol' | 'quote') {
+    const { start, end } = lineRange();
+    const lines = fBody.value.slice(start, end).split('\n');
+    const re = kind === 'ul' ? /^- / : kind === 'ol' ? /^\d+\. / : /^> /;
+    const on = lines.every((l) => re.test(l));
+    const next = lines.map((l, i) => {
+      if (on) return l.replace(re, '');
+      // 引用は他の記号を消さない（`> - 〜` は正しい書き方なので）
+      if (kind === 'quote') return `> ${l}`;
+      return (kind === 'ul' ? '- ' : `${i + 1}. `) + l.replace(LIST_MARK, '');
+    });
+    insertTemplate(start, end, next.join('\n'));
+  }
+
+  /**
+   * ブロック記法を差し込む。
+   * useSel が真なら選択テキストをブロックの中身にする。偽（表・FAQなど雛形が決まっている
+   * もの）は選択を壊さず、その行の後ろに置く。前後には必ず空行を作る——直前の段落と
+   * くっついているとレンダラーがブロックとして読まないため。
+   */
+  function block(build: (sel: string) => string, useSel: boolean) {
+    const { s, e, text } = selection();
+    const v = fBody.value;
+    const start = useSel ? s : e;
+    const end = e;
+    const head = start === 0 ? '' : v.slice(start - 2, start) === '\n\n' ? '' : v[start - 1] === '\n' ? '\n' : '\n\n';
+    const tail = end >= v.length ? '\n' : v.slice(end, end + 2) === '\n\n' ? '' : v[end] === '\n' ? '\n' : '\n\n';
+    insertTemplate(start, end, head + build(useSel ? text : '') + tail);
+  }
+
+  /** 選択があればラベルを、無ければ本文をカーソルの行き先にする（次に打つ場所が違う）。 */
+  const label = (sel: string, name: string) => (sel ? `${MARK}${name}${MARK}` : name);
+  const body = (sel: string) => sel || MARK;
+
+  /** content-axis.md が定める軸3の固定CTA。文面ごと雛形として持つ。 */
+  const CTA_BLOCK =
+    ':::box color=#88c542 label="無料相談・お問い合わせ"\n' +
+    '記念日の準備をまるごと任せたいなら、[お問い合わせフォーム](https://anniv.gift/contact)から' +
+    '無料でご相談いただけます。予算や希望が固まっていない段階のご相談も受け付けています。\n' +
+    ':::';
+
+  const BANNER_LABEL = '記念日の準備をまるごと任せる';
+  const bannerBlock = (theme: string) => (sel: string) =>
+    `:::banner theme=${theme} label="${label(sel, BANNER_LABEL)}" href="https://anniv.gift/contact"\n` +
+    `${body(sel)}\n:::`;
+  const boxBlock = (color: string, name: string) => (sel: string) =>
+    `:::box color=${color} label="${label(sel, name)}"\n${body(sel)}\n:::`;
+  const cbBlock = (name: string) => (sel: string) => `:::${name}\n${body(sel)}\n:::`;
+
+  /** data-cmd の値から実際の挿入へ。ボタンとショートカットは同じここを通す。 */
+  const commands: Record<string, () => void> = {
+    h2: () => heading(2),
+    h3: () => heading(3),
+    bold: () => wrap('**', '**', '太字'),
+    marker: () => wrap('==', '==', 'マーカー'),
+    'marker-g': () => wrap('==g:', '==', 'マーカー'),
+    'marker-p': () => wrap('==p:', '==', 'マーカー'),
+    link,
+    ul: () => linePrefix('ul'),
+    ol: () => linePrefix('ol'),
+    quote: () => linePrefix('quote'),
+    table: () =>
+      block(
+        () =>
+          `| ${MARK}項目${MARK} | 内容 | 備考 |\n|---|---|---|\n|  |  |  |\n|  |  |  |`,
+        false,
+      ),
+    toc: () => block(() => '[[toc]]', false),
+    image: () => block(() => `[画像：${MARK}どんな画像か${MARK} | alt: altテキスト]`, false),
+    summary: () => block(cbBlock('summary'), true),
+    info: () => block(cbBlock('info'), true),
+    warning: () => block(cbBlock('warning'), true),
+    danger: () => block(cbBlock('danger'), true),
+    tip: () => block(cbBlock('tip'), true),
+    'box-green': () => block(boxBlock('#88c542', 'メリット'), true),
+    'box-red': () => block(boxBlock('#e74c3c', '注意点'), true),
+    'box-blue': () => block(boxBlock('#3498db', 'ポイント'), true),
+    faq: () =>
+      block(
+        () => `:::faq\nQ. ${MARK}質問${MARK}\nA. 回答\n\nQ. 質問\nA. 回答\n:::`,
+        false,
+      ),
+    timeline: () =>
+      block(
+        () =>
+          `:::timeline title=${MARK}当日までの流れ${MARK}\n### 最初の手順のタイトル\n` +
+          '説明を1〜2文で。\n\n### 次の手順のタイトル\n説明を1〜2文で。\n:::',
+        false,
+      ),
+    details: () => block((sel) => `:::details title=${label(sel, '補足')}\n${body(sel)}\n:::`, true),
+    col2: () => block(() => `::::columns cols=2\n:::col\n${MARK}\n:::\n\n:::col\n\n:::\n::::`, false),
+    col3: () =>
+      block(() => `::::columns cols=3\n:::col\n${MARK}\n:::\n\n:::col\n\n:::\n\n:::col\n\n:::\n::::`, false),
+    'banner-navy': () => block(bannerBlock('navy'), true),
+    'banner-gold': () => block(bannerBlock('gold'), true),
+    'banner-line': () => block(bannerBlock('line'), true),
+    cta: () => block(() => CTA_BLOCK, false),
+    upload: () => {
+      // ファイル選択の間にフォーカスが外れるので、差し込み位置を覚えておく
+      uploadAt = { s: fBody.selectionStart, e: fBody.selectionEnd };
+      bodyImgFile.click();
+    },
+  };
+
+  /* ── ツールバーの配線 ── */
+
+  const toolbar = el<HTMLElement>('md-toolbar')!;
+  const mdHelp = el<HTMLElement>('md-help')!;
+  const helpToggle = el<HTMLButtonElement>('md-help-toggle')!;
+  const bodyCount = el<HTMLElement>('body-count')!;
+  const bodyImgFile = el<HTMLInputElement>('body-img-file')!;
+  const uploadBtn = el<HTMLButtonElement>('btn-upload-img')!;
+  let uploadAt: { s: number; e: number } | null = null;
+
+  function closeMenus() {
+    for (const menu of toolbar.querySelectorAll<HTMLElement>('.md-menu')) {
+      menu.hidden = true;
+      menu.previousElementSibling?.setAttribute('aria-expanded', 'false');
+    }
+  }
+
+  function run(name: string) {
+    const cmd = commands[name];
+    if (!cmd) return;
+    closeMenus();
+    cmd();
+  }
+
+  // ボタンを押した瞬間に textarea からフォーカス（＝選択範囲）が外れるのを防ぐ。
+  // これが無いと「選択してから太字」がブラウザによって効かなくなる。
+  toolbar.addEventListener('mousedown', (ev) => {
+    if ((ev.target as HTMLElement).closest('button')) ev.preventDefault();
+  });
+
+  toolbar.addEventListener('click', (ev) => {
+    const target = ev.target as HTMLElement;
+    const menuBtn = target.closest<HTMLButtonElement>('[data-menu]');
+    if (menuBtn) {
+      const menu = el<HTMLElement>(menuBtn.dataset.menu!);
+      const open = menu ? menu.hidden : false;
+      closeMenus();
+      if (menu) {
+        menu.hidden = !open;
+        menuBtn.setAttribute('aria-expanded', String(open));
+      }
+      return;
+    }
+    const btn = target.closest<HTMLButtonElement>('[data-cmd]');
+    if (btn) run(btn.dataset.cmd!);
+  });
+
+  helpToggle.addEventListener('click', () => {
+    mdHelp.hidden = !mdHelp.hidden;
+    helpToggle.setAttribute('aria-expanded', String(!mdHelp.hidden));
+  });
+
+  document.addEventListener('click', (ev) => {
+    if (!(ev.target as HTMLElement).closest('.md-has-menu')) closeMenus();
+  });
+
+  /* ── 本文中の画像アップロード ── */
+
+  bodyImgFile.addEventListener('change', async () => {
+    const file = bodyImgFile.files?.[0];
+    if (!file) return;
+    hide(msgError);
+    uploadBtn.disabled = true;
+    bodyCount.textContent = 'アップロード中…';
+    const form = new FormData();
+    form.append('file', file);
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: form });
+      const data = (await res.json()) as { key?: string; error?: string };
+      if (!res.ok || !data.key) {
+        show(msgError, escapeHtml(data.error ?? 'アップロードに失敗しました'));
+        return;
+      }
+      // ボタンを押した時点のカーソル位置に戻してから差し込む
+      fBody.focus();
+      if (uploadAt) fBody.setSelectionRange(uploadAt.s, uploadAt.e);
+      block(() => `![${MARK}altテキスト${MARK}](/media/img/${data.key})`, false);
+    } catch {
+      show(msgError, '通信に失敗しました');
+    } finally {
+      uploadBtn.disabled = false;
+      bodyImgFile.value = '';
+      updateBodyCount();
+    }
+  });
+
+  /* ── キーボードショートカット ── */
+
+  /** リストや引用の途中で Enter を押したら、次の行にも同じ記号を継ぐ。 */
+  function continueList(ev: KeyboardEvent) {
+    if (fBody.selectionStart !== fBody.selectionEnd) return;
+    const v = fBody.value;
+    const pos = fBody.selectionStart;
+    const start = v.lastIndexOf('\n', pos - 1) + 1;
+    const m = v.slice(start, pos).match(/^(\s*)(- |\d+\. |> )(.*)$/);
+    if (!m) return;
+    ev.preventDefault();
+    if (!m[3]) {
+      // 中身が空のまま Enter＝リストを抜けたいということなので、記号ごと消す。
+      // 消したあとのキャレット位置はブラウザ任せだと前の行末に戻ることがあるので明示する。
+      replaceRange(start, pos, '');
+      fBody.setSelectionRange(start, start);
+      return;
+    }
+    const next = /^\d+\. $/.test(m[2]) ? `${parseInt(m[2], 10) + 1}. ` : m[2];
+    replaceRange(pos, pos, `\n${m[1]}${next}`);
+  }
+
+  fBody.addEventListener('keydown', (ev) => {
+    // 変換中の Enter は確定なので触らない
+    if (ev.isComposing) return;
+    const mod = ev.ctrlKey || ev.metaKey;
+
+    if (mod && !ev.altKey && !ev.shiftKey) {
+      const k = ev.key.toLowerCase();
+      if (k === 'b' || k === 'k') {
+        ev.preventDefault();
+        run(k === 'b' ? 'bold' : 'link');
+      }
+      return;
+    }
+    // 数字・記号は ev.key だとJIS配列で別の文字になるので ev.code で見る
+    if (mod && ev.altKey && !ev.shiftKey) {
+      if (ev.code === 'Digit2' || ev.code === 'Digit3') {
+        ev.preventDefault();
+        run(ev.code === 'Digit2' ? 'h2' : 'h3');
+      }
+      return;
+    }
+    if (mod && ev.shiftKey && !ev.altKey) {
+      const map: Record<string, string> = {
+        KeyM: 'marker',
+        Digit8: 'ul',
+        Digit7: 'ol',
+        Period: 'quote',
+      };
+      const cmd = map[ev.code];
+      if (cmd) {
+        ev.preventDefault();
+        run(cmd);
+      }
+      return;
+    }
+    if (!mod && !ev.altKey && !ev.shiftKey && ev.key === 'Enter') continueList(ev);
+  });
+
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') {
+      closeMenus();
+      mdHelp.hidden = true;
+      helpToggle.setAttribute('aria-expanded', 'false');
+      return;
+    }
+    // Ctrl+S はブラウザの「ページを保存」を止めて記事を保存する。
+    // 状態は今のセレクトのまま（公開中の記事を下書きに戻してしまわないため）、
+    // 保存後も一覧へ飛ばさない（書いている途中で画面が変わるのを避ける）。
+    if ((ev.ctrlKey || ev.metaKey) && !ev.shiftKey && !ev.altKey && ev.key.toLowerCase() === 's') {
+      ev.preventDefault();
+      save(fStatus.value === 'published' ? 'published' : 'draft', true);
+    }
+  });
+
+  // Mac は Ctrl ではなく ⌘。表示だけ差し替える（判定は metaKey で拾っている）
+  if (navigator.userAgent.includes('Mac')) {
+    for (const node of document.querySelectorAll<HTMLElement>('[data-tip]')) {
+      node.dataset.tip = node.dataset.tip?.replace(/Ctrl/g, '⌘');
+    }
+    for (const k of mdHelp.querySelectorAll('kbd')) {
+      if (k.textContent === 'Ctrl') k.textContent = '⌘';
+      if (k.textContent === 'Alt') k.textContent = 'Option';
+    }
+  }
+
+  function updateBodyCount() {
+    const n = charCount(fBody.value);
+    bodyCount.textContent = n ? `${n.toLocaleString('ja-JP')}字` : '';
+  }
+
   /* ── 保存 ── */
 
   const btnDraft = el<HTMLButtonElement>('btn-save-draft')!;
   const btnPublish = el<HTMLButtonElement>('btn-save-publish')!;
 
-  async function save(status: 'draft' | 'published') {
+  /**
+   * 新規で作った直後は編集モードへ移す。移さないともう一度保存したときに
+   * slug 重複で 409 になる（URLも実体に合わせて書き換える）。
+   */
+  function becomeEdit(id: number) {
+    boot.mode = 'edit';
+    boot.id = id;
+    storageKey = `anniv:draft:${id}`;
+    history.replaceState(null, '', `/admin/${id}/edit`);
+  }
+
+  /** stay=true なら保存後に一覧へ飛ばさない（Ctrl+S の「その場保存」用）。 */
+  async function save(status: 'draft' | 'published', stay = false) {
     // 状態セレクトと保存ボタンは同じ値を指す。ボタンは「セレクトを切り替えて保存する」
     // ショートカットとして扱い、真の値は常にセレクト側に置く。
     fStatus.value = status;
@@ -632,18 +1422,11 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
       }
 
       clearAutosave();
+      if (isNew && data.id) becomeEdit(data.id);
 
       if (data.warnings && data.warnings.length) {
         // 警告があるときは一覧へ飛ばさない。飛ばすと警告を読む前に画面が消える。
         // 「保存は成功している」ことを明示した上で、その場で直せるようにする。
-        if (isNew && data.id) {
-          // 新規で作った直後にもう一度押されると slug 重複で 409 になるので、
-          // ここで編集モードへ移す（URLも実体に合わせて書き換える）。
-          boot.mode = 'edit';
-          boot.id = data.id;
-          storageKey = `anniv:draft:${data.id}`;
-          history.replaceState(null, '', `/admin/${data.id}/edit`);
-        }
         show(
           msgWarn,
           '<strong>保存は完了している</strong>が、公開前に確認したい点がある：<ul>' +
@@ -651,6 +1434,14 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
             '</ul><div class="notice-actions"><a class="btn btn-sm" href="/admin">一覧へ戻る</a></div>',
         );
         saveState.textContent = '保存済み';
+        return;
+      }
+
+      if (stay) {
+        // 何時の状態が保存されたのかが分からないと、書き直しながら押したときに
+        // 「今のが入ったのか」が判断できないので時刻を出す。
+        const t = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+        saveState.textContent = `${t} に保存しました`;
         return;
       }
 
@@ -690,6 +1481,7 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
   fBody.addEventListener('input', () => {
     queuePreview();
     queueAutosave();
+    updateBodyCount();
   });
   fSlug.addEventListener('input', () => {
     validateSlug();
@@ -706,5 +1498,6 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
   setHero(fHero.value);
   validateSlug();
   updateDescCount();
+  updateBodyCount();
   offerRestore();
 </script>

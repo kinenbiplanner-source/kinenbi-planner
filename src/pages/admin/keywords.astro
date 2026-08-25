@@ -1,0 +1,634 @@
+---
+/**
+ * キーワード台帳（/admin/keywords）。
+ *
+ * これまで `記事管理/KWマスターDB.csv` を手で眺めてやっていた
+ * 「次にどのKWを書くか」の判断をD1側に移したもの。CSVは引き続き
+ * /api/export.csv から吐けるので、台帳の正がDBに移っただけで運用手順は変わらない。
+ *
+ * 画面の作り：
+ *   1. ステータス別の件数サマリ（今どれだけ在庫があるか）
+ *   2. リサーチJSON（記事管理/keywords-research.json）の貼り付け取り込み
+ *   3. 軸・ステータス・優先度のフィルタ（GETのクエリなのでURLで共有できる）
+ *   4. 一覧表。ステータスはその場で変更、不要なKWは削除
+ *
+ * 絞り込みをJSではなくGETのフォームにしているのは、リロードしても状態が残るのと、
+ * 「軸1のtodoだけ」のような見方をブックマークできるようにするため。
+ */
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { countKeywordsByStatus, listForAdmin, listKeywords, type KeywordRow } from '../../lib/db';
+import { AXES, FUNNELS, axisShort, isAxisSlug } from '../../lib/axis';
+
+export const prerender = false;
+
+/** schema.sql の keywords.status と対。表示名はこの画面だけで使う。 */
+const STATUSES = [
+  { value: 'todo', label: '未着手' },
+  { value: 'writing', label: '執筆中' },
+  { value: 'done', label: '記事化済み' },
+  { value: 'dropped', label: '見送り' },
+] as const;
+
+type StatusValue = (typeof STATUSES)[number]['value'];
+
+function isStatusValue(v: string): v is StatusValue {
+  return STATUSES.some((s) => s.value === v);
+}
+
+// ── フィルタ（不正な値は無視して全件に戻す。URLを手で書き換えられても落ちない）──
+const params = Astro.url.searchParams;
+const rawAxis = params.get('axis') ?? '';
+const rawStatus = params.get('status') ?? '';
+const rawPriority = params.get('priority') ?? '';
+
+const fAxis = isAxisSlug(rawAxis) ? rawAxis : '';
+const fStatus = isStatusValue(rawStatus) ? rawStatus : '';
+const fPriority = /^[123]$/.test(rawPriority) ? Number(rawPriority) : 0;
+
+// 優先度だけ listKeywords に引数が無いので、取得後に絞る。
+// 台帳は数百件の規模なので、ここで絞っても実害は無い。
+const fetched = await listKeywords({
+  axis: fAxis || undefined,
+  status: fStatus || undefined,
+});
+const rows: KeywordRow[] = fPriority ? fetched.filter((k) => k.priority === fPriority) : fetched;
+
+const counts = await countKeywordsByStatus();
+const total = STATUSES.reduce((n, s) => n + (counts[s.value] ?? 0), 0);
+
+// status=done のKWから記事へ飛べるようにするための対応表。
+// 台帳側は article_id しか持たないので、slug とタイトルはこちらで引く。
+const articles = await listForAdmin();
+const articleById = new Map(articles.map((a) => [a.id, a]));
+
+const isFiltered = Boolean(fAxis || fStatus || fPriority);
+
+// クライアント側の検証で使う許容値。ここで配ることで、
+// 軸やファネルを増やしたときに画面側の写経を直し忘れる事故を防ぐ。
+const boot = JSON.stringify({
+  axes: AXES.map((a) => a.slug),
+  funnels: FUNNELS,
+  statuses: STATUSES.map((s) => s.value),
+}).replace(/</g, '\\u003c');
+---
+
+<AdminLayout title="キーワード台帳" current="keywords">
+  <script id="kw-boot" type="application/json" is:inline set:html={boot} />
+
+  <div class="admin-bar">
+    <h1 class="admin-title">
+      キーワード台帳<span class="admin-hint">（{rows.length}件{isFiltered ? ` / 全${total}件` : ''}）</span>
+    </h1>
+    <a class="btn" href="/admin">記事一覧へ</a>
+    <a class="btn" href="/api/export.csv">CSVエクスポート</a>
+  </div>
+
+  <div class="notice notice-error" id="kw-error" hidden></div>
+  <div class="notice notice-ok" id="kw-ok" hidden></div>
+
+  {/* ── ステータス別サマリ ── */}
+  <div class="kw-summary">
+    {
+      STATUSES.map((s) => (
+        <a class="kw-sum" href={`/admin/keywords?status=${s.value}`} aria-current={fStatus === s.value ? 'page' : undefined}>
+          <span class="kw-sum-num">{counts[s.value] ?? 0}</span>
+          <span class="kw-sum-label">{s.label}</span>
+        </a>
+      ))
+    }
+    <a class="kw-sum" href="/admin/keywords" aria-current={!isFiltered ? 'page' : undefined}>
+      <span class="kw-sum-num">{total}</span>
+      <span class="kw-sum-label">合計</span>
+    </a>
+  </div>
+
+  {/* ── リサーチJSONの取り込み ── */}
+  <details class="admin-card kw-import">
+    <summary class="admin-card-head">
+      リサーチ結果を取り込む
+      <span class="admin-hint">記事管理/keywords-research.json の中身をそのまま貼り付け</span>
+    </summary>
+    <div class="admin-card-body import-area">
+      <div class="field">
+        <label for="kw-json">JSON</label>
+        <textarea
+          id="kw-json"
+          rows="8"
+          spellcheck="false"
+          placeholder={'{ "keywords": [ { "keyword": "…", "axis": "gift", "funnel": "集客", "priority": 1 } ] }'}
+        ></textarea>
+        <p class="field-note">
+          同じ keyword が既にあれば上書きします（リサーチをやり直して流し直せる）。
+          status を省略すると「未着手」で入ります。
+        </p>
+      </div>
+      <div class="import-actions">
+        <button class="btn" type="button" id="kw-validate">検証する</button>
+        <button class="btn btn-primary" type="button" id="kw-import">取り込む</button>
+        <span class="admin-hint" id="kw-import-state"></span>
+      </div>
+    </div>
+  </details>
+
+  {/* ── フィルタ ── */}
+  <form class="admin-card kw-filter" method="get" action="/admin/keywords">
+    <div class="admin-card-body kw-filter-body">
+      <div class="field">
+        <label for="filter-axis">軸</label>
+        <select id="filter-axis" name="axis">
+          <option value="">すべて</option>
+          {AXES.map((a) => <option value={a.slug} selected={fAxis === a.slug}>{a.name}</option>)}
+        </select>
+      </div>
+      <div class="field">
+        <label for="filter-status">ステータス</label>
+        <select id="filter-status" name="status">
+          <option value="">すべて</option>
+          {STATUSES.map((s) => <option value={s.value} selected={fStatus === s.value}>{s.label}</option>)}
+        </select>
+      </div>
+      <div class="field">
+        <label for="filter-priority">優先度</label>
+        <select id="filter-priority" name="priority">
+          <option value="">すべて</option>
+          {[1, 2, 3].map((p) => <option value={String(p)} selected={fPriority === p}>{p}</option>)}
+        </select>
+      </div>
+      <div class="kw-filter-actions">
+        <button class="btn btn-primary" type="submit">絞り込む</button>
+        <a class="btn" href="/admin/keywords">リセット</a>
+      </div>
+    </div>
+  </form>
+
+  {/* ── 一覧 ── */}
+  <div class="admin-card">
+    {
+      rows.length === 0 ? (
+        <p class="admin-empty">
+          {isFiltered
+            ? '条件に合うキーワードがありません。'
+            : 'まだキーワードがありません。上の「リサーチ結果を取り込む」から JSON を貼り付けてください。'}
+        </p>
+      ) : (
+        <div class="admin-table-wrap">
+          <table class="admin-table kw-table">
+            <thead>
+              <tr>
+                <th>キーワード</th>
+                <th>軸</th>
+                <th>ファネル</th>
+                <th>難易度</th>
+                <th>ボリューム</th>
+                <th>優先度</th>
+                <th>ステータス</th>
+                <th>検索意図</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((k) => {
+                const article = k.article_id !== null ? articleById.get(k.article_id) : undefined;
+                return (
+                  <tr data-row={String(k.id)}>
+                    <td class="kw-cell-keyword">
+                      <span class="kw-keyword">{k.keyword}</span>
+                      {k.persona && <span class="kw-sub">{k.persona}</span>}
+                      {k.note && <span class="kw-sub">{k.note}</span>}
+                    </td>
+                    <td>{axisShort(k.axis)}</td>
+                    <td>{k.funnel}</td>
+                    <td class="kw-center">{k.difficulty}</td>
+                    <td class="kw-center">{k.volume}</td>
+                    <td class="kw-center">
+                      <span class={`kw-prio kw-prio-${k.priority}`}>{k.priority}</span>
+                    </td>
+                    <td>
+                      <select
+                        class="kw-status"
+                        data-id={String(k.id)}
+                        data-article-id={k.article_id === null ? '' : String(k.article_id)}
+                        aria-label={`${k.keyword} のステータス`}
+                      >
+                        {STATUSES.map((s) => (
+                          <option value={s.value} selected={k.status === s.value}>
+                            {s.label}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td class="kw-cell-intent">{k.intent}</td>
+                    <td class="kw-cell-actions">
+                      {k.status === 'done' &&
+                        (article ? (
+                          <>
+                            <a class="btn btn-sm" href={`/admin/${article.id}/edit`}>
+                              記事
+                            </a>
+                            {article.status === 'published' && (
+                              <a
+                                class="btn btn-sm"
+                                href={`/media/${article.slug}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                公開ページ
+                              </a>
+                            )}
+                          </>
+                        ) : (
+                          <span class="admin-hint">記事未紐付け</span>
+                        ))}
+                      <button class="btn btn-sm btn-danger kw-delete" type="button" data-id={String(k.id)}>
+                        削除
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+  </div>
+</AdminLayout>
+
+<style>
+  /* 件数サマリ。押すとそのステータスで絞る（数字を見て次の一手を決める導線）。 */
+  .kw-summary {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+  .kw-sum {
+    flex: 1;
+    min-width: 110px;
+    padding: 12px 14px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--admin-radius);
+    box-shadow: var(--shadow-sm);
+    text-decoration: none;
+    text-align: center;
+  }
+  .kw-sum:hover {
+    border-color: var(--blue-pastel);
+    background: var(--blue-pale);
+  }
+  .kw-sum[aria-current='page'] {
+    border-color: var(--navy);
+  }
+  .kw-sum-num {
+    display: block;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--navy);
+    line-height: 1.3;
+  }
+  .kw-sum-label {
+    display: block;
+    font-size: 11.5px;
+    color: var(--text-light);
+  }
+
+  /* 取り込みパネルは常時開いておく必要がないので details で畳む */
+  .kw-import > summary {
+    cursor: pointer;
+    list-style: none;
+  }
+  .kw-import > summary::-webkit-details-marker {
+    display: none;
+  }
+  .kw-import > summary::before {
+    content: '＋';
+    color: var(--text-light);
+    font-weight: 700;
+  }
+  .kw-import[open] > summary::before {
+    content: '−';
+  }
+
+  .kw-filter {
+    margin-top: 18px;
+  }
+  .kw-filter-body {
+    display: flex;
+    gap: 14px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+  .kw-filter-body .field {
+    margin-bottom: 0;
+    min-width: 170px;
+  }
+  .kw-filter-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  /* 一覧は情報量が多いので、字を少し詰めて1行に収める */
+  .kw-table {
+    font-size: 13px;
+  }
+  .kw-cell-keyword {
+    min-width: 230px;
+  }
+  .kw-keyword {
+    display: block;
+    font-weight: 700;
+    color: var(--navy);
+  }
+  .kw-sub {
+    display: block;
+    font-size: 11.5px;
+    color: var(--text-light);
+    line-height: 1.6;
+    margin-top: 2px;
+  }
+  .kw-cell-intent {
+    min-width: 220px;
+    max-width: 360px;
+    font-size: 12px;
+    color: var(--text-light);
+  }
+  .kw-center {
+    text-align: center;
+    white-space: nowrap;
+  }
+  .kw-prio {
+    display: inline-block;
+    min-width: 22px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    background: #eef1f5;
+    color: var(--text-light);
+  }
+  /* 優先度1だけ色を付ける。全部に色を振ると「どれが先か」が読み取れなくなる */
+  .kw-prio-1 {
+    background: #fdf3e0;
+    color: #b7791f;
+  }
+  .kw-status {
+    min-width: 108px;
+    padding: 5px 8px;
+    font-size: 12.5px;
+  }
+  .kw-status:disabled {
+    opacity: 0.5;
+  }
+  .kw-cell-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    white-space: nowrap;
+  }
+</style>
+
+<script>
+  /* キーワード台帳のクライアント側。取り込み・ステータス更新・削除の3つだけ。 */
+
+  interface Boot {
+    axes: string[];
+    funnels: string[];
+    statuses: string[];
+  }
+
+  const bootEl = document.getElementById('kw-boot');
+  const boot: Boot = bootEl?.textContent
+    ? (JSON.parse(bootEl.textContent) as Boot)
+    : { axes: [], funnels: [], statuses: [] };
+
+  function el<T>(id: string): T | null {
+    return document.getElementById(id) as T | null;
+  }
+
+  /**
+   * querySelectorAll の型引数に HTMLSelectElement を渡すと、
+   * remove() のオーバーロードが Element と噛み合わず型エラーになる
+   * （new.astro の el() と同じ事情）。素の型引数で受けて畳む。
+   */
+  function all<T>(selector: string): T[] {
+    return Array.from(document.querySelectorAll(selector)) as unknown as T[];
+  }
+
+  const msgError = el<HTMLElement>('kw-error')!;
+  const msgOk = el<HTMLElement>('kw-ok')!;
+
+  function showError(text: string) {
+    msgError.textContent = text;
+    msgError.hidden = false;
+    msgOk.hidden = true;
+    msgError.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+  function showOk(text: string) {
+    msgOk.textContent = text;
+    msgOk.hidden = false;
+    msgError.hidden = true;
+  }
+  function clearMsg() {
+    msgError.hidden = true;
+    msgOk.hidden = true;
+  }
+
+  /** APIのエラーは JSON の error に入る。取れなければステータスコードで返す。 */
+  async function errorText(res: Response): Promise<string> {
+    try {
+      const data = (await res.json()) as { error?: string };
+      return data.error ?? `エラー（HTTP ${res.status}）`;
+    } catch {
+      return `エラー（HTTP ${res.status}）`;
+    }
+  }
+
+  /* ── リサーチJSONの取り込み ── */
+
+  const jsonArea = el<HTMLTextAreaElement>('kw-json');
+  const btnValidate = el<HTMLButtonElement>('kw-validate');
+  const btnImport = el<HTMLButtonElement>('kw-import');
+  const importState = el<HTMLElement>('kw-import-state');
+
+  /**
+   * 1回のPOSTで送る件数。サーバ側の上限（MAX_BATCH=40）より小さくしている。
+   * 取り込みは1件1クエリなので、Workers のサブリクエスト上限に当たらない幅に刻む。
+   */
+  const CHUNK = 25;
+
+  interface RawKeyword {
+    keyword?: unknown;
+    axis?: unknown;
+    funnel?: unknown;
+    priority?: unknown;
+    status?: unknown;
+  }
+
+  /** 貼り付けたJSONを読む。サーバ側と同じ観点を先に画面で潰して、往復を減らす。 */
+  function parseInput(): { items: RawKeyword[] } | { error: string } {
+    const text = jsonArea?.value.trim() ?? '';
+    if (!text) return { error: 'JSONが空です' };
+
+    let data: unknown;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      return { error: `JSONとして読めません：${e instanceof Error ? e.message : String(e)}` };
+    }
+
+    // { keywords: [...] } でも [...] でも受ける（配列だけコピーされることがあるため）。
+    const list = Array.isArray(data)
+      ? data
+      : data && typeof data === 'object' && Array.isArray((data as { keywords?: unknown }).keywords)
+        ? ((data as { keywords: unknown[] }).keywords)
+        : null;
+    if (!list) return { error: 'keywords 配列が見つかりません' };
+    if (list.length === 0) return { error: 'keywords が空です' };
+
+    const problems: string[] = [];
+    const seen = new Set<string>();
+    list.forEach((raw, i) => {
+      const where = `${i + 1}件目`;
+      if (!raw || typeof raw !== 'object') {
+        problems.push(`${where}：オブジェクトではありません`);
+        return;
+      }
+      const k = raw as RawKeyword;
+      const keyword = typeof k.keyword === 'string' ? k.keyword.trim() : '';
+      if (!keyword) problems.push(`${where}：keyword が空です`);
+      if (seen.has(keyword)) problems.push(`${where}：keyword「${keyword}」が重複しています`);
+      seen.add(keyword);
+      if (typeof k.axis !== 'string' || !boot.axes.includes(k.axis)) {
+        problems.push(`${where}：axis が不正です（${boot.axes.join(' / ')}）`);
+      }
+      if (typeof k.funnel !== 'string' || !boot.funnels.includes(k.funnel)) {
+        problems.push(`${where}：funnel が不正です（${boot.funnels.join(' / ')}）`);
+      }
+      const p = Number(k.priority);
+      if (!Number.isInteger(p) || p < 1 || p > 3) problems.push(`${where}：priority は 1〜3 です`);
+      if (k.status !== undefined && k.status !== null && k.status !== '') {
+        if (typeof k.status !== 'string' || !boot.statuses.includes(k.status)) {
+          problems.push(`${where}：status が不正です（${boot.statuses.join(' / ')}）`);
+        }
+      }
+    });
+
+    // エラーが100件並んでも読めないので、先頭5件だけ出す。
+    if (problems.length) {
+      const head = problems.slice(0, 5).join(' ／ ');
+      return { error: problems.length > 5 ? `${head} ／ ほか${problems.length - 5}件` : head };
+    }
+
+    return { items: list as RawKeyword[] };
+  }
+
+  btnValidate?.addEventListener('click', () => {
+    clearMsg();
+    const parsed = parseInput();
+    if ('error' in parsed) {
+      showError(parsed.error);
+      return;
+    }
+    showOk(`${parsed.items.length}件、形式は問題ありません。「取り込む」で保存します。`);
+  });
+
+  btnImport?.addEventListener('click', async () => {
+    clearMsg();
+    const parsed = parseInput();
+    if ('error' in parsed) {
+      showError(parsed.error);
+      return;
+    }
+
+    const items = parsed.items;
+    btnImport.disabled = true;
+    if (btnValidate) btnValidate.disabled = true;
+
+    let done = 0;
+    try {
+      for (let i = 0; i < items.length; i += CHUNK) {
+        const chunk = items.slice(i, i + CHUNK);
+        if (importState) importState.textContent = `取り込み中… ${done}/${items.length}`;
+        const res = await fetch('/api/keywords', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ keywords: chunk }),
+        });
+        if (!res.ok) {
+          // 途中で落ちた場合、既に入った分はそのまま残る。
+          // upsert なので同じJSONをもう一度流せば揃うため、その旨を出す。
+          throw new Error(`${await errorText(res)}（${done}件まで取り込み済み。直してもう一度貼り直せば残りが入ります）`);
+        }
+        done += chunk.length;
+      }
+      if (importState) importState.textContent = '';
+      showOk(`${done}件を取り込みました。一覧を更新します…`);
+      location.reload();
+    } catch (e) {
+      if (importState) importState.textContent = '';
+      showError(e instanceof Error ? e.message : '通信に失敗しました');
+    } finally {
+      btnImport.disabled = false;
+      if (btnValidate) btnValidate.disabled = false;
+    }
+  });
+
+  /* ── ステータス変更 ── */
+
+  all<HTMLSelectElement>('select.kw-status').forEach((sel) => {
+    // 失敗したときに戻す先を持っておく（画面とDBがズレたまま残るのがいちばん困る）。
+    let previous = sel.value;
+
+    sel.addEventListener('change', async () => {
+      clearMsg();
+      const id = Number(sel.dataset.id);
+      const next = sel.value;
+      sel.disabled = true;
+      try {
+        // article_id は現在値をそのまま送り返す。updateKeywordStatus は
+        // 渡さないと null で上書きするので、黙って記事の紐付けが切れてしまう。
+        const articleId = sel.dataset.articleId ? Number(sel.dataset.articleId) : null;
+        const res = await fetch('/api/keywords', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, status: next, article_id: articleId }),
+        });
+        if (!res.ok) throw new Error(await errorText(res));
+        previous = next;
+        showOk('ステータスを更新しました。');
+      } catch (e) {
+        sel.value = previous;
+        showError(e instanceof Error ? e.message : '通信に失敗しました');
+      } finally {
+        sel.disabled = false;
+      }
+    });
+  });
+
+  /* ── 削除 ── */
+
+  all<HTMLButtonElement>('button.kw-delete').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const row = btn.closest('tr');
+      const keyword = row?.querySelector('.kw-keyword')?.textContent ?? '';
+      if (!confirm(`キーワード「${keyword}」を台帳から削除します。よろしいですか？`)) return;
+
+      clearMsg();
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/keywords', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: Number(btn.dataset.id) }),
+        });
+        if (!res.ok) throw new Error(await errorText(res));
+        row?.remove();
+        showOk(`「${keyword}」を削除しました。`);
+      } catch (e) {
+        btn.disabled = false;
+        showError(e instanceof Error ? e.message : '通信に失敗しました');
+      }
+    });
+  });
+</script>

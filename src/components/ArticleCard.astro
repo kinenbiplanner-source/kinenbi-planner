@@ -1,22 +1,25 @@
 ---
 /**
- * 一覧・関連記事で使う記事カード。
+ * 一覧・軸レール・関連記事で使う記事カード。
  *
- * related=true は記事ページ下部の関連記事用。カラム幅が本文の中に収まる分だけ狭いので
+ * variant="compact" は幅の狭い場所（記事ページ下部の関連記事）用。
  * 説明文を落として2行タイトル＋日付だけにする（.card-grid.is-related と対）。
- * 見出しレベルも変える：一覧は h1（.section-title）配下なので h2、
- * 関連記事は h2（.related-head）配下なので h3。
+ *
+ * 見出しレベルは呼び出し側が決める。カードの上にある見出しが h1 なら 2、
+ * 軸セクションの h2 の下に並ぶトップページなら 3。ここで固定にすると
+ * ページによって見出しレベルが飛ぶ（アウトラインが壊れる）。
  */
 import type { ArticleCard } from '../lib/db';
 import { axisShort } from '../lib/axis';
 
 interface Props {
   article: ArticleCard;
-  related?: boolean;
+  variant?: 'grid' | 'compact';
+  headingLevel?: 2 | 3;
 }
 
-const { article, related = false } = Astro.props;
-const Title = related ? 'h3' : 'h2';
+const { article, variant = 'grid', headingLevel = 2 } = Astro.props;
+const Title = `h${headingLevel}` as 'h2' | 'h3';
 
 /** ISO文字列を JST の YYYY.MM.DD に。Worker のタイムゾーンに左右されないよう自前で組む。 */
 function jstDate(iso: string): string {
@@ -30,7 +33,7 @@ function jstDate(iso: string): string {
 const date = article.published_at ? jstDate(article.published_at) : '';
 ---
 
-<a class="card" href={`/media/${article.slug}`}>
+<a class:list={['card', { 'is-compact': variant === 'compact' }]} href={`/media/${article.slug}`}>
   {
     article.hero_image ? (
       <div class="card-thumb">
@@ -45,7 +48,7 @@ const date = article.published_at ? jstDate(article.published_at) : '';
   <div class="card-body">
     <span class="card-axis">{axisShort(article.axis)}</span>
     <Title class="card-title">{article.title}</Title>
-    {!related && <p class="card-desc">{article.description}</p>}
+    {variant === 'grid' && <p class="card-desc">{article.description}</p>}
     {date && <time class="card-date" datetime={article.published_at}>{date}</time>}
   </div>
 </a>

@@ -26,3 +26,6 @@ desktop.ini
 
 # ローカル検証用のシード（生成物）
 seed.local.sql
+
+# キーワード投入SQL（生成物）
+keywords.seed.sql

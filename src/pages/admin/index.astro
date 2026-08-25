@@ -7,12 +7,13 @@
  * ステータスを左端に置いて視線の最初に来るようにしている。
  */
 import AdminLayout from '../../layouts/AdminLayout.astro';
-import { listForAdmin } from '../../lib/db';
+import { listForAdmin, pvTotals } from '../../lib/db';
 import { axisShort } from '../../lib/axis';
 
 export const prerender = false;
 
-const articles = await listForAdmin();
+// 一覧と累計PVは別クエリなので同時に投げる（片方を待ってからもう片方を投げる理由が無い）。
+const [articles, pv] = await Promise.all([listForAdmin(), pvTotals()]);
 
 // 日付は JST で表示する。DB は ISO8601（UTC）なので、そのまま切ると
 // 夜に保存した記事が前日扱いになる。
@@ -37,7 +38,8 @@ const fmt = (iso: string | null): string => {
     <a class="btn btn-primary" href="/admin/new">新規作成</a>
   </div>
 
-  <div class="notice notice-info" id="rerender-result" hidden></div>
+  {/* 再レンダリングの結果と削除の失敗を、同じ場所に出す */}
+  <div class="notice notice-info" id="list-msg" hidden></div>
 
   <div class="admin-card">
     {
@@ -55,6 +57,7 @@ const fmt = (iso: string | null): string => {
                 <th>slug</th>
                 <th>軸</th>
                 <th>ファネル</th>
+                <th class="col-num" title="公開してからの累計ページビュー">PV</th>
                 <th>公開日</th>
                 <th>更新日</th>
                 <th />
@@ -74,19 +77,39 @@ const fmt = (iso: string | null): string => {
                   <td class="cell-slug">{a.slug}</td>
                   <td>{axisShort(a.axis)}</td>
                   <td>{a.funnel}</td>
+                  <td class={`cell-num${(pv.get(a.id) ?? 0) === 0 ? ' is-zero' : ''}`}>
+                    {(pv.get(a.id) ?? 0).toLocaleString('ja-JP')}
+                  </td>
                   <td class="cell-date">{fmt(a.published_at)}</td>
                   <td class="cell-date">{fmt(a.updated_at)}</td>
                   <td>
-                    {a.status === 'published' && (
-                      <a
-                        class="btn btn-sm"
-                        href={`/media/${a.slug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        公開ページ
+                    {/*
+                      タイトルからも編集画面に飛べるが、行の操作は右端に揃っていた方が
+                      「この行に何ができるか」が一目で分かるので編集ボタンも置く。
+                    */}
+                    <div class="row-actions">
+                      <a class="btn btn-sm" href={`/admin/${a.id}/edit`}>
+                        編集
                       </a>
-                    )}
+                      {a.status === 'published' && (
+                        <a
+                          class="btn btn-sm"
+                          href={`/media/${a.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          公開ページ
+                        </a>
+                      )}
+                      <button
+                        class="btn btn-sm btn-danger"
+                        type="button"
+                        data-delete={a.id}
+                        data-title={a.title}
+                      >
+                        削除
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -99,11 +122,19 @@ const fmt = (iso: string | null): string => {
 </AdminLayout>
 
 <script>
+  const result = document.getElementById('list-msg');
+
+  function message(kind: 'ok' | 'error', text: string) {
+    if (!result) return;
+    result.hidden = false;
+    result.className = `notice notice-${kind}`;
+    result.textContent = text;
+  }
+
   // 再レンダリングは全記事の body_html を作り直す破壊的な操作なので、
   // 押し間違い防止に確認を挟む（元の Markdown は触らないので復旧はできるが、
   // 記事数が増えると時間が掛かるため軽い気持ちで叩けないようにしておく）。
   const btn = document.getElementById('rerender') as HTMLButtonElement | null;
-  const result = document.getElementById('rerender-result');
 
   btn?.addEventListener('click', async () => {
     if (!confirm('全記事の本文HTMLを作り直します。よろしいですか？')) return;
@@ -113,20 +144,39 @@ const fmt = (iso: string | null): string => {
     try {
       const res = await fetch('/api/rerender', { method: 'POST' });
       const data = (await res.json()) as { message?: string; error?: string };
-      if (result) {
-        result.hidden = false;
-        result.className = res.ok ? 'notice notice-ok' : 'notice notice-error';
-        result.textContent = res.ok ? (data.message ?? '完了しました') : (data.error ?? '失敗しました');
-      }
+      message(res.ok ? 'ok' : 'error', res.ok ? (data.message ?? '完了しました') : (data.error ?? '失敗しました'));
     } catch {
-      if (result) {
-        result.hidden = false;
-        result.className = 'notice notice-error';
-        result.textContent = '通信に失敗しました';
-      }
+      message('error', '通信に失敗しました');
     } finally {
       btn.disabled = false;
       btn.textContent = '全記事を再レンダリング';
     }
   });
+
+  // 削除は取り消せない。確認ダイアログには必ずタイトルを出して、
+  // 「どの行を消そうとしているか」を押す直前に確かめられるようにする。
+  for (const el of document.querySelectorAll<HTMLButtonElement>('[data-delete]')) {
+    el.addEventListener('click', async () => {
+      const id = el.dataset.delete;
+      const title = el.dataset.title ?? '';
+      if (!id) return;
+      if (!confirm(`「${title}」を削除します。元に戻せません。よろしいですか？`)) return;
+
+      el.disabled = true;
+      try {
+        const res = await fetch(`/api/articles/${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+          const data = (await res.json()) as { error?: string };
+          message('error', data.error ?? '削除に失敗しました');
+          el.disabled = false;
+          return;
+        }
+        // 件数表示やPVも含めて作り直したいので、行のDOMを消すのではなく読み直す。
+        location.reload();
+      } catch {
+        message('error', '通信に失敗しました');
+        el.disabled = false;
+      }
+    });
+  }
 </script>

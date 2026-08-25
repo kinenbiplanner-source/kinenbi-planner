@@ -82,6 +82,12 @@ body.admin {
   color: var(--white);
   border-bottom-color: var(--gold);
 }
+/* 別タブで開く外部サービスは矢印を付けて、管理画面内のページと区別する */
+.admin-nav a.is-external::after {
+  content: '↗';
+  margin-left: 3px;
+  font-size: 10px;
+}
 .admin-user {
   margin-left: auto;
   font-size: 12px;
@@ -245,6 +251,26 @@ table.admin-table {
   text-align: center;
   color: var(--text-light);
   font-size: 13px;
+}
+/* PVのような数値列は右揃え＋等幅。桁が揃わないと多い少ないが一目で分からない */
+.cell-num {
+  font-family: var(--admin-mono);
+  font-size: 12.5px;
+  text-align: right;
+  white-space: nowrap;
+}
+.cell-num.is-zero {
+  color: var(--text-light);
+}
+.admin-table th.col-num {
+  text-align: right;
+}
+/* 行の操作ボタン。行を狭く保ちたいので折り返さず右端に寄せる */
+.row-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  white-space: nowrap;
 }
 
 /* ステータスバッジ（公開／下書きが一目で分かることだけが目的） */
@@ -438,11 +464,24 @@ textarea.mono {
 .pane-head .admin-hint {
   margin-left: auto;
 }
-.editor {
-  width: 100%;
-  /* ヘッダー・メタ欄を除いた残りを本文に回す。スクロールを二重に作らない */
+/*
+ * ツールバー＋ヘルプ＋本文をまとめた枠。高さをここで決めて textarea を flex で伸ばすのは、
+ * ツールバーが1段になるか2段になるか（＝ウィンドウ幅）で本文の高さが変わっても
+ * 右のプレビューと下端が必ず揃うようにするため。.editor 側に固定高を持たせると
+ * ツールバーの段数ぶんだけ下端がズレる。
+ */
+.editor-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   height: calc(100vh - 300px);
   min-height: 420px;
+}
+.editor {
+  width: 100%;
+  flex: 1;
+  /* flex アイテムの min-height 初期値 auto だと縮まずに枠を突き破る */
+  min-height: 0;
   padding: 14px;
   border: 1px solid var(--border);
   border-radius: var(--admin-radius);
@@ -450,7 +489,8 @@ textarea.mono {
   font-family: var(--admin-mono);
   font-size: 13.5px;
   line-height: 1.85;
-  resize: vertical;
+  /* 高さは shell が決めるので手動リサイズは無効（動かすとプレビューと下端がズレる） */
+  resize: none;
   tab-size: 2;
 }
 .preview {
@@ -469,6 +509,262 @@ textarea.mono {
 .preview-empty {
   color: var(--text-light);
   font-size: 13px;
+}
+
+/* ── Markdown ツールバー ──
+ *
+ * 記事を1本書く間に何十回も押すので、ボタンは小さく・密に置く。
+ * 上段＝文字と行に効くもの（見出し・太字・リスト…）、
+ * 下段＝ブロックを丸ごと差し込むもの、と役割で段を分けてある。
+ * ラベルは上段がアイコン、下段が2〜3字の日本語＋色チップ。
+ * ブロックの色チップは記事側の見た目（--c-info など）と同じ色にして、
+ * 「押すと何色の箱が出るか」をボタンだけで分かるようにしている。
+ */
+.md-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 5px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--admin-radius-sm);
+  background: var(--blue-pale);
+}
+.md-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1px;
+}
+.md-group {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+.md-sep {
+  width: 1px;
+  height: 17px;
+  margin: 0 1px;
+  background: var(--blue-pastel);
+  flex: none;
+}
+
+.md-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 27px;
+  min-width: 27px;
+  padding: 0 5px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--navy);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.md-btn:hover {
+  background: var(--white);
+  border-color: var(--border);
+}
+.md-btn:active,
+.md-btn[aria-expanded='true'] {
+  background: var(--blue-light);
+  border-color: var(--blue-pastel);
+}
+.md-btn:focus-visible {
+  outline: 2px solid var(--blue-mid);
+  outline-offset: 1px;
+}
+.md-btn:disabled {
+  opacity: 0.45;
+  cursor: progress;
+}
+.md-btn .md-txt {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.md-ic {
+  display: block;
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* 蛍光マーカーのボタン。実際のマーカーと同じ色で下半分を塗る */
+.md-mk {
+  display: inline-block;
+  min-width: 13px;
+  padding: 0 1px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+  background: linear-gradient(transparent 52%, var(--mk) 52%);
+}
+/* ブロック系ボタン（下段）。2〜3字のラベル＋色チップで、上段より少しだけ横に詰める */
+.md-blk {
+  /* 13個並ぶので詰める。1280px幅のノートで下段が1行に収まる限界がこのあたり */
+  padding: 0 3px;
+  gap: 3px;
+}
+/* ブロック系ボタンの色チップ（記事側の枠線色と揃える） */
+.md-chip {
+  width: 3px;
+  height: 13px;
+  border-radius: 2px;
+  background: var(--chip, var(--text-light));
+  flex: none;
+}
+
+/* ツールチップ。title 属性は出るまで1秒近く待たされるので自前で出す */
+.md-btn[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  z-index: 30;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: var(--navy);
+  color: var(--white);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.4;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+}
+.md-btn[data-tip]:hover::after,
+.md-btn[data-tip]:focus-visible::after {
+  opacity: 1;
+}
+/* 下段は上に出すと1段目のボタンを隠すので、下側に出す */
+.md-row-block .md-btn[data-tip]::after,
+.pane-head .md-btn[data-tip]::after {
+  bottom: auto;
+  top: calc(100% + 6px);
+}
+/*
+ * ペイン見出しの中のボタン（?）は 20px に抑える。ここが高くなると
+ * 編集ペインの見出しだけ背が伸びて、右のプレビューと上端がズレる。
+ */
+.pane-head .md-btn {
+  height: 20px;
+  min-width: 20px;
+  padding: 0 6px;
+  margin-left: 2px;
+}
+
+/* 色・テーマを選ばせるボタンだけメニューを持たせる（ボタン数を増やさないため） */
+.md-has-menu {
+  position: relative;
+  display: flex;
+}
+.md-menu {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  z-index: 40;
+  min-width: 170px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--admin-radius-sm);
+  background: var(--white);
+  box-shadow: var(--shadow-md);
+}
+.md-menu[hidden] {
+  display: none;
+}
+.md-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.md-menu button:hover {
+  background: var(--blue-pale);
+}
+.md-menu .md-swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  background: var(--sw, var(--border));
+  flex: none;
+}
+
+/* ショートカット一覧（ツールバー右端の ? で開閉） */
+.md-help {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--admin-radius-sm);
+  background: var(--white);
+}
+.md-help[hidden] {
+  display: none;
+}
+.md-help-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 9px;
+}
+.md-help-head .admin-hint {
+  margin-left: auto;
+}
+.md-help-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+  gap: 4px 18px;
+  list-style: none;
+}
+.md-help-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text);
+}
+.md-help-list li span {
+  color: var(--text-light);
+}
+/* 記事プレビューの中の kbd まで巻き込まないよう、ヘルプ内に限定する */
+.md-help kbd {
+  display: inline-block;
+  min-width: 20px;
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--ivory);
+  font-family: var(--admin-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--navy);
+  text-align: center;
 }
 
 /* ── 通知（保存結果・警告）── */
@@ -549,7 +845,7 @@ textarea.mono {
   .panes[data-tab='preview'] .pane[data-pane='edit'] {
     display: none;
   }
-  .editor,
+  .editor-shell,
   .preview {
     height: calc(100vh - 340px);
   }

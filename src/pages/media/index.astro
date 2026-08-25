@@ -2,19 +2,58 @@
 /**
  * メディアのトップ（1ページ目）。2ページ目以降は /media/page/<n> が受ける。
  * 1ページ目を /media/page/1 にも出すと同じ内容が2つのURLで出るので、あちらは /media へ 301 する。
+ *
+ * 構成は apptime.co.jp/media/ を参照：
+ *   検索バー＋タグ → 軸ごとの横スクロールレール（＋直後にCTA）→ 新着グリッド ＋ 右サイドバー
+ * 「まず軸で見せてから全件」にすることで、記事が少ないうちでもトップが
+ * 「何を扱うメディアか」を説明する面になる（メディア戦略.md 3章の着手順と対）。
  */
 export const prerender = false;
 
 import MediaLayout from '../../layouts/MediaLayout.astro';
 import ArticleCard from '../../components/ArticleCard.astro';
-import { AXES } from '../../lib/axis';
-import { listPublished, countPublished, PAGE_SIZE } from '../../lib/db';
+import { AXES, type AxisSlug } from '../../lib/axis';
+import { listPublished, countPublished, listPopular, db, PAGE_SIZE } from '../../lib/db';
 
 Astro.response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=86400');
 
-const total = await countPublished();
+/** 軸レールの表示件数。横スクロールなので画面幅に収まる必要はない。 */
+const RAIL_SIZE = 6;
+
+/**
+ * 「タグから探す」に出すキーワード。
+ * 手で決め打ちにすると記事が無いタグが残るので、公開記事が実際に狙っている
+ * KW（articles.keyword）から拾って検索へ繋ぐ。db.ts は編集できないのでここで引く。
+ */
+async function tagKeywords(limit = 6): Promise<string[]> {
+  const { results } = await db()
+    .prepare(
+      `SELECT keyword FROM articles WHERE status='published' AND keyword <> ''
+       GROUP BY keyword ORDER BY MAX(published_at) DESC LIMIT ?`,
+    )
+    .bind(limit)
+    .all<{ keyword: string }>();
+  return (results ?? []).map((r) => r.keyword);
+}
+
+// 軸レールは Promise.all を入れ子にする。展開して1本の配列にすると
+// 戻り値の型が union になり、以降の型が効かなくなる。
+const [total, articles, popular, keywords, rails] = await Promise.all([
+  countPublished(),
+  listPublished({ limit: PAGE_SIZE }),
+  listPopular(30, 5),
+  tagKeywords(),
+  Promise.all(AXES.map((a) => listPublished({ axis: a.slug, limit: RAIL_SIZE }))),
+]);
+
 const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-const articles = await listPublished({ limit: PAGE_SIZE });
+
+/** 軸レール直後のCTA。軸ごとに言い回しを変えて、直前の話題から地続きにする。 */
+const RAIL_CTA: Record<AxisSlug, string> = {
+  gift: 'プレゼントの候補が絞りきれないときは、関係性と予算からご一緒に考えます。',
+  date: 'お店探しから予約の連絡まで、記念日当日の段取りごとお任せいただけます。',
+  concierge: '何をどこまで任せられるか、費用感を含めて無料でご相談いただけます。',
+};
 
 const title = '記念日のヒント | Anniv';
 const description =
@@ -22,7 +61,7 @@ const description =
 ---
 
 <MediaLayout title={title} description={description} current="media">
-  <div class="shell">
+  <div class="shell shell-media">
     <header class="section-header">
       <p class="section-label">MEDIA</p>
       <h1 class="section-title">記念日のヒント</h1>
@@ -31,40 +70,161 @@ const description =
       </p>
     </header>
 
-    <nav class="axis-filter" aria-label="カテゴリ">
-      <a class="axis-pill" href="/media" aria-current="page">すべて</a>
-      {AXES.map((a) => <a class="axis-pill" href={`/media/category/${a.slug}`}>{a.name}</a>)}
-    </nav>
+    {/* 検索とタグ。ヘッダー（Nav.astro）は LP と共通なので、探す導線はここに置く。 */}
+    <section class="findbar" aria-label="記事を探す">
+      <form class="findbar-form" action="/media/search" method="get" role="search">
+        <input
+          class="findbar-input"
+          type="search"
+          name="q"
+          placeholder="記念日、プレゼント、レストラン…"
+          aria-label="記事を検索"
+        />
+        <button class="findbar-submit" type="submit">探す</button>
+      </form>
+      <div class="findbar-tags">
+        <span class="findbar-tags-label">タグから探す</span>
+        {
+          AXES.map((a) => (
+            <a class="findbar-tag is-axis" href={`/media/category/${a.slug}`}>
+              {a.short}
+            </a>
+          ))
+        }
+        {
+          keywords.map((k) => (
+            <a class="findbar-tag" href={`/media/search?q=${encodeURIComponent(k)}`}>
+              {k}
+            </a>
+          ))
+        }
+      </div>
+    </section>
 
-    {
-      articles.length === 0 ? (
-        <p class="empty">記事は準備中です。</p>
-      ) : (
-        <div class="card-grid">
-          {articles.map((a) => (
-            <ArticleCard article={a} />
-          ))}
-        </div>
-      )
-    }
+    <div class="m-layout">
+      <div class="m-main">
+        {
+          /* 軸セクション。記事が1本も無い軸は見出しだけ残しても意味がないので丸ごと落とす。 */
+          AXES.map((axis, i) => {
+            const items = rails[i] ?? [];
+            if (items.length === 0) return null;
+            return (
+              <section class="m-sec">
+                <div class="m-sec-head">
+                  <div>
+                    <h2 class="m-sec-title">{axis.name}</h2>
+                    <p class="m-sec-desc">{axis.description}</p>
+                  </div>
+                  <a class="m-sec-more" href={`/media/category/${axis.slug}`}>
+                    すべて見る
+                  </a>
+                </div>
 
-    {
-      totalPages > 1 && (
-        <nav class="pager" aria-label="ページ送り">
-          <span class="is-disabled">前へ</span>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) =>
-            n === 1 ? (
-              <span class="is-current" aria-current="page">
-                {n}
-              </span>
+                <div class="m-rail">
+                  {items.map((a) => (
+                    <ArticleCard article={a} headingLevel={3} />
+                  ))}
+                </div>
+
+                <aside class="m-inline-cta">
+                  <p>{RAIL_CTA[axis.slug]}</p>
+                  <a
+                    href="https://anniv.gift/contact"
+                    data-cta="form"
+                    data-cta-label={`media_rail_${axis.slug}`}
+                  >
+                    無料で相談する
+                  </a>
+                </aside>
+              </section>
+            );
+          })
+        }
+
+        <section class="m-sec">
+          <div class="m-sec-head">
+            <div>
+              <h2 class="m-sec-title">新着の記事</h2>
+              <p class="m-sec-desc">公開したものから順に並べています。</p>
+            </div>
+          </div>
+
+          {
+            articles.length === 0 ? (
+              <p class="empty">記事は準備中です。</p>
             ) : (
-              <a href={`/media/page/${n}`}>{n}</a>
-            ),
-          )}
-          <a href="/media/page/2">次へ</a>
+              <div class="card-grid">
+                {articles.map((a) => (
+                  <ArticleCard article={a} headingLevel={3} />
+                ))}
+              </div>
+            )
+          }
+
+          {
+            totalPages > 1 && (
+              <nav class="pager" aria-label="ページ送り">
+                <span class="is-disabled">前へ</span>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) =>
+                  n === 1 ? (
+                    <span class="is-current" aria-current="page">
+                      {n}
+                    </span>
+                  ) : (
+                    <a href={`/media/page/${n}`}>{n}</a>
+                  ),
+                )}
+                <a href="/media/page/2">次へ</a>
+              </nav>
+            )
+          }
+        </section>
+      </div>
+
+      <aside class="m-aside">
+        {
+          /* 直近30日のPVが多い順。PVが1件も無いうちは全記事が pv=0 で並ぶだけなので、
+             記事が0本のときだけ出さない。 */
+          popular.length > 0 && (
+            <section class="m-side-card">
+              <p class="m-side-head">
+                POPULAR
+                <span class="m-side-head-ja">人気の記事</span>
+              </p>
+              <ol class="m-rank">
+                {popular.map((p) => (
+                  <li>
+                    <a href={`/media/${p.slug}`}>
+                      <span class="m-rank-title">{p.title}</span>
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )
+        }
+
+        <section class="m-side-card m-side-cta">
+          <p class="m-side-cta-title">記念日の準備を任せる</p>
+          <p class="m-side-cta-text">
+            プレゼント選びからお店の予約、当日の演出まで。関係性と予算に合わせてお手伝いします。
+          </p>
+          <a href="https://anniv.gift/contact" data-cta="form" data-cta-label="media_side"
+            >無料で相談する</a
+          >
+        </section>
+
+        <nav class="m-side-card" aria-label="カテゴリ">
+          <p class="m-side-head">
+            CATEGORY
+            <span class="m-side-head-ja">カテゴリ</span>
+          </p>
+          <div class="m-side-nav">
+            {AXES.map((a) => <a href={`/media/category/${a.slug}`}>{a.name}</a>)}
+          </div>
         </nav>
-      )
-    }
+      </aside>
+    </div>
 
     <aside class="list-cta">
       <div>
@@ -85,11 +245,5 @@ const description =
         >
       </div>
     </aside>
-
-    {/* 運営用の入口。/admin は Cloudflare Access で保護されているのでURLが見えても問題ないが、
-        クローラに拾わせる必要はないので nofollow を付ける（robots.txt でも Disallow 済み）。 */}
-    <p class="admin-entry">
-      <a href="/admin" rel="nofollow">運営者ログイン</a>
-    </p>
   </div>
 </MediaLayout>

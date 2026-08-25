@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- 本番（/dashboard）から配信するページ。固定費と管理画面の入口が並ぶので、
+       認証（src/pages/dashboard.ts）とは別に検索避けも必ず入れておく。 -->
+  <meta name="robots" content="noindex,nofollow">
   <title>Anniv — 運用ダッシュボード</title>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Noto+Sans+JP:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
@@ -112,6 +115,7 @@
     .cost-item-name { font-size: 12px; color: var(--text); }
     .cost-item-amount { font-size: 13px; font-weight: 500; color: var(--white); margin-top: 2px; }
     .cost-item-amount.free { color: var(--text-muted); font-weight: 300; }
+    .cost-item-note { font-size: 10px; color: var(--text-muted); margin-top: 3px; line-height: 1.5; }
     .cost-divider {
       width: 1px;
       height: 40px;
@@ -177,6 +181,16 @@
     .btn-ghost { background: rgba(255,255,255,0.07); color: var(--white); border: 1px solid var(--border); }
 
     /* ── MAIN GRID ── */
+    /* カードが24枚まで増えたので、用途ごとに見出しで区切る（探す時間を減らす） */
+    .section-title {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--gold-soft);
+      margin: 0 0 12px 2px;
+    }
+    .grid + .section-title { margin-top: 30px; }
     .grid {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
@@ -252,7 +266,7 @@
 <!-- HEADER -->
 <header>
   <div class="header-brand">
-    <img src="lp/assets/logo_trans.png" alt="Anniv">
+    <img src="/assets/logo_trans.png" alt="Anniv">
     <div>
       <div class="header-title">Operations Dashboard</div>
       <div class="header-sub">Anniv — Anniversary Support</div>
@@ -299,8 +313,11 @@
     <div class="cost-item">
       <div class="cost-item-dot dot-free"></div>
       <div class="cost-item-body">
-        <div class="cost-item-name">Vercel / GitHub / Tally / Make / Notion / Formsubmit</div>
+        <div class="cost-item-name">Cloudflare Workers / D1 / R2 / Zero Trust / GitHub / Tally / Make / Notion / Formsubmit</div>
         <div class="cost-item-amount free">¥0（無料枠）</div>
+        <!-- Cloudflareは現状すべて無料枠の中：Workers 10万リクエスト/日（アカウント全体で共有）、
+             D1 5GB・500万行読み取り/日、R2 10GB。超えたら Workers Paid $5/月に上げる。 -->
+        <div class="cost-item-note">超過時のみ Workers Paid $5/月（約¥750）</div>
       </div>
     </div>
     <div class="cost-item">
@@ -322,13 +339,83 @@
   </div>
   <div class="lp-btns">
     <a href="https://anniv.gift/" target="_blank" class="btn btn-gold">LPを開く</a>
-    <a href="https://vercel.com/dashboard" target="_blank" class="btn btn-ghost">Vercel</a>
+    <!-- ホスティングは Vercel から Cloudflare Workers へ移行済み。Vercelのリンクは撤去した。 -->
+    <a href="https://dash.cloudflare.com/" target="_blank" class="btn btn-ghost">Cloudflare</a>
     <a href="https://github.com/kinenbiplanner-source/kinenbi-planner" target="_blank" class="btn btn-ghost">GitHub</a>
     <a href="https://search.google.com/search-console" target="_blank" class="btn btn-ghost">Search Console</a>
   </div>
 </div>
 
+<!-- MEDIA & INFRA -->
+<!-- メディア（記事・KW台帳）と、本番を支えているCloudflare一式の入口。
+     ここが日常的にいちばん開く場所なので、業務サービスより上に置く。 -->
+<div class="section-title">Media &amp; Infrastructure</div>
+<div class="grid">
+
+  <a href="/admin" target="_blank" class="card">
+    <div class="card-icon">📝</div>
+    <div class="card-name">記事管理</div>
+    <div class="card-desc">記事の作成・編集・公開</div>
+  </a>
+
+  <a href="/admin/keywords" target="_blank" class="card">
+    <div class="card-icon">🔑</div>
+    <div class="card-name">キーワードDB</div>
+    <div class="card-desc">KW台帳・リサーチ結果の取り込み</div>
+  </a>
+
+  <a href="/media" target="_blank" class="card">
+    <div class="card-icon">📰</div>
+    <div class="card-name">メディア</div>
+    <div class="card-desc">公開中の記事一覧</div>
+  </a>
+
+  <a href="https://analytics.google.com/" target="_blank" class="card">
+    <div class="card-icon">📊</div>
+    <div class="card-name">GA4</div>
+    <div class="card-desc">アクセス解析・CV計測</div>
+  </a>
+
+  <a href="https://dash.cloudflare.com/?to=/:account/workers" target="_blank" class="card">
+    <div class="card-icon">☁️</div>
+    <div class="card-name">Workers</div>
+    <div class="card-desc">本番ホスティング（LP・メディア）</div>
+  </a>
+
+  <a href="https://dash.cloudflare.com/?to=/:account/workers/d1" target="_blank" class="card">
+    <div class="card-icon">🗄</div>
+    <div class="card-name">D1</div>
+    <div class="card-desc">記事DB（anniv）</div>
+  </a>
+
+  <a href="https://dash.cloudflare.com/?to=/:account/r2" target="_blank" class="card">
+    <div class="card-icon">🪣</div>
+    <div class="card-name">R2</div>
+    <div class="card-desc">記事画像（anniv-media）</div>
+  </a>
+
+  <a href="https://one.dash.cloudflare.com/" target="_blank" class="card">
+    <div class="card-icon">🔐</div>
+    <div class="card-name">Zero Trust</div>
+    <div class="card-desc">管理画面の認証（Access）</div>
+  </a>
+
+  <a href="https://github.com/kinenbiplanner-source/kinenbi-planner" target="_blank" class="card">
+    <div class="card-icon">🐙</div>
+    <div class="card-name">GitHub</div>
+    <div class="card-desc">ソースコード・デプロイ元</div>
+  </a>
+
+  <a href="https://search.google.com/search-console" target="_blank" class="card">
+    <div class="card-icon">🔍</div>
+    <div class="card-name">Search Console</div>
+    <div class="card-desc">検索流入・インデックス状況</div>
+  </a>
+
+</div>
+
 <!-- MAIN GRID -->
+<div class="section-title">Operations</div>
 <div class="grid">
 
   <a href="https://manager.line.biz/" target="_blank" class="card">
@@ -406,19 +493,22 @@
   <a href="実装状況.html" target="_blank" class="card local">
     <div class="card-icon">📌</div>
     <div class="card-name">実装状況</div>
-    <div class="card-desc">進捗・ロードマップ</div>
+    <!-- リポジトリ直下のHTML。配信していないので /dashboard 側からは開けない -->
+    <div class="card-desc">進捗・ロードマップ（ローカルのみ）</div>
   </a>
 
-  <a href="lp/tokutei.html" target="_blank" class="card local">
+  <!-- LPは public/ 配下から配信され、正規URLは拡張子なし（wrangler.jsonc の html_handling）。
+       lp/ という置き場所は Astro 移行時に無くなったので、サイトのURLを直接指す。 -->
+  <a href="/tokutei" target="_blank" class="card">
     <div class="card-icon">📄</div>
     <div class="card-name">特定商取引法</div>
-    <div class="card-desc">lp/tokutei.html</div>
+    <div class="card-desc">/tokutei</div>
   </a>
 
-  <a href="lp/contact.html" target="_blank" class="card local">
+  <a href="/contact" target="_blank" class="card">
     <div class="card-icon">✉</div>
     <div class="card-name">お問い合わせ</div>
-    <div class="card-desc">lp/contact.html</div>
+    <div class="card-desc">/contact</div>
   </a>
 
 </div>

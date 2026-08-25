@@ -5,13 +5,16 @@
  * ページネーションは持たせない。1軸あたりの記事数が PAGE_SIZE を超えるのは当分先で、
  * 中身の薄い2ページ目を先に作っても内部リンクが散るだけなので、超えたときに
  * ここを「全件表示」に変える（メディア戦略.md の着手順どおり軸1から埋まっていく想定）。
+ *
+ * トップと同じ2カラム（本文＋サイドバー）にしてある。カテゴリは検索から直接
+ * 着地する面なので、他の軸と人気記事への出口をここでも持たせておく。
  */
 export const prerender = false;
 
 import MediaLayout from '../../../layouts/MediaLayout.astro';
 import ArticleCard from '../../../components/ArticleCard.astro';
 import { AXES, getAxis, isAxisSlug } from '../../../lib/axis';
-import { listPublished, PAGE_SIZE } from '../../../lib/db';
+import { listPublished, listPopular, PAGE_SIZE } from '../../../lib/db';
 
 const slug = Astro.params.axis ?? '';
 if (!isAxisSlug(slug)) return new Response('Not found', { status: 404 });
@@ -20,16 +23,25 @@ const axis = getAxis(slug)!;
 
 Astro.response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=86400');
 
-const articles = await listPublished({ axis: slug, limit: PAGE_SIZE });
+const [articles, popular] = await Promise.all([
+  listPublished({ axis: slug, limit: PAGE_SIZE }),
+  listPopular(30, 5),
+]);
 
 const title = `${axis.name} | Anniv`;
 const description = `${axis.description}「${axis.name}」の記事一覧です。`;
 ---
 
 <MediaLayout title={title} description={description} current="media">
-  <div class="shell">
+  <div class="shell shell-media">
+    <nav class="art-crumb" aria-label="パンくず">
+      <a href="/">ホーム</a><span class="sep">›</span>
+      <a href="/media">メディア</a><span class="sep">›</span>
+      <span aria-current="page">{axis.name}</span>
+    </nav>
+
     <header class="section-header">
-      <p class="section-label">MEDIA</p>
+      <p class="section-label">CATEGORY</p>
       <h1 class="section-title">{axis.name}</h1>
       <p class="section-sub">{axis.description}</p>
     </header>
@@ -49,17 +61,68 @@ const description = `${axis.description}「${axis.name}」の記事一覧です�
       }
     </nav>
 
-    {
-      articles.length === 0 ? (
-        <p class="empty">記事は準備中です。</p>
-      ) : (
-        <div class="card-grid">
-          {articles.map((a) => (
-            <ArticleCard article={a} />
-          ))}
-        </div>
-      )
-    }
+    <div class="m-layout">
+      <div class="m-main">
+        {
+          articles.length === 0 ? (
+            <p class="empty">
+              この軸の記事は準備中です。
+              <br />
+              <a href="/media">ほかの記事を見る</a>
+            </p>
+          ) : (
+            <div class="card-grid">
+              {articles.map((a) => (
+                <ArticleCard article={a} />
+              ))}
+            </div>
+          )
+        }
+
+        <aside class="m-inline-cta">
+          <p>{axis.description}お困りのことがあれば、その場でご相談いただけます。</p>
+          <a
+            href="https://anniv.gift/contact"
+            data-cta="form"
+            data-cta-label={`media_rail_${axis.slug}`}
+          >
+            無料で相談する
+          </a>
+        </aside>
+      </div>
+
+      <aside class="m-aside">
+        {
+          popular.length > 0 && (
+            <section class="m-side-card">
+              <p class="m-side-head">
+                POPULAR
+                <span class="m-side-head-ja">人気の記事</span>
+              </p>
+              <ol class="m-rank">
+                {popular.map((p) => (
+                  <li>
+                    <a href={`/media/${p.slug}`}>
+                      <span class="m-rank-title">{p.title}</span>
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )
+        }
+
+        <section class="m-side-card m-side-cta">
+          <p class="m-side-cta-title">記念日の準備を任せる</p>
+          <p class="m-side-cta-text">
+            プレゼント選びからお店の予約、当日の演出まで。関係性と予算に合わせてお手伝いします。
+          </p>
+          <a href="https://anniv.gift/contact" data-cta="form" data-cta-label="media_side"
+            >無料で相談する</a
+          >
+        </section>
+      </aside>
+    </div>
 
     <aside class="list-cta">
       <div>

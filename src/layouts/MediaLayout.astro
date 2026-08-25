@@ -27,15 +27,39 @@ interface Props {
   current?: 'media';
   /** 記事ページだけ true。一覧で進捗バーを出しても意味がない。 */
   showProgress?: boolean;
+  /** 検索結果のように、インデックスさせたくないページで true。 */
+  noindex?: boolean;
+  /**
+   * 記事ページだけ渡す。記事の slug。
+   * これが入っているときだけ PV ビーコン（POST /api/pv）を撃つ。
+   * 記事ページはエッジで60秒キャッシュされるのでサーバ側では数えられない。
+   * 計測スクリプトはこのファイルに集約する方針なので、記事ページ側ではなくここに置く。
+   */
+  pvSlug?: string;
 }
 
-const { title, description, ogImage, ogType, current, showProgress = false } = Astro.props;
+const {
+  title,
+  description,
+  ogImage,
+  ogType,
+  current,
+  showProgress = false,
+  noindex = false,
+  pvSlug,
+} = Astro.props;
 ---
 
 <!doctype html>
 <html lang="ja">
   <head>
-    <BaseHead title={title} description={description} ogImage={ogImage} ogType={ogType} />
+    <BaseHead
+      title={title}
+      description={description}
+      ogImage={ogImage}
+      ogType={ogType}
+      noindex={noindex}
+    />
     <slot name="head" />
   </head>
   <body>
@@ -121,5 +145,31 @@ const { title, description, ogImage, ogType, current, showProgress = false } = A
         });
       })();
     </script>
+
+    {
+      pvSlug && (
+        <script is:inline define:vars={{ pvSlug }}>
+          // ここは素のJSで書く。define:vars とテンプレートリテラル記法（波括弧＋バッククォート）は
+          // 併用できず、後者がそのまま文字列として出力されてJSとして壊れる。
+          (function () {
+            // 記事ページは s-maxage=60 でエッジにキャッシュされるため、
+            // サーバのレンダリング回数＝閲覧数にならない。クライアントから1回だけ送る。
+            // 二重に読み込まれても加算しないようフラグで守る（bfcache 復帰では再実行されない）。
+            if (window.__annivPvSent) return;
+            window.__annivPvSent = true;
+            var body = JSON.stringify({ slug: pvSlug });
+            try {
+              if (navigator.sendBeacon) {
+                navigator.sendBeacon('/api/pv', body);
+              } else {
+                fetch('/api/pv', { method: 'POST', keepalive: true, body: body });
+              }
+            } catch (e) {
+              // PVが1件落ちるだけなので、記事の表示は止めない
+            }
+          })();
+        </script>
+      )
+    }
   </body>
 </html>

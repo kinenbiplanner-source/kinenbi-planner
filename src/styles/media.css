@@ -1,14 +1,412 @@
 /*
- * メディア一覧・カテゴリ一覧のスタイル。
- * カードのアクセントバーは LP の「CARD ACCENT (共通)」と同じ挙動に揃えている。
+ * メディア公開側（一覧・カテゴリ・検索・記事）のレイアウト。
+ *
+ * 構造は apptime.co.jp/media/ を参照した：
+ *   トップ＝検索バー＋タグ → 軸ごとの横スクロールレール → 全記事グリッド ＋ 右サイドバー
+ *   記事＝3カラム（左：広告枠 ／ 中央：本文 ／ 右：目次＋CTA）＋モバイル下部バー
+ * 借りたのは骨格だけで、配色・余白・書体は Anniv のトークン（tokens.css）のまま。
+ * 記念日という情緒的なテーマなので、apptime の高密度より余白を厚めに取っている。
+ *
+ * 記事本文（.prose 配下）の見た目は article.css が持つ。ここには一切書かない。
+ * 記事ページのレイアウト用クラスは article.css にも同名の旧実装（.article-layout 等）が
+ * あるが、あちらは別途更新される可能性があるので **依存せず `.art-*` として新設**している。
  */
 
-/* ── 軸フィルタ ── */
+/* ── シェル（ページ幅）──
+   base.css の .shell は 1100px。メディアは横に情報を並べるので広げる。
+   トップ: 本文 812 ＋ gap48 ＋ サイド300 ＋ 左右padding120 = 1280px
+   記事:   本文 760 ＋ gap40 ＋ サイド300 ＋ 左右padding120 = 1220px
+           （1440px 以上でだけ左の広告枠 160px ＋ gap40 を足して 1420px にする） */
+.shell-media {
+  max-width: 1280px;
+}
+.shell-art {
+  max-width: 1220px;
+}
+
+/* ────────────────────────────────────────────────
+ * 検索バー＋タグ（findbar）
+ * ──────────────────────────────────────────────── */
+
+.findbar {
+  margin-bottom: 56px;
+  padding: 26px 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--blue-pale);
+}
+.findbar-form {
+  display: flex;
+  gap: 10px;
+}
+.findbar-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 46px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.findbar-input::placeholder {
+  color: var(--blue-pastel);
+}
+.findbar-input:focus {
+  outline: none;
+  border-color: var(--blue-mid);
+  box-shadow: 0 0 0 3px rgba(74, 138, 181, 0.14);
+}
+.findbar-submit {
+  flex: 0 0 auto;
+  height: 46px;
+  padding: 0 26px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--grad-navy);
+  color: var(--white);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(26, 40, 64, 0.18);
+  transition: transform 0.2s var(--ease), box-shadow 0.2s;
+}
+.findbar-submit:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(26, 40, 64, 0.26);
+}
+.findbar-tags {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 18px;
+}
+.findbar-tags-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: var(--blue-mid);
+  margin-right: 4px;
+}
+.findbar-tag {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--text-light);
+  font-size: 12.5px;
+  text-decoration: none;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.findbar-tag:hover {
+  color: var(--navy);
+  border-color: var(--blue-pastel);
+  background: var(--white);
+}
+/* 軸のタグだけ一段強くする（カテゴリは常設の入口なので） */
+.findbar-tag.is-axis {
+  background: var(--gold-pale);
+  border-color: var(--gold-soft);
+  color: #8a6d2f;
+}
+.findbar-tag.is-axis:hover {
+  background: var(--gold-soft);
+  color: var(--white);
+  border-color: var(--gold-soft);
+}
+
+/* ────────────────────────────────────────────────
+ * トップの2カラム（本文 ＋ 右サイドバー）
+ * ──────────────────────────────────────────────── */
+
+.m-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 48px;
+  align-items: start;
+}
+.m-main {
+  min-width: 0;
+}
+
+/* ── 軸セクション ── */
+.m-sec {
+  margin-bottom: 72px;
+}
+.m-sec:last-child {
+  margin-bottom: 0;
+}
+.m-sec-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 22px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.m-sec-title {
+  position: relative;
+  font-family: var(--font-serif-jp);
+  font-size: clamp(20px, 2.4vw, 25px);
+  font-weight: 500;
+  color: var(--navy);
+  line-height: 1.5;
+}
+.m-sec-desc {
+  margin-top: 7px;
+  font-size: 13px;
+  line-height: 1.85;
+  color: var(--text-light);
+}
+.m-sec-more {
+  flex: 0 0 auto;
+  font-size: 12.5px;
+  color: var(--blue-mid);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+.m-sec-more::after {
+  content: ' ›';
+}
+.m-sec-more:hover {
+  color: var(--navy);
+  text-decoration: underline;
+}
+
+/* ── 横スクロールのカードレール ──
+   記事が少ないときに間延びしないよう、カードは伸ばさず固定幅で左詰めにする。
+   モバイルは 72vw にして次のカードを覗かせ、スワイプできることを見せる。 */
+.m-rail {
+  display: flex;
+  gap: 20px;
+  /* hover の translateY(-4px) と影が切れないぶんだけ余白を持たせる */
+  padding: 6px 2px 14px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+.m-rail > .card {
+  flex: 0 0 clamp(238px, 72vw, 300px);
+  scroll-snap-align: start;
+}
+.m-rail::-webkit-scrollbar {
+  height: 6px;
+}
+.m-rail::-webkit-scrollbar-track {
+  background: var(--blue-pale);
+  border-radius: 999px;
+}
+.m-rail::-webkit-scrollbar-thumb {
+  background: var(--blue-pastel);
+  border-radius: 999px;
+}
+
+/* ── 軸セクション直後のインラインCTA ──
+   トップにはこれが軸の数だけ並ぶので、末尾の .list-cta のような重い箱にはしない。
+   1行のリード＋テキストリンクに留めて、記事を読む流れを止めないようにする。 */
+.m-inline-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 10px;
+  padding: 16px 22px;
+  border: 1px solid var(--gold-soft);
+  border-left: 3px solid var(--gold);
+  border-radius: var(--radius);
+  background: var(--gold-pale);
+}
+.m-inline-cta p {
+  font-size: 13.5px;
+  line-height: 1.8;
+  color: var(--text);
+}
+.m-inline-cta a {
+  flex: 0 0 auto;
+  padding: 9px 20px;
+  border-radius: 8px;
+  background: var(--grad-gold);
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: filter 0.2s;
+}
+.m-inline-cta a:hover {
+  filter: brightness(1.06);
+}
+
+/* ────────────────────────────────────────────────
+ * サイドバー
+ * ──────────────────────────────────────────────── */
+
+.m-aside {
+  position: sticky;
+  top: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.m-side-card {
+  padding: 22px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
+}
+.m-side-head {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+.m-side-head-ja {
+  display: block;
+  margin-top: 5px;
+  font-family: var(--font-serif-jp);
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--navy);
+  text-transform: none;
+}
+
+/* ── 人気の記事（ランキング）── */
+.m-rank {
+  list-style: none;
+  counter-reset: rank;
+}
+.m-rank li {
+  counter-increment: rank;
+  border-top: 1px solid var(--border);
+}
+.m-rank li:first-child {
+  border-top: 0;
+}
+.m-rank a {
+  display: flex;
+  gap: 12px;
+  padding: 13px 0;
+  text-decoration: none;
+  color: inherit;
+}
+.m-rank a::before {
+  content: counter(rank);
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--blue-pale);
+  color: var(--blue-mid);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 22px;
+  text-align: center;
+}
+/* 上位3件だけゴールドにして順位を一目で分かるようにする */
+.m-rank li:nth-child(-n + 3) a::before {
+  background: var(--grad-gold);
+  color: var(--white);
+}
+.m-rank-title {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.65;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: color 0.2s;
+}
+.m-rank a:hover .m-rank-title {
+  color: var(--blue-mid);
+}
+
+/* ── サイドバーのカテゴリ一覧 ── */
+.m-side-nav {
+  display: flex;
+  flex-direction: column;
+}
+.m-side-nav a {
+  padding: 11px 0;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-light);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.m-side-nav a:first-child {
+  border-top: 0;
+}
+.m-side-nav a:hover {
+  color: var(--navy);
+}
+.m-side-nav a::before {
+  content: '›';
+  margin-right: 8px;
+  color: var(--gold);
+}
+
+/* ── サイドバーのCTAカード ── */
+.m-side-cta {
+  padding: 22px 20px;
+  border-radius: var(--radius);
+  background: var(--grad-navy);
+  color: var(--white);
+  box-shadow: var(--shadow-md);
+}
+.m-side-cta-title {
+  font-family: var(--font-serif-jp);
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+.m-side-cta-text {
+  font-size: 12.5px;
+  line-height: 1.85;
+  color: rgba(255, 255, 255, 0.72);
+  margin-bottom: 16px;
+}
+.m-side-cta a {
+  display: block;
+  padding: 11px 16px;
+  border-radius: 8px;
+  background: var(--grad-gold);
+  color: var(--navy);
+  font-size: 13.5px;
+  font-weight: 500;
+  text-align: center;
+  text-decoration: none;
+  transition: filter 0.2s;
+}
+.m-side-cta a:hover {
+  filter: brightness(1.06);
+}
+
+/* ────────────────────────────────────────────────
+ * 軸フィルタ（カテゴリ・ページ送りの各ページ上部）
+ * ──────────────────────────────────────────────── */
+
 .axis-filter {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 48px;
+  margin-bottom: 40px;
 }
 .axis-pill {
   padding: 9px 20px;
@@ -31,7 +429,10 @@
   box-shadow: 0 6px 18px rgba(26, 40, 64, 0.18);
 }
 
-/* ── カードグリッド ── */
+/* ────────────────────────────────────────────────
+ * カードグリッド／記事カード
+ * ──────────────────────────────────────────────── */
+
 .card-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -40,6 +441,11 @@
 .card-grid.is-related {
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
+}
+/* サイドバーがあるぶん本文カラムが狭いので、トップだけ2列に落とす */
+.m-main .card-grid {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 28px;
 }
 
 .card {
@@ -152,14 +558,25 @@
   color: var(--blue-mid);
   letter-spacing: 0.05em;
 }
+/* 関連記事など、幅が狭い場所で使う圧縮版 */
+.card.is-compact .card-title {
+  font-size: 17px;
+}
+.card.is-compact .card-body {
+  padding: 15px 17px 17px;
+}
 
-/* ── ページネーション ── */
+/* ────────────────────────────────────────────────
+ * ページネーション／空状態／一覧末尾CTA
+ * ──────────────────────────────────────────────── */
+
 .pager {
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
-  margin-top: 56px;
+  margin-top: 48px;
 }
 .pager a,
 .pager span {
@@ -189,7 +606,6 @@
   opacity: 0.4;
 }
 
-/* ── 記事が0件のとき ── */
 .empty {
   padding: 64px 24px;
   text-align: center;
@@ -200,8 +616,10 @@
   font-size: 14px;
   line-height: 2;
 }
+.empty a {
+  color: var(--blue-mid);
+}
 
-/* ── 一覧末尾の無料相談CTA ── */
 .list-cta {
   margin-top: 72px;
   padding: 44px 40px;
@@ -242,37 +660,494 @@
   color: var(--white) !important;
 }
 
-/* ── 運営者ログイン（記事一覧の最下部・控えめに）── */
-.admin-entry {
-  margin-top: 40px;
-  text-align: center;
+/* ────────────────────────────────────────────────
+ * 記事ページ（.art-*）
+ *
+ * article.css にも .article-layout / .article-side / .toc / .related という
+ * 旧レイアウトが残っているが、あちらは本文（.prose）担当のファイルなので
+ * 依存しない。ここのクラスだけで記事ページの骨格が完結する。
+ * ──────────────────────────────────────────────── */
+
+.art-grid {
+  display: grid;
+  grid-template-columns: minmax(0, var(--article-max)) 300px;
+  gap: 40px;
+  align-items: start;
 }
-.admin-entry a {
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  color: var(--blue-pastel);
-  text-decoration: none;
-  transition: color 0.2s;
+.art-main {
+  min-width: 0;
 }
-.admin-entry a:hover {
-  color: var(--text-light);
-  text-decoration: underline;
+/* 左の広告枠。今は何も入れないので見えないまま場所だけ確保する。
+   1440px 未満では本文が --article-max を割るので列ごと落とす。 */
+.art-ad {
+  display: none;
+}
+.art-ad-slot {
+  position: sticky;
+  top: 120px;
+  min-height: 600px;
 }
 
-/* ── RESPONSIVE ── */
+.art-crumb {
+  font-size: 12px;
+  color: var(--text-light);
+  margin-bottom: 22px;
+  line-height: 1.8;
+}
+.art-crumb a {
+  color: var(--text-light);
+  text-decoration: none;
+}
+.art-crumb a:hover {
+  color: var(--navy);
+  text-decoration: underline;
+}
+.art-crumb .sep {
+  margin: 0 7px;
+  color: var(--blue-pastel);
+}
+
+.art-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.art-tag {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  padding: 5px 13px;
+  border-radius: 999px;
+  background: var(--gold-pale);
+  color: #8a6d2f;
+  border: 1px solid var(--gold-soft);
+  text-decoration: none;
+}
+a.art-tag:hover {
+  background: var(--gold-soft);
+  color: var(--white);
+}
+.art-tag.is-funnel {
+  background: var(--blue-pale);
+  color: var(--blue-mid);
+  border-color: var(--border);
+}
+
+.art-title {
+  font-family: var(--font-serif-jp);
+  font-size: clamp(26px, 4vw, 40px);
+  font-weight: 500;
+  color: var(--navy);
+  line-height: 1.45;
+  margin-bottom: 14px;
+}
+.art-meta {
+  font-size: 12.5px;
+  color: var(--text-light);
+  letter-spacing: 0.03em;
+  margin-bottom: 32px;
+}
+.art-cover {
+  margin-bottom: 40px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.art-cover img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+/* ── 「この記事は役に立ちましたか」──
+   送信先は持たず GA4 のイベントだけ飛ばす（計測設計.md に対応行を足すこと）。 */
+.art-fb {
+  margin-top: 48px;
+  padding: 24px 26px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--blue-pale);
+  text-align: center;
+}
+.art-fb-q {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--navy);
+  margin-bottom: 16px;
+}
+.art-fb-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+.art-fb-actions button {
+  min-width: 108px;
+  padding: 10px 22px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, transform 0.2s var(--ease);
+}
+.art-fb-actions button:hover {
+  border-color: var(--gold-soft);
+  color: var(--navy);
+  transform: translateY(-1px);
+}
+.art-fb-thanks {
+  display: none;
+  font-size: 13.5px;
+  line-height: 1.9;
+  color: var(--text-light);
+}
+.art-fb.is-done .art-fb-q,
+.art-fb.is-done .art-fb-actions {
+  display: none;
+}
+.art-fb.is-done .art-fb-thanks {
+  display: block;
+}
+
+/* ── 前後の記事 ── */
+.art-pn {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 40px;
+}
+.art-pn-item {
+  display: block;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s var(--ease);
+}
+.art-pn-item:hover {
+  border-color: var(--blue-pastel);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-2px);
+}
+/* 前後どちらかしか無いとき、残ったほうが正しい側に付くようにする */
+.art-pn-item.is-next {
+  grid-column: 2;
+  text-align: right;
+}
+.art-pn-dir {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--blue-mid);
+}
+.art-pn-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--navy);
+}
+
+/* ── 関連記事 ── */
+.art-rel {
+  margin-top: 64px;
+  padding-top: 40px;
+  border-top: 1px solid var(--border);
+}
+.art-rel-head {
+  font-family: var(--font-serif-jp);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--navy);
+  margin-bottom: 24px;
+}
+
+/* ── 右サイド（目次＋CTA。追従）── */
+.art-side {
+  position: sticky;
+  top: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.art-toc {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 20px 18px;
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
+  max-height: calc(100vh - 260px);
+  overflow-y: auto;
+}
+.art-toc-head {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.art-toc ul {
+  list-style: none;
+}
+.art-toc li {
+  margin-bottom: 9px;
+  line-height: 1.6;
+}
+.art-toc li:last-child {
+  margin-bottom: 0;
+}
+.art-toc a {
+  display: block;
+  font-size: 13px;
+  color: var(--text-light);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  padding-left: 10px;
+  transition: color 0.2s, border-color 0.2s;
+}
+.art-toc a:hover {
+  color: var(--navy);
+}
+.art-toc .is-l3 a {
+  padding-left: 22px;
+  font-size: 12.5px;
+}
+.art-toc a.is-current {
+  color: var(--navy);
+  border-left-color: var(--gold);
+  font-weight: 500;
+}
+
+.art-sidecta {
+  padding: 22px 20px;
+  border-radius: var(--radius);
+  background: var(--grad-navy);
+  color: var(--white);
+  box-shadow: var(--shadow-md);
+}
+.art-sidecta-title {
+  font-family: var(--font-serif-jp);
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+.art-sidecta-text {
+  font-size: 12.5px;
+  line-height: 1.85;
+  color: rgba(255, 255, 255, 0.72);
+  margin-bottom: 16px;
+}
+.art-sidecta a {
+  display: block;
+  padding: 11px 16px;
+  border-radius: 8px;
+  background: var(--grad-gold);
+  color: var(--navy);
+  font-size: 13.5px;
+  font-weight: 500;
+  text-align: center;
+  text-decoration: none;
+  transition: filter 0.2s;
+}
+.art-sidecta a:hover {
+  filter: brightness(1.06);
+}
+
+/* ── モバイル下部の固定バー ──
+   デスクトップではサイドのCTAカードが常に見えているので出さない。
+   フッターに差し掛かったら JS が .is-on を外すので、フッターとは重ならない。 */
+.art-bar {
+  display: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 90;
+  gap: 10px;
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -6px 24px rgba(26, 40, 64, 0.1);
+  transform: translateY(110%);
+  transition: transform 0.28s var(--ease);
+}
+.art-bar.is-on {
+  transform: none;
+}
+.art-bar a {
+  flex: 1 1 0;
+  padding: 12px 8px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.art-bar-form {
+  background: var(--grad-navy);
+  color: var(--white);
+}
+.art-bar-line {
+  background: #06c755;
+  color: var(--white);
+}
+
+/* ── トップへ戻る ── */
+.art-top {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 80;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--navy);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  transition: opacity 0.25s, visibility 0.25s, transform 0.25s var(--ease);
+}
+.art-top.is-on {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+.art-top:hover {
+  border-color: var(--gold-soft);
+  color: var(--gold);
+}
+
+/* ────────────────────────────────────────────────
+ * RESPONSIVE
+ * ──────────────────────────────────────────────── */
+
+/* 左の広告枠は本文幅（760px）を確保できる幅のときだけ出す */
+@media (min-width: 1440px) {
+  .shell-art {
+    max-width: 1420px;
+  }
+  .art-grid {
+    grid-template-columns: 160px minmax(0, var(--article-max)) 300px;
+  }
+  .art-ad {
+    display: block;
+  }
+}
+
+@media (max-width: 1120px) {
+  .m-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 56px;
+  }
+  .m-aside {
+    position: static;
+    /* 1カラムに落ちたサイドバーは横に並べたほうが縦が伸びない */
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+  .m-main .card-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+}
+
+/* 記事：article.css の .toc-inline（本文中のアコーディオン目次）が
+   出てくるのと同じ 1000px で右サイドを畳む。目次を二重に出さないため。 */
 @media (max-width: 1000px) {
+  .art-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .art-side {
+    display: none;
+  }
+  .art-bar {
+    display: flex;
+  }
+  .art-top {
+    bottom: 84px;
+  }
   .card-grid,
-  .card-grid.is-related {
+  .card-grid.is-related,
+  .m-main .card-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 24px;
   }
 }
 
+@media (max-width: 760px) {
+  .m-aside {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  .m-sec-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .m-inline-cta {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: left;
+  }
+  .m-inline-cta a {
+    text-align: center;
+  }
+  .art-pn {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .art-pn-item.is-next {
+    grid-column: 1;
+    text-align: left;
+  }
+}
+
 @media (max-width: 640px) {
   .card-grid,
-  .card-grid.is-related {
+  .card-grid.is-related,
+  .m-main .card-grid {
     grid-template-columns: 1fr;
     gap: 20px;
+  }
+  .findbar {
+    margin-bottom: 40px;
+    padding: 18px 16px;
+  }
+  .findbar-form {
+    flex-wrap: wrap;
+  }
+  .findbar-submit {
+    flex: 1 1 100%;
+    padding: 0 16px;
+  }
+  .findbar-tags {
+    margin-top: 14px;
+    gap: 7px;
+  }
+  .m-sec {
+    margin-bottom: 56px;
   }
   .axis-filter {
     margin-bottom: 32px;
@@ -292,5 +1167,14 @@
   .list-cta .cta-btn {
     flex: 1 1 100%;
     text-align: center;
+  }
+  .art-fb {
+    padding: 20px 16px;
+  }
+  .art-fb-actions {
+    flex-direction: column;
+  }
+  .art-rel {
+    margin-top: 48px;
   }
 }

@@ -14,8 +14,12 @@ import '../styles/admin.css';
 
 interface Props {
   title: string;
-  /** ヘッダーのナビで現在地を出すためのキー。 */
-  current?: 'list' | 'new' | 'edit';
+  /**
+   * ヘッダーのナビで現在地を出すためのキー。
+   * `(string & {})` を足してあるのは、ページ側が知らないキーを渡しても
+   * ビルドを落とさないため（補完には既知のキーだけが出る）。
+   */
+  current?: 'list' | 'new' | 'edit' | 'keywords' | (string & {});
 }
 
 const { title, current } = Astro.props;
@@ -48,9 +52,29 @@ const email = Astro.locals.user?.email ?? '';
   <body class="admin">
     <header class="admin-header">
       <a href="/admin" class="admin-brand">Anniv 管理</a>
+      {/*
+        並びは「書く（記事一覧・新規作成・キーワードDB）→ 見る（アナリティクス・ダッシュボード）
+        → 出す（CSV）」の順。外部サービスは別タブで開き、is-external で矢印を出して
+        管理画面内のページと見分けられるようにしている。
+      */}
       <nav class="admin-nav">
         <a href="/admin" aria-current={current === 'list' ? 'page' : undefined}>記事一覧</a>
         <a href="/admin/new" aria-current={current === 'new' ? 'page' : undefined}>新規作成</a>
+        <a href="/admin/keywords" aria-current={current === 'keywords' ? 'page' : undefined}>
+          キーワードDB
+        </a>
+        <a
+          class="is-external"
+          href="https://analytics.google.com/"
+          target="_blank"
+          rel="noopener noreferrer">アナリティクス</a
+        >
+        <a
+          class="is-external"
+          href="https://anniv.gift/dashboard"
+          target="_blank"
+          rel="noopener noreferrer">ダッシュボード</a
+        >
         <a href="/api/export.csv">CSVエクスポート</a>
       </nav>
       {email && <span class="admin-user" title={email}>{email}</span>}
