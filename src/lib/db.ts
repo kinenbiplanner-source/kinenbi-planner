@@ -176,3 +176,130 @@ export async function updateArticle(id: number, a: ArticleInput): Promise<void> 
 export async function deleteArticle(id: number): Promise<void> {
   await db().prepare('DELETE FROM articles WHERE id=?').bind(id).run();
 }
+
+/* ────────────────────────────────────────────────
+ * PV（pageviews テーブル）
+ * ──────────────────────────────────────────────── */
+
+/** JSTの YYYY-MM-DD。WorkerはUTCで動くので +9h してから切り出す。 */
+export function jstYmd(d: Date = new Date()): string {
+  return new Date(d.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+/**
+ * PVを1加算する。記事ページはエッジで60秒キャッシュされるため、
+ * ページ生成時ではなくクライアントのビーコンから呼ぶ（POST /api/pv）。
+ */
+export async function recordPageview(articleId: number): Promise<void> {
+  await db()
+    .prepare(
+      `INSERT INTO pageviews (article_id, ymd, count) VALUES (?, ?, 1)
+       ON CONFLICT(article_id, ymd) DO UPDATE SET count = count + 1`,
+    )
+    .bind(articleId, jstYmd())
+    .run();
+}
+
+/** 記事ごとの累計PV。管理画面の一覧で使う。 */
+export async function pvTotals(): Promise<Map<number, number>> {
+  const { results } = await db()
+    .prepare('SELECT article_id, SUM(count) AS n FROM pageviews GROUP BY article_id')
+    .all<{ article_id: number; n: number }>();
+  return new Map((results ?? []).map((r) => [r.article_id, r.n]));
+}
+
+/** 直近N日のPVが多い公開記事。メディアTOPの「人気の記事」に使う。 */
+export async function listPopular(days = 30, limit = 5): Promise<Array<ArticleCard & { pv: number }>> {
+  const since = jstYmd(new Date(Date.now() - days * 24 * 60 * 60 * 1000));
+  const { results } = await db()
+    .prepare(
+      `SELECT a.id, a.slug, a.title, a.description, a.axis, a.funnel, a.hero_image, a.published_at,
+              COALESCE(SUM(p.count), 0) AS pv
+       FROM articles a
+       LEFT JOIN pageviews p ON p.article_id = a.id AND p.ymd >= ?
+       WHERE a.status='published'
+       GROUP BY a.id
+       ORDER BY pv DESC, a.published_at DESC
+       LIMIT ?`,
+    )
+    .bind(since, limit)
+    .all<ArticleCard & { pv: number }>();
+  return results ?? [];
+}
+
+/* ────────────────────────────────────────────────
+ * キーワード台帳（keywords テーブル）
+ * ──────────────────────────────────────────────── */
+
+export interface KeywordRow {
+  id: number;
+  keyword: string;
+  axis: string;
+  funnel: string;
+  intent: string;
+  persona: string;
+  difficulty: string;
+  volume: string;
+  priority: number;
+  status: 'todo' | 'writing' | 'done' | 'dropped';
+  article_id: number | null;
+  note: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type KeywordInput = Omit<KeywordRow, 'id' | 'created_at' | 'updated_at'>;
+
+export async function listKeywords(opts: { axis?: string; status?: string } = {}): Promise<KeywordRow[]> {
+  const where: string[] = [];
+  const bind: unknown[] = [];
+  if (opts.axis) { where.push('axis = ?'); bind.push(opts.axis); }
+  if (opts.status) { where.push('status = ?'); bind.push(opts.status); }
+  const sql = `SELECT * FROM keywords${where.length ? ' WHERE ' + where.join(' AND ') : ''}
+               ORDER BY priority ASC, axis ASC, id ASC`;
+  const stmt = bind.length ? db().prepare(sql).bind(...bind) : db().prepare(sql);
+  const { results } = await stmt.all<KeywordRow>();
+  return results ?? [];
+}
+
+export async function countKeywordsByStatus(): Promise<Record<string, number>> {
+  const { results } = await db()
+    .prepare('SELECT status, COUNT(*) AS n FROM keywords GROUP BY status')
+    .all<{ status: string; n: number }>();
+  return Object.fromEntries((results ?? []).map((r) => [r.status, r.n]));
+}
+
+/** キーワードを1件追加。keyword が重複したら既存を更新する（リサーチの再取り込み用）。 */
+export async function upsertKeyword(k: KeywordInput): Promise<void> {
+  const now = new Date().toISOString();
+  await db()
+    .prepare(
+      `INSERT INTO keywords
+       (keyword,axis,funnel,intent,persona,difficulty,volume,priority,status,article_id,note,created_at,updated_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+       ON CONFLICT(keyword) DO UPDATE SET
+         axis=excluded.axis, funnel=excluded.funnel, intent=excluded.intent,
+         persona=excluded.persona, difficulty=excluded.difficulty, volume=excluded.volume,
+         priority=excluded.priority, note=excluded.note, updated_at=excluded.updated_at`,
+    )
+    .bind(
+      k.keyword, k.axis, k.funnel, k.intent, k.persona, k.difficulty, k.volume,
+      k.priority, k.status, k.article_id, k.note, now, now,
+    )
+    .run();
+}
+
+export async function updateKeywordStatus(
+  id: number,
+  status: KeywordRow['status'],
+  articleId: number | null = null,
+): Promise<void> {
+  await db()
+    .prepare('UPDATE keywords SET status=?, article_id=?, updated_at=? WHERE id=?')
+    .bind(status, articleId, new Date().toISOString(), id)
+    .run();
+}
+
+export async function deleteKeyword(id: number): Promise<void> {
+  await db().prepare('DELETE FROM keywords WHERE id=?').bind(id).run();
+}

@@ -27,3 +27,40 @@ CREATE TABLE IF NOT EXISTS articles (
 CREATE INDEX IF NOT EXISTS idx_articles_pub  ON articles(status, published_at DESC);
 -- カテゴリ一覧・関連記事用
 CREATE INDEX IF NOT EXISTS idx_articles_axis ON articles(axis, status, published_at DESC);
+
+-- ────────────────────────────────────────────────
+-- 記事のPV。
+-- 日付ごとに1行持つ（推移が見たいため。合計だけだと施策の効果が測れない）。
+-- 記事ページはエッジで60秒キャッシュされるので、レンダリング時ではなく
+-- クライアントからのビーコン（POST /api/pv）で加算する。
+CREATE TABLE IF NOT EXISTS pageviews (
+  article_id INTEGER NOT NULL,
+  ymd        TEXT    NOT NULL,   -- YYYY-MM-DD（JST）
+  count      INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (article_id, ymd)
+);
+CREATE INDEX IF NOT EXISTS idx_pv_article ON pageviews(article_id);
+CREATE INDEX IF NOT EXISTS idx_pv_ymd     ON pageviews(ymd);
+
+-- ────────────────────────────────────────────────
+-- 記事化するキーワードの管理台帳。
+-- これまで 記事管理/KWマスターDB.csv でやっていたことをDB側に持つ。
+-- CSVは引き続き管理画面からエクスポートできる（write-article が参照するため）。
+CREATE TABLE IF NOT EXISTS keywords (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  keyword    TEXT    NOT NULL UNIQUE,
+  axis       TEXT    NOT NULL,              -- gift | date | concierge
+  funnel     TEXT    NOT NULL,              -- 集客 | 比較・検討 | 課題解決
+  intent     TEXT    NOT NULL DEFAULT '',   -- 検索意図
+  persona    TEXT    NOT NULL DEFAULT '',   -- 想定読者
+  difficulty TEXT    NOT NULL DEFAULT '中', -- 低 | 中 | 高
+  volume     TEXT    NOT NULL DEFAULT '中', -- 小 | 中 | 大
+  priority   INTEGER NOT NULL DEFAULT 2,    -- 1が最優先
+  status     TEXT    NOT NULL DEFAULT 'todo', -- todo | writing | done | dropped
+  article_id INTEGER,                       -- 記事化されたら articles.id を入れる
+  note       TEXT    NOT NULL DEFAULT '',
+  created_at TEXT    NOT NULL,
+  updated_at TEXT    NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_kw_status ON keywords(status, priority, id);
+CREATE INDEX IF NOT EXISTS idx_kw_axis   ON keywords(axis, priority);
