@@ -83,11 +83,23 @@ function readToken(request: Request): string | null {
  * `/api/articles.html` のような小細工で保護をすり抜けられないよう、
  * 末尾の `.html` とスラッシュを落としてから前方一致で見る。
  */
+/**
+ * 認証不要で通す API。
+ * `/api/pv` は公開中の記事ページからビーコンで叩かれるので、ここを塞ぐとPVが取れない。
+ * 書き込み系だが、記録できるのは「既存の公開記事の閲覧数を1増やす」だけで、
+ * 情報は一切返さない（常に204）。認証を課す価値より計測できないことの損失が大きい。
+ */
+const PUBLIC_API = new Set(['/api/pv']);
+
 function isProtected(pathname: string): { protectedPath: boolean; api: boolean } {
   const path = pathname.replace(/\.html$/i, '').replace(/\/+$/, '') || '/';
   const api = path === '/api' || path.startsWith('/api/');
   const admin = path === '/admin' || path.startsWith('/admin/');
-  return { protectedPath: api || admin, api };
+  // 運営ダッシュボード。事業の内部情報（契約中のサービス・費用）が載るので
+  // 管理画面と同じ扱いにする。Cloudflare Access 側のパスポリシーにも追加が必要。
+  const dashboard = path === '/dashboard' || path.startsWith('/dashboard/');
+  if (api && PUBLIC_API.has(path)) return { protectedPath: false, api: true };
+  return { protectedPath: api || admin || dashboard, api };
 }
 
 function jsonError(status: number, message: string): Response {
