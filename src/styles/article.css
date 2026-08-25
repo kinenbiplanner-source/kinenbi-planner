@@ -259,6 +259,24 @@ a.badge:hover {
   border-bottom: 0;
 }
 
+/* ── ブロック内の余白（共通）──
+   base.css の `* { margin: 0 }` リセットで p の余白が消えているため、
+   ブロックの中に段落を2つ以上書くと行が詰まって読めなくなる。
+   ブロックの中身は「先頭は上を詰める・間は空ける・最後は下を詰める」で統一する。 */
+.cb > :first-child,
+.box-body > :first-child,
+.col > :first-child,
+.fold-body > :first-child,
+.cta-lead > :first-child {
+  margin-top: 0;
+}
+.cb > *:not(:last-child),
+.box-body > *:not(:last-child),
+.col > *:not(:last-child),
+.fold-body > *:not(:last-child) {
+  margin-bottom: 14px;
+}
+
 /* ── カスタムブロック（info / tip / warning / danger）── */
 .cb {
   position: relative;
@@ -392,9 +410,6 @@ a.badge:hover {
 .box-body > :last-child {
   margin-bottom: 0;
 }
-.box-body ul {
-  margin-bottom: 0;
-}
 
 /* ── :::faq ── */
 .faq {
@@ -495,6 +510,213 @@ a.badge:hover {
   font-size: 15px;
 }
 
+/* ── ::::columns cols=2 ＋ :::col（2〜3分割の並列レイアウト）──
+   「メリット／デメリット」のように対で読ませたい内容を横に並べる。
+   境目が分からないと読み違えるので、1列ずつ薄いカード枠で囲む。
+   中に :::box を入れると枠が二重になるので、中身だけ書く前提。 */
+.prose .cols {
+  display: grid;
+  gap: 16px;
+  margin: 0 0 28px;
+}
+/* 列数はクラスで固定する。:::col の数が cols と合わなくても、
+   余った分が次の行に折り返すだけで潰れたりはみ出したりしない。 */
+.prose .cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.prose .cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.prose .col {
+  /* 中の表・コードブロックにグリッドを押し広げられないための保険 */
+  min-width: 0;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  font-size: 15px;
+  line-height: 1.85;
+}
+.prose .col > :last-child {
+  margin-bottom: 0;
+}
+/* :::col の閉じ忘れで col が入れ子になっても、枠が二重にならないようにする */
+.prose .col .col {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+/* 3列は1列あたりが細いので、余白と文字を少しだけ詰める */
+.prose .cols-3 .col {
+  padding: 16px;
+  font-size: 14.5px;
+}
+/* 列の中の見出しはカードの小見出し。枠付き・大きな上余白のままだと重い */
+.prose .col h3 {
+  margin: 0 0 10px;
+  padding-left: 0;
+  border-left: 0;
+  font-size: 16px;
+}
+
+/* ── :::banner（記事中の送客バナー）──
+   記事の流れを断ち切らないよう高さを抑え、文字＋右端の矢印だけで構成する。
+   マークアップは markdown.ts が a 要素として出す（計測属性つき）。 */
+.cta-banner {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 32px 0;
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  text-decoration: none;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s var(--ease), box-shadow 0.2s;
+}
+.cta-banner-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.cta-banner-label {
+  display: block;
+  font-size: 15.5px;
+  font-weight: 500;
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+}
+.cta-banner-note {
+  margin-top: 5px;
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+/* 補足行は省略できる。空の div が余白を作らないように畳む */
+.cta-banner-note:empty {
+  display: none;
+}
+.cta-banner-note p {
+  margin: 0;
+}
+.cta-banner-note p + p {
+  margin-top: 4px;
+}
+.cta-banner-arrow {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  font-size: 14px;
+  line-height: 1;
+  transition: transform 0.2s var(--ease);
+}
+.cta-banner:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+.cta-banner:hover .cta-banner-arrow {
+  transform: translateX(2px);
+}
+
+/* theme=navy（既定）：記事中で最も強い送客。文字色は .prose a より優先させる必要がある */
+.cta-banner-navy {
+  background: var(--grad-navy);
+  border-left: 3px solid var(--gold);
+  color: var(--white) !important;
+}
+.cta-banner-navy .cta-banner-note {
+  color: rgba(255, 255, 255, 0.72);
+}
+.cta-banner-navy .cta-banner-arrow {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* theme=gold：本文の途中に置く控えめな導線 */
+.cta-banner-gold {
+  background: var(--gold-pale);
+  border: 1px solid var(--gold-soft);
+  border-left: 3px solid var(--gold);
+  color: var(--navy) !important;
+}
+.cta-banner-gold .cta-banner-note {
+  color: var(--text-light);
+}
+.cta-banner-gold .cta-banner-arrow {
+  background: var(--gold);
+  color: var(--white);
+}
+
+/* theme=line：LINEはブランド色が決まっているので .cta-btn-line と同じ緑を使う */
+.cta-banner-line {
+  background: color-mix(in srgb, #06c755 5%, var(--white));
+  border: 1px solid color-mix(in srgb, #06c755 28%, var(--white));
+  border-left: 3px solid #06c755;
+  color: var(--navy) !important;
+}
+.cta-banner-line .cta-banner-note {
+  color: var(--text-light);
+}
+.cta-banner-line .cta-banner-arrow {
+  background: #06c755;
+  color: var(--white);
+}
+
+/* ── :::details title=〇〇（長い補足の折りたたみ）──
+   :::faq が一問一答なのに対し、こちらは本文の流れを止めたくない長い補足を畳む。 */
+.fold {
+  margin: 0 0 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  overflow: hidden;
+}
+.fold-head {
+  position: relative;
+  padding: 14px 18px 14px 40px;
+  cursor: pointer;
+  /* デフォルトの三角マーカーを消して、自前のシェブロンに置き換える */
+  list-style: none;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--navy);
+  line-height: 1.6;
+  transition: background 0.2s;
+}
+.fold-head::-webkit-details-marker {
+  display: none;
+}
+.fold-head:hover {
+  background: var(--blue-pale);
+}
+.fold-head::before {
+  content: '';
+  position: absolute;
+  left: 19px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--gold);
+  border-bottom: 2px solid var(--gold);
+  transform: translateY(-50%) rotate(-45deg);
+  transition: transform 0.2s var(--ease);
+}
+.fold[open] .fold-head {
+  background: var(--blue-pale);
+  border-bottom: 1px solid var(--border);
+}
+.fold[open] .fold-head::before {
+  transform: translateY(-50%) rotate(45deg);
+}
+.fold-body {
+  padding: 16px 18px 18px;
+  font-size: 15px;
+  line-height: 1.85;
+}
+.fold-body > :last-child {
+  margin-bottom: 0;
+}
+
 /* ── 画像プレースホルダー（実画像に差し替える前の目印）── */
 .imgph {
   display: block;
@@ -518,21 +740,26 @@ a.badge:hover {
   letter-spacing: 0.03em;
 }
 
-/* ── 無料相談CTA（軸3の固定CTA／記事末CTA共通）── */
+/* ── 無料相談CTA（軸3の固定CTA／記事末CTA共通）──
+   以前は緑（--c-tip）だったが、tip ブロックと色がかぶって「注意書き」に見えていた。
+   バッジ・見出し帯と同じゴールド系に寄せ、記事内で唯一の「申し込み色」にする。 */
 .cta-box {
   margin: 40px 0;
   padding: 24px 26px;
-  border: 1px solid var(--c-tip);
-  border-left: 4px solid var(--c-tip);
+  border: 1px solid var(--gold-soft);
+  border-left: 4px solid var(--gold);
   border-radius: var(--radius);
-  background: #f7fcf2;
+  background: var(--gold-pale);
+  box-shadow: var(--shadow-sm);
 }
 .cta-label {
   margin: 0 0 9px;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  color: #4d7a20;
+  /* --gold そのままだと gold-pale の上でコントラストが足りないので、
+     .badge / .h-tag と同じ濃いゴールドを使う */
+  color: #8a6d2f;
 }
 .cta-lead {
   margin: 0 0 18px;
@@ -759,5 +986,28 @@ a.badge:hover {
   .cta-btn {
     flex: 1 1 100%;
     text-align: center;
+  }
+  /* カラムは幅を割ると1行の字数が足りなくなるので1列に落とす。
+     3列指定のときの詰めた余白も等倍に戻す。 */
+  .prose .cols-2,
+  .prose .cols-3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .prose .cols-3 .col {
+    padding: 18px 20px;
+    font-size: 15px;
+  }
+  .cta-banner {
+    gap: 14px;
+    padding: 14px 16px;
+  }
+  .cta-banner-label {
+    font-size: 14.5px;
+  }
+  .fold-head {
+    padding: 13px 16px 13px 38px;
+  }
+  .fold-body {
+    padding: 15px 16px 16px;
   }
 }

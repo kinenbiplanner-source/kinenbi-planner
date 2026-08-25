@@ -61,10 +61,42 @@ function parseBoxParams(info: string): { color: string; label: string } {
   };
 }
 
-/** `:::timeline title=〇〇` のタイトルを取り出す。 */
-function parseTimelineTitle(info: string): string {
-  const m = info.trim().replace(/^timeline\s*/, '').match(/title\s*=\s*"?([^"]*)"?/);
+/**
+ * `:::timeline title=〇〇` / `:::details title=〇〇` のタイトルを取り出す。
+ * タイトルには全角コロンや空白が入る（例：`title=補足：予算の内訳`）ので、
+ * `title=` から行末までをまるごと値として扱う。
+ */
+function parseTitleParam(info: string, name: string): string {
+  const m = info
+    .trim()
+    .replace(new RegExp(`^${name}\\s*`), '')
+    .match(/title\s*=\s*"?([^"]*)"?/);
   return (m?.[1] ?? '').trim();
+}
+
+/**
+ * `key="値"` / `key='値'` / `key=値` を1つ取り出す。
+ * 引用符なしは空白までを値とする（値に空白が要るものは必ず引用符で囲ませる）。
+ * 戻り値はHTMLに入れる前に必ず esc() すること。
+ */
+function param(info: string, key: string): string {
+  const quoted =
+    info.match(new RegExp(`${key}\\s*=\\s*"([^"]*)"`)) ??
+    info.match(new RegExp(`${key}\\s*=\\s*'([^']*)'`));
+  if (quoted) return quoted[1].trim();
+  return (info.match(new RegExp(`${key}\\s*=\\s*(\\S+)`))?.[1] ?? '').trim();
+}
+
+/**
+ * 記事から渡された href を検証する。
+ * `https://` の絶対URLか、サイト内の `/` 始まりだけを通し、それ以外は既定URLに落とす。
+ * これで `javascript:` や `data:`、`//evil.example` のプロトコル相対URLを弾く。
+ */
+function safeHref(raw: string, fallback: string): string {
+  const v = raw.trim();
+  if (/^https:\/\/[^\s"'<>]+$/i.test(v)) return v;
+  if (/^\/(?!\/)[^\s"'<>]*$/.test(v)) return v;
+  return fallback;
 }
 
 const md = new MarkdownIt({
@@ -102,7 +134,7 @@ md.use(container, 'faq', {
 md.use(container, 'timeline', {
   render: (tokens: Token[], idx: number) => {
     if (tokens[idx].nesting !== 1) return '</div>\n';
-    const title = parseTimelineTitle(tokens[idx].info);
+    const title = parseTitleParam(tokens[idx].info, 'timeline');
     const head = title ? `<p class="timeline-title">${esc(title)}</p>\n` : '';
     return `<div class="timeline">\n${head}`;
   },
@@ -142,6 +174,78 @@ md.use(container, 'box', {
       }
     }
     return '</div>\n</aside>\n';
+  },
+});
+
+/* ── ::::columns cols=2 ＋ :::col（2〜3分割の並列レイアウト）──
+   入れ子コンテナなので外側は4コロンで書く。markdown-it-container は
+   「閉じマーカーは開きマーカー以上の長さが必要」という規則で入れ子を解決するため、
+   外側 `::::` の中の `:::col` … `:::` が外側を閉じてしまうことがない。 */
+md.use(container, 'columns', {
+  render: (tokens: Token[], idx: number) => {
+    if (tokens[idx].nesting !== 1) return '</div>\n';
+    const raw = param(tokens[idx].info.trim().replace(/^columns\s*/, ''), 'cols');
+    // 2/3以外（cols=99・未指定・文字列）はすべて2に寄せる。列数はクラス名で表現し、
+    // style属性に値を差し込まないので記事側から不正な値が漏れることはない。
+    const cols = raw === '3' ? 3 : 2;
+    return `<div class="cols cols-${cols}">\n`;
+  },
+});
+md.use(container, 'col', {
+  render: (tokens: Token[], idx: number) =>
+    tokens[idx].nesting === 1 ? '<div class="col">\n' : '</div>\n',
+});
+
+/* ── :::banner theme=navy label="〇〇" href="https://…"（記事中の送客バナー）── */
+const BANNER_THEMES = new Set(['navy', 'gold', 'line']);
+const BANNER_DEFAULT_LABEL = '無料で相談する';
+/** LINE公式アカウントのURLかどうか。計測イベントの種類（line / form）をこれで決める。 */
+const LINE_HREF = /^https:\/\/lin\.ee\//i;
+
+function parseBannerParams(info: string): { theme: string; label: string; href: string } {
+  const rest = info.trim().replace(/^banner\s*/, '');
+  const themeRaw = param(rest, 'theme');
+  const theme = BANNER_THEMES.has(themeRaw) ? themeRaw : 'navy';
+  return {
+    theme,
+    label: param(rest, 'label') || BANNER_DEFAULT_LABEL,
+    // theme=line のときだけ既定URLをLINEにする。緑のLINEバナーが問い合わせフォームに
+    // 飛ぶと見た目と遷移先が食い違うため（href を明示すればそちらが優先される）。
+    href: safeHref(param(rest, 'href'), theme === 'line' ? LINE_URL : CONTACT_URL),
+  };
+}
+
+md.use(container, 'banner', {
+  render: (tokens: Token[], idx: number) => {
+    if (tokens[idx].nesting !== 1) {
+      return '</div>\n</div>\n<span class="cta-banner-arrow" aria-hidden="true">→</span>\n</a>\n';
+    }
+    const { theme, label, href } = parseBannerParams(tokens[idx].info);
+    // 計測設計.md 3章：MediaLayout.astro の委譲リスナーが data-cta / data-cta-label を見て発火する。
+    // 種類は theme（見た目）ではなく遷移先で決める。
+    const kind = LINE_HREF.test(href) ? 'line' : 'form';
+    const external = /^https:\/\//i.test(href) && !href.includes('anniv.gift');
+    const target = external ? ' target="_blank" rel="noopener noreferrer"' : '';
+    return (
+      `<a class="cta-banner cta-banner-${theme}" href="${esc(href)}"${target}` +
+      ` data-cta="${kind}" data-cta-label="article_banner">\n` +
+      '<div class="cta-banner-main">\n' +
+      `<span class="cta-banner-label">${esc(label)}</span>\n` +
+      // 補足行は省略できる。改行を入れずに閉じると空要素のままになり、
+      // CSS 側の `.cta-banner-note:empty` で余白ごと畳める。
+      '<div class="cta-banner-note">'
+    );
+  },
+});
+
+/* ── :::details title=〇〇（長い補足を畳む）──
+   :::faq が一問一答の見せ方なのに対し、こちらは本文の流れを止めたくない
+   長い補足（内訳・前提条件・細かい注意）を初期状態で閉じておくためのもの。 */
+md.use(container, 'details', {
+  render: (tokens: Token[], idx: number) => {
+    if (tokens[idx].nesting !== 1) return '</div>\n</details>\n';
+    const title = parseTitleParam(tokens[idx].info, 'details') || '詳しく見る';
+    return `<details class="fold">\n<summary class="fold-head">${esc(title)}</summary>\n<div class="fold-body">\n`;
   },
 });
 
@@ -280,6 +384,7 @@ md.core.ruler.push('anniv_structure', (state: any) => {
   const faqRanges: Array<[number, number]> = [];
   let seq = 0;
   let timelineDepth = 0;
+  let detailsDepth = 0;
   let faqOpenAt = -1;
 
   for (let i = 0; i < tokens.length; i++) {
@@ -287,6 +392,8 @@ md.core.ruler.push('anniv_structure', (state: any) => {
 
     if (t.type === 'container_timeline_open') timelineDepth++;
     else if (t.type === 'container_timeline_close') timelineDepth--;
+    else if (t.type === 'container_details_open') detailsDepth++;
+    else if (t.type === 'container_details_close') detailsDepth--;
     else if (t.type === 'container_faq_open') faqOpenAt = i;
     else if (t.type === 'container_faq_close' && faqOpenAt >= 0) {
       faqRanges.push([faqOpenAt, i]);
@@ -303,6 +410,9 @@ md.core.ruler.push('anniv_structure', (state: any) => {
       t.attrJoin('class', 'timeline-step');
       continue;
     }
+    // :::details の中は閉じた状態で描かれるので、目次に載せるとジャンプ先が
+    // 見えない見出しになる。IDも振らずそのまま見出しとして描くだけにする。
+    if (detailsDepth > 0) continue;
     if (level !== 2 && level !== 3) continue;
 
     // 見出し冒頭の【タグ】をチップに変換する
