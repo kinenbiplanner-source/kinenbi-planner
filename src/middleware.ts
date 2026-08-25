@@ -121,7 +121,23 @@ function htmlError(status: number, heading: string, body: string): Response {
   );
 }
 
+/**
+ * www は apex へ寄せる。
+ * 旧本番（Vercel）も www.anniv.gift → anniv.gift へ飛ばしていたので挙動を引き継ぐ。
+ * 旧本番は 307 だったが、ホスト名の正規化は恒久的な性質なので 301 にする
+ * （www は元々正規URLではないため、301 に上げても既存の評価は動かない）。
+ */
+function wwwRedirect(url: URL): Response | null {
+  if (url.hostname !== 'www.anniv.gift') return null;
+  const target = new URL(url);
+  target.hostname = 'anniv.gift';
+  return Response.redirect(target.toString(), 301);
+}
+
 export const onRequest = defineMiddleware(async (context, next) => {
+  const www = wwwRedirect(context.url);
+  if (www) return www;
+
   const { protectedPath, api } = isProtected(context.url.pathname);
 
   // 公開側（LP・/media・/media/img/*）は何もしない。

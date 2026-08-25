@@ -11,6 +11,14 @@
 
   "observability": { "enabled": true },
 
+  // 本番ドメイン。Custom Domain にすると Cloudflare がDNSレコードと証明書を自動管理する。
+  // www は Worker まで通し、middleware.ts で apex へ 301 する（旧本番と同じ挙動）。
+  "routes": [
+    { "pattern": "anniv.gift", "custom_domain": true },
+    { "pattern": "www.anniv.gift", "custom_domain": true }
+  ],
+
+
   // html_handling は既定の "auto-trailing-slash" のまま使う。
   // これにより /contact.html は /contact へ 307 で飛ぶ。旧本番（Vercel）は 308 だったので
   // 恒久/一時の区別だけ差があるが、遷移先ページの canonical と sitemap が
