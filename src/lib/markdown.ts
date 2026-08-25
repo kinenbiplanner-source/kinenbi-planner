@@ -34,7 +34,7 @@ export interface RenderResult {
 
 /** content-axis.md が定める軸3の固定CTA。このラベルの :::box だけ CTA として描く。 */
 const CTA_LABEL = '無料相談・お問い合わせ';
-const CONTACT_URL = 'https://anniv.gift/contact.html';
+const CONTACT_URL = 'https://anniv.gift/contact';
 const LINE_URL = 'https://lin.ee/U4deTzi';
 
 const DEFAULT_BOX_COLOR = '#4a8ab5';

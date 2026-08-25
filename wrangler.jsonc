@@ -11,17 +11,19 @@
 
   "observability": { "enabled": true },
 
-  // 静的アセットの既定は html_handling="auto-trailing-slash" で、
-  // /contact.html を /contact へ 307 で飛ばしてしまう。
-  // 本番の正規URLは .html 付き（content-axis.md の軸3固定CTA・LPフッター・
-  // sitemap・Search Console の登録URLがすべて .html）なので、この既定を切る。
-  // 拡張子なし形（Vercel の cleanUrls で拾えていた /contact 等）は
-  // astro.config.mjs の redirects で .html へ 301 する。
+  // html_handling は既定の "auto-trailing-slash" のまま使う。
+  // これにより /contact.html は /contact へ 307 で飛ぶ。旧本番（Vercel）は 308 だったので
+  // 恒久/一時の区別だけ差があるが、遷移先ページの canonical と sitemap が
+  // 拡張子なしを指しているので正規化のシグナルは足りている。
+  // （run_worker_first で Worker 側から 308 を返す案は、アセットが 200 で
+  //   返ってしまい .html が重複コンテンツ化するため不採用。）
+  // 旧本番（Vercel の cleanUrls）が /contact.html → /contact へ 308 で飛ばしており、
+  // **拡張子なしが正規URL**としてインデックスされているため、同じ形に揃える。
+  // ここを "none" にすると向きが逆転して既存の正規URLが変わってしまう。
   // not_found_handling は "none"（＝アセットに無ければWorkerへ渡す）。
   // /media 配下や /admin の SSR ルートと Astro の404はWorker側で処理する。
   "assets": {
     "binding": "ASSETS",
-    "html_handling": "none",
     "not_found_handling": "none"
   },
 

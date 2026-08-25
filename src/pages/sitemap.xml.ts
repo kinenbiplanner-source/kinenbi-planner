@@ -16,7 +16,7 @@ export const prerender = false;
 const SITE = 'https://anniv.gift';
 
 /** LP側の静的ページ。public/ 配下に素のHTMLで置いてあるもの。 */
-const STATIC_PATHS = ['/', '/privacy.html', '/tokutei.html'];
+const STATIC_PATHS = ['/', '/privacy', '/tokutei'];
 
 function esc(s: string): string {
   return s
