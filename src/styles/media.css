@@ -242,6 +242,23 @@
   color: var(--white) !important;
 }
 
+/* ── 運営者ログイン（記事一覧の最下部・控えめに）── */
+.admin-entry {
+  margin-top: 40px;
+  text-align: center;
+}
+.admin-entry a {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--blue-pastel);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.admin-entry a:hover {
+  color: var(--text-light);
+  text-decoration: underline;
+}
+
 /* ── RESPONSIVE ── */
 @media (max-width: 1000px) {
   .card-grid,

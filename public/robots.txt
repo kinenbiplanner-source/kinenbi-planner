@@ -1,4 +1,9 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://anniv.gift/sitemap-index.xml
+# 管理画面とAPIはクロール不要（Cloudflare Access で保護済み。
+# ログイン画面が検索結果に出ても意味がないので明示的に外す）
+Disallow: /admin
+Disallow: /api/
+
+Sitemap: https://anniv.gift/sitemap.xml

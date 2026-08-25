@@ -85,5 +85,11 @@ const description =
         >
       </div>
     </aside>
+
+    {/* 運営用の入口。/admin は Cloudflare Access で保護されているのでURLが見えても問題ないが、
+        クローラに拾わせる必要はないので nofollow を付ける（robots.txt でも Disallow 済み）。 */}
+    <p class="admin-entry">
+      <a href="/admin" rel="nofollow">運営者ログイン</a>
+    </p>
   </div>
 </MediaLayout>
