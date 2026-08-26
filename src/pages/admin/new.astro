@@ -12,14 +12,19 @@
  *
  * 画面の作り：
  *   1. article.md の貼り付け取り込み（frontmatter のパースは /api/preview の mode:'import'）
- *   2. メタ情報（slug / title / description / keyword / 軸 / ファネル / 状態 / PR / ヒーロー画像）
- *   3. 2ペイン（Markdown / プレビュー）。プレビューは保存時と同じ renderArticle を通す
- *      Markdown側には記法を差し込むツールバーが付く（記法の正は article-style-guide.md 9章）
- *   4. 保存バー（下書き保存 / 公開する）
+ *      編集モードでは畳んでおく——本文がまるごと置き換わる操作なので誤爆させない
+ *   2. メタ情報（slug / title / description / keyword / 軸 / ファネル / PR / ヒーロー画像）
+ *      slug の重複とKW台帳の引き当ては、開いた時点のスナップショット（boot）で判定する
+ *   3. 2ペイン。左＝Markdown＋記法を差し込むツールバー（記法の正は article-style-guide.md 9章）、
+ *      右＝プレビュー／公開前チェックの切り替え。プレビューは保存時と同じ renderArticle を、
+ *      チェックは保存時と同じ lib/quality.ts を通す（サーバの警告と食い違わせないため）
+ *   4. 危険な操作（削除）。取り消せないので他のボタンから離してここに置く
+ *   5. 保存バー（下書き＝下書き保存／公開する、公開中＝下書きに戻す／更新する）
+ *      保存しても一覧へは飛ばない。書いている途中で画面が変わらない方が続けやすい
  */
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { AXES, FUNNELS } from '../../lib/axis';
-import type { ArticleRow } from '../../lib/db';
+import { listKeywordChoices, listSlugIndex, type ArticleRow } from '../../lib/db';
 
 export const prerender = false;
 
@@ -31,13 +36,22 @@ interface Props {
 const { article = null } = Astro.props;
 const isEdit = article !== null;
 
-// クライアント側スクリプトへ渡すのはモードとIDだけ。
-// 初期値はフォームの value / textarea に直接埋めてあるので、
+/*
+ * エディタが判断材料として持つ2つの台帳。どちらもページを開いた時点のスナップショット。
+ *   articles … slug の重複確認・内部リンクの挿入候補・本文中の /media/ リンクの実在確認
+ *   keywords … ターゲットKWの候補。台帳にあるKWなら軸とファネルを引き当てる
+ * 記事本文と違って量が小さいので、APIを増やさずJSONに載せて一度に渡す。
+ */
+const [slugIndex, keywordChoices] = await Promise.all([listSlugIndex(), listKeywordChoices()]);
+
+// 上の2つ以外の初期値はフォームの value / textarea に直接埋めてあるので、
 // 同じデータをJSONでも配って二重管理にならないようにする。
-const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? null }).replace(
-  /</g,
-  '\\u003c',
-);
+const boot = JSON.stringify({
+  mode: isEdit ? 'edit' : 'new',
+  id: article?.id ?? null,
+  articles: slugIndex,
+  keywords: keywordChoices,
+}).replace(/</g, '\\u003c');
 ---
 
 <AdminLayout title={isEdit ? '記事を編集' : '新規作成'} current={isEdit ? 'edit' : 'new'}>
@@ -94,14 +108,22 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
   <div class="admin-bar">
     <h1 class="admin-title">{isEdit ? '記事を編集' : '新規作成'}</h1>
     <a class="btn" href="/admin">一覧へ戻る</a>
-    {
-      isEdit && article.status === 'published' && (
-        <a class="btn" href={`/media/${article.slug}`} target="_blank" rel="noopener noreferrer">
-          公開ページ
-        </a>
-      )
-    }
-    {isEdit && <button class="btn btn-danger" type="button" id="btn-delete">削除</button>}
+    {/*
+      公開ページへのリンクは常に置いて、下書きのときだけ隠す。
+      保存でモードが変わる（新規→編集、下書き→公開）たびにスクリプトが出し入れするので、
+      公開した直後に「見に行く」ためにページを読み直さなくて済む。
+    */}
+    <a
+      class="btn"
+      id="link-public"
+      href={article?.slug ? `/media/${article.slug}` : '#'}
+      target="_blank"
+      rel="noopener noreferrer"
+      hidden={!(isEdit && article.status === 'published')}
+    >
+      公開ページ
+    </a>
+    {/* 削除は取り消せないので、押し間違えないよう画面のいちばん下に置いてある */}
   </div>
 
   <div class="notice notice-error" id="msg-error" hidden></div>
@@ -115,12 +137,17 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
     </div>
   </div>
 
-  {/* ── 1. article.md の取り込み ── */}
-  <div class="admin-card import-area">
-    <div class="admin-card-head">
+  {/*
+    ── 1. article.md の取り込み ──
+    開いておくのは新規のときだけ。編集中のこのカードは使い道が無いうえ、
+    ここで取り込むと本文がまるごと置き換わる。閉じておいた方が安全で、
+    書いている本文が画面の上に来るぶん編集も速い。
+  */}
+  <details class="admin-card import-area" open={!isEdit}>
+    <summary class="admin-card-head">
       article.md を貼り付けて取り込む
       <span class="admin-hint">frontmatter があればメタ情報も自動で埋まる</span>
-    </div>
+    </summary>
     <div class="admin-card-body">
       <textarea
         id="import-src"
@@ -132,7 +159,7 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
         </span>
       </div>
     </div>
-  </div>
+  </details>
 
   {/* ── 2. メタ情報 ── */}
   <div class="admin-card">
@@ -157,8 +184,20 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
 
         <div class="field">
           <label for="f-keyword">ターゲットKW<span class="req">*</span></label>
-          <input type="text" id="f-keyword" value={article?.keyword ?? ''} autocomplete="off" />
-          <p class="field-note">KWマスターDBのKW列に出る値。</p>
+          <input
+            type="text"
+            id="f-keyword"
+            list="kw-list"
+            value={article?.keyword ?? ''}
+            autocomplete="off"
+          />
+          {/*
+            候補はキーワード台帳（/admin/keywords）から出す。台帳にあるKWを選べば
+            軸とファネルはそちらの値に合わせる（台帳が正）。
+            手入力も従来どおり通す——台帳に無いKWで書くこと自体は禁止していない。
+          */}
+          <datalist id="kw-list">{keywordChoices.map((k) => <option value={k.keyword} />)}</datalist>
+          <p class="field-note" id="kw-note">台帳にあるKWは候補から選べる。</p>
         </div>
 
         <div class="field">
@@ -187,14 +226,17 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
           </select>
         </div>
 
-        <div class="field">
-          <label for="f-status">状態</label>
-          <select id="f-status">
-            <option value="draft" selected={article?.status !== 'published'}>下書き</option>
-            <option value="published" selected={article?.status === 'published'}>公開</option>
-          </select>
-          <p class="field-note">下の保存ボタンでも切り替わる。</p>
-        </div>
+        {/*
+          状態（下書き／公開）のセレクトは置かない。保存バーのボタンと同じ値を
+          2か所で操作できると「セレクトを公開にしてから下書き保存を押す」ような
+          矛盾した操作ができてしまい、どちらが効くのかが画面から読めなかった。
+          真の値はこの hidden が持ち、保存バーのボタンの文言をここから決める。
+        */}
+        <input
+          type="hidden"
+          id="f-status"
+          value={article?.status === 'published' ? 'published' : 'draft'}
+        />
 
         <div class="field">
           <span class="field-label">PR表記</span>
@@ -333,6 +375,35 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
                     aria-label="リンク"
                     ><svg class="md-ic"><use href="#i-link"></use></svg></button
                   >
+                  {/*
+                    内部リンクは公開済みの記事から選ばせる。style-guide 11章が
+                    「URLを推測・生成・改変しない」と決めているのに、手打ちだと
+                    slug を思い出しながら書くことになって必ず事故る。
+                    差し込む文型（段落を分けて誘導文＋アンカーは記事タイトル）も
+                    11章のとおりに固定してある。
+                  */}
+                  <span class="md-has-menu">
+                    <button
+                      class="md-btn"
+                      type="button"
+                      data-menu="menu-internal"
+                      aria-haspopup="true"
+                      aria-expanded="false"
+                      data-tip="内部リンク（公開済みの記事から選ぶ）"
+                      aria-label="内部リンク"><span class="md-txt">内部</span></button
+                    >
+                    <div class="md-menu md-menu-wide" id="menu-internal" hidden>
+                      <input
+                        type="text"
+                        class="md-menu-filter"
+                        id="internal-filter"
+                        placeholder="記事名で絞り込む"
+                        autocomplete="off"
+                        spellcheck="false"
+                      />
+                      <div class="md-menu-list" id="internal-list"></div>
+                    </div>
+                  </span>
                 </div>
                 <span class="md-sep"></span>
 
@@ -573,11 +644,22 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
         </div>
         {/* 900px以下でどちらを見せるかは .panes[data-tab] とCSSが決める */}
         <div class="pane" data-pane="preview">
+          {/*
+            右ペインは「確認する側」。本番の見た目（プレビュー）と、
+            公開前チェック＋見出し構成を切り替えて出す。
+            チェックを別カードにして下に積むと書きながら見られない＝
+            結局チェックせずに公開することになるので、編集ペインの真横に置く。
+          */}
           <div class="pane-head">
-            プレビュー
+            <button class="view-tab" type="button" id="view-tab-preview" aria-selected="true">
+              プレビュー
+            </button>
+            <button class="view-tab" type="button" id="view-tab-checks" aria-selected="false">
+              チェック<span class="view-badge" id="check-badge" hidden></span>
+            </button>
             <span class="admin-hint" id="preview-state"></span>
           </div>
-          <div class="preview">
+          <div class="preview" id="view-preview">
             {
               isEdit ? (
                 <div class="prose" id="preview-body" set:html={article.body_html} />
@@ -588,14 +670,43 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
               )
             }
           </div>
+          <div class="preview view-checks" id="view-checks" hidden>
+            <ul class="check-list" id="check-list"></ul>
+            <div class="outline">
+              <div class="outline-head">
+                見出し構成
+                <span class="admin-hint">クリックでその行へ飛ぶ</span>
+              </div>
+              <ul class="outline-list" id="outline-list"></ul>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  {/* ── 4. 保存 ── */}
+  {/*
+    ── 4. 危険な操作 ──
+    削除を上部バーの「一覧へ戻る」の隣に置いていたが、取り消せない操作を
+    移動系のリンクと同じ列に並べる理由が無い。画面のいちばん下へ、
+    他のボタンから離して置く。
+  */}
+  {/* 新規で作った直後は編集モードへ移るので、そのときに現れる（hidden を外す） */}
+  <div class="danger-zone" id="danger-zone" hidden={!isEdit}>
+    <div>
+      <strong>この記事を削除する</strong>
+      <p class="field-note">
+        元に戻せない。公開済みなら公開URLも消える（301も残らないので検索評価は戻らない）。
+      </p>
+    </div>
+    <button class="btn btn-danger" type="button" id="btn-delete">削除</button>
+  </div>
+
+  {/* ── 5. 保存 ── */}
   <div class="save-bar">
     <span class="save-state" id="save-state"></span>
+    {/* 要修正・要確認の件数。押すとチェックのタブが開く（見ないまま公開しないため） */}
+    <button class="btn btn-sm check-jump" type="button" id="check-jump" hidden></button>
     <span class="spacer"></span>
     <button class="btn" type="button" id="btn-save-draft">下書き保存</button>
     <button class="btn btn-primary" type="button" id="btn-save-publish">公開する</button>
@@ -605,9 +716,35 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
 <script>
   /* 記事エディタのクライアント側。新規・編集の両モードで同じコードが動く。 */
 
+  // 公開前チェックの判定は lib/quality.ts が持つ。ここに書き写すとサーバ側
+  // （/api/articles の warnings）と必ず食い違うので、同じ関数を呼ぶ。
+  import { countLevels, inspectArticle, scanHeadings } from '../../lib/quality';
+
+  interface ArticleRef {
+    id: number;
+    slug: string;
+    title: string;
+    axis: string;
+    status: 'draft' | 'published';
+  }
+  interface KeywordRef {
+    id: number;
+    keyword: string;
+    axis: string;
+    funnel: string;
+    difficulty: string;
+    volume: string;
+    priority: number;
+    status: string;
+    article_id: number | null;
+  }
   interface Boot {
     mode: 'new' | 'edit';
     id: number | null;
+    /** 全記事（下書き含む）。slug の重複確認・内部リンクの候補と実在確認に使う */
+    articles: ArticleRef[];
+    /** キーワード台帳。軸とファネルの引き当てに使う */
+    keywords: KeywordRef[];
   }
   interface Payload {
     slug: string;
@@ -625,7 +762,7 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
   const bootEl = document.getElementById('editor-boot');
   const boot: Boot = bootEl?.textContent
     ? (JSON.parse(bootEl.textContent) as Boot)
-    : { mode: 'new', id: null };
+    : { mode: 'new', id: null, articles: [], keywords: [] };
 
   // 制約を HTMLElement にすると HTMLSelectElement の remove() のオーバーロードと
   // 衝突して型エラーになるので、素の型引数にしている。
@@ -639,7 +776,8 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
   const fKeyword = el<HTMLInputElement>('f-keyword')!;
   const fAxis = el<HTMLSelectElement>('f-axis')!;
   const fFunnel = el<HTMLSelectElement>('f-funnel')!;
-  const fStatus = el<HTMLSelectElement>('f-status')!;
+  // 状態はセレクトではなく hidden（画面の操作は保存バーのボタンに一本化した）
+  const fStatus = el<HTMLInputElement>('f-status')!;
   const fIsAd = el<HTMLInputElement>('f-is-ad')!;
   const fBody = el<HTMLTextAreaElement>('f-body')!;
   const fHero = el<HTMLInputElement>('f-hero')!;
@@ -658,6 +796,16 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
   const msgError = el<HTMLElement>('msg-error')!;
   const msgWarn = el<HTMLElement>('msg-warn')!;
   const msgRestore = el<HTMLElement>('msg-restore')!;
+
+  const kwNote = el<HTMLElement>('kw-note')!;
+  const checkList = el<HTMLElement>('check-list')!;
+  const outlineList = el<HTMLElement>('outline-list')!;
+  const checkBadge = el<HTMLElement>('check-badge')!;
+  const checkJump = el<HTMLButtonElement>('check-jump')!;
+  const viewTabPreview = el<HTMLButtonElement>('view-tab-preview')!;
+  const viewTabChecks = el<HTMLButtonElement>('view-tab-checks')!;
+  const viewPreview = el<HTMLElement>('view-preview')!;
+  const viewChecks = el<HTMLElement>('view-checks')!;
 
   /* ── 表示ヘルパー ── */
 
@@ -768,11 +916,44 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
       return;
     }
     const ok = SLUG_RE.test(v) && v.length <= 80;
-    fSlug.classList.toggle('is-invalid', !ok);
-    slugNote.className = ok ? 'field-note' : 'field-note is-error';
-    slugNote.textContent = ok
-      ? `公開URL: https://anniv.gift/media/${v}`
-      : '半角英数とハイフンのみ（先頭・末尾はハイフン不可、80字以内）';
+    // 重複は保存して409で気付くのでは遅い（本文を書き切ってから弾かれる）。
+    // 開いた時点の slug 一覧を持っているので、打っている最中に知らせる。
+    const taken = ok ? boot.articles.find((a) => a.slug === v && a.id !== boot.id) : undefined;
+    fSlug.classList.toggle('is-invalid', !ok || taken !== undefined);
+    slugNote.className = ok && !taken ? 'field-note' : 'field-note is-error';
+    slugNote.textContent = !ok
+      ? '半角英数とハイフンのみ（先頭・末尾はハイフン不可、80字以内）'
+      : taken
+        ? `この slug は「${taken.title}」が使っている`
+        : `公開URL: https://anniv.gift/media/${v}`;
+  }
+
+  /* ── ターゲットKWと台帳の突き合わせ ── */
+
+  /**
+   * 台帳にあるKWなら、軸とファネルをそちらの値に合わせる。
+   * 台帳（/admin/keywords）が軸とファネルの正なので、記事側で違う値を選べると
+   * CSVを吐いたときに台帳と記事で食い違う。合わせた事実は下の注記に出す。
+   */
+  function syncKeyword(applyLedger = true) {
+    const v = fKeyword.value.trim();
+    const hit = boot.keywords.find((k) => k.keyword === v);
+    if (!hit) {
+      kwNote.className = 'field-note';
+      kwNote.textContent = v
+        ? '台帳に無いKW（このまま書いても構わない）'
+        : '台帳にあるKWは候補から選べる。';
+      return;
+    }
+    const detail = `台帳にある（優先度${hit.priority}・難易度${hit.difficulty}・ボリューム${hit.volume}）`;
+    kwNote.className = 'field-note';
+    if (!applyLedger) {
+      kwNote.textContent = `${detail}。`;
+      return;
+    }
+    fAxis.value = hit.axis;
+    fFunnel.value = hit.funnel;
+    kwNote.textContent = `${detail}。軸とファネルは台帳に合わせた。`;
   }
 
   function updateDescCount() {
@@ -825,6 +1006,14 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
 
   /* ── localStorage への自動退避 ── */
 
+  /**
+   * 未保存の変更があるか。真なら離脱時に確認を出す。
+   * localStorage への退避はあるが、あれは「同じブラウザで開き直したら戻せる」保険で、
+   * 別のマシンで開いたら無い。書いたものが消えたと気付くのは大抵その時なので、
+   * 出ていく前にもう一度だけ知らせる。
+   */
+  let dirty = false;
+
   // 新規で保存した直後に編集モードへ移る（後述）ので let。移った先で
   // 'anniv:draft:new' に書き続けると、次に新規作成を開いたときに
   // 別記事の内容の復元を提案してしまう。
@@ -832,6 +1021,9 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
   let autosaveTimer: number | undefined;
 
   function queueAutosave() {
+    // 退避を積む＝保存すべき変更があるということ。離脱ガードの旗もここで立てる
+    // （本文の入力だけでなく、画像の差し替えや取り込みもここを通る）。
+    dirty = true;
     window.clearTimeout(autosaveTimer);
     autosaveTimer = window.setTimeout(() => {
       try {
@@ -872,7 +1064,10 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
       msgRestore.hidden = true;
       validateSlug();
       updateDescCount();
+      syncKeyword(false);
+      syncSaveButtons();
       runPreview();
+      runChecks();
     });
     el<HTMLButtonElement>('restore-no')?.addEventListener('click', () => {
       clearAutosave();
@@ -955,11 +1150,189 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
     panes.dataset.tab = which;
     tabEdit.setAttribute('aria-selected', String(which === 'edit'));
     tabPreview.setAttribute('aria-selected', String(which === 'preview'));
-    if (which === 'preview') runPreview();
+    if (which === 'preview') refreshRightPane();
   }
 
   tabEdit.addEventListener('click', () => selectTab('edit'));
   tabPreview.addEventListener('click', () => selectTab('preview'));
+
+  /* ── 右ペインの中身（プレビュー／チェック）── */
+
+  /** 右ペインで今見えている方だけ更新する（隠れている方は開いたときに作る）。 */
+  function refreshRightPane() {
+    if (viewChecks.hidden) runPreview();
+    else runChecks();
+  }
+
+  function selectView(which: 'preview' | 'checks') {
+    const checks = which === 'checks';
+    viewPreview.hidden = checks;
+    viewChecks.hidden = !checks;
+    viewTabPreview.setAttribute('aria-selected', String(!checks));
+    viewTabChecks.setAttribute('aria-selected', String(checks));
+    // 900px以下では右ペインごと畳まれているので、一緒に開く
+    if (panes.dataset.tab !== 'preview') selectTab('preview');
+    else refreshRightPane();
+  }
+
+  viewTabPreview.addEventListener('click', () => selectView('preview'));
+  viewTabChecks.addEventListener('click', () => selectView('checks'));
+  checkJump.addEventListener('click', () => selectView('checks'));
+
+  /* ── 本文の指定行へ飛ぶ（チェック結果・見出し構成から使う）── */
+
+  // 幅も字形も同じ写しを作って「その位置が上から何pxか」を測るための箱。
+  // textarea は setSelectionRange しても勝手にスクロールしてくれないブラウザがあり、
+  // 行数×行の高さで計算する方法は折り返しのある行で必ずズレる。
+  const mirror = document.createElement('div');
+
+  function scrollBodyTo(pos: number) {
+    const cs = getComputedStyle(fBody);
+    mirror.style.cssText =
+      'position:absolute;left:-9999px;top:0;visibility:hidden;white-space:pre-wrap;' +
+      'overflow-wrap:break-word;box-sizing:border-box;';
+    mirror.style.width = `${fBody.clientWidth}px`;
+    mirror.style.padding = cs.padding;
+    mirror.style.fontFamily = cs.fontFamily;
+    mirror.style.fontSize = cs.fontSize;
+    mirror.style.lineHeight = cs.lineHeight;
+    mirror.style.letterSpacing = cs.letterSpacing;
+    mirror.style.tabSize = cs.tabSize;
+    mirror.textContent = fBody.value.slice(0, pos);
+    const marker = document.createElement('span');
+    marker.textContent = '\u200b';
+    mirror.appendChild(marker);
+    document.body.appendChild(mirror);
+    const top = marker.offsetTop;
+    document.body.removeChild(mirror);
+    // 画面のいちばん上ではなく1/3の位置に置く（前後の文脈が見える方が直しやすい）
+    fBody.scrollTop = Math.max(0, top - fBody.clientHeight / 3);
+  }
+
+  /** その行を選択した状態で編集ペインを開く。 */
+  function jumpToLine(line: number) {
+    const lines = fBody.value.split('\n');
+    if (line < 0 || line >= lines.length) return;
+    let pos = 0;
+    for (let i = 0; i < line; i++) pos += lines[i].length + 1;
+    selectTab('edit');
+    fBody.focus();
+    fBody.setSelectionRange(pos, pos + lines[line].length);
+    scrollBodyTo(pos);
+  }
+
+  /* ── 公開前チェックと見出し構成 ── */
+
+  let checkTimer: number | undefined;
+
+  function runChecks() {
+    const p = collect();
+    const slugStatus: Record<string, 'published' | 'draft'> = {};
+    for (const a of boot.articles) slugStatus[a.slug] = a.status;
+
+    const items = inspectArticle({
+      title: p.title,
+      description: p.description,
+      keyword: p.keyword,
+      axis: p.axis,
+      body_md: p.body_md,
+      slugStatus,
+    });
+
+    checkList.innerHTML = items
+      .map((i) => {
+        const jump = i.line === undefined ? '' : ` data-line="${i.line}"`;
+        return (
+          `<li class="check check-${i.level}"${jump}>` +
+          `<span class="check-label">${escapeHtml(i.label)}</span>` +
+          `<span class="check-detail">${escapeHtml(i.detail)}</span></li>`
+        );
+      })
+      .join('');
+
+    const heads = scanHeadings(p.body_md);
+    outlineList.innerHTML = heads.length
+      ? heads
+          .map(
+            (h) =>
+              `<li class="outline-h${h.level}" data-line="${h.line}">${escapeHtml(h.text)}</li>`,
+          )
+          .join('')
+      : '<li class="outline-empty">まだ見出しが無い</li>';
+
+    // 件数は右ペインを開いていなくても分かるように、保存バーにも出す
+    const n = countLevels(items);
+    const bad = n.ng + n.warn;
+    checkBadge.hidden = bad === 0;
+    checkBadge.textContent = String(bad);
+    checkBadge.className = n.ng ? 'view-badge is-ng' : 'view-badge';
+    checkJump.hidden = bad === 0;
+    checkJump.textContent = n.ng ? `要修正${n.ng} / 要確認${n.warn}` : `要確認${n.warn}`;
+    checkJump.className = n.ng ? 'btn btn-sm check-jump is-ng' : 'btn btn-sm check-jump';
+  }
+
+  function queueChecks() {
+    window.clearTimeout(checkTimer);
+    checkTimer = window.setTimeout(runChecks, 400);
+  }
+
+  for (const node of [checkList, outlineList]) {
+    node.addEventListener('click', (ev) => {
+      const target = (ev.target as HTMLElement).closest<HTMLElement>('[data-line]');
+      if (target) jumpToLine(Number(target.dataset.line));
+    });
+  }
+
+  /* ── 内部リンクの挿入 ── */
+
+  const internalFilter = el<HTMLInputElement>('internal-filter')!;
+  const internalList = el<HTMLElement>('internal-list')!;
+
+  function renderInternalList() {
+    const q = internalFilter.value.trim().toLowerCase();
+    // 自分自身と下書きは出さない（下書きへのリンクは公開時点で404になる）
+    const rows = boot.articles.filter(
+      (a) =>
+        a.status === 'published' &&
+        a.id !== boot.id &&
+        (!q || a.title.toLowerCase().includes(q) || a.slug.includes(q)),
+    );
+    if (!rows.length) {
+      const any = boot.articles.some((a) => a.status === 'published' && a.id !== boot.id);
+      internalList.innerHTML = `<p class="md-menu-empty">${any ? '該当なし' : '公開済みの記事がまだ無い'}</p>`;
+      return;
+    }
+    internalList.innerHTML = rows
+      .map(
+        (a) =>
+          `<button type="button" data-slug="${escapeHtml(a.slug)}" data-title="${escapeHtml(a.title)}">` +
+          `<span class="md-menu-title">${escapeHtml(a.title)}</span>` +
+          `<span class="md-menu-slug">/media/${escapeHtml(a.slug)}</span></button>`,
+      )
+      .join('');
+  }
+
+  internalFilter.addEventListener('input', renderInternalList);
+  // メニューの中の入力欄なので、ここでの Enter・クリックはツールバーへ流さない
+  internalFilter.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') ev.preventDefault();
+  });
+
+  internalList.addEventListener('click', (ev) => {
+    const btn = (ev.target as HTMLElement).closest<HTMLButtonElement>('[data-slug]');
+    if (!btn) return;
+    const slug = btn.dataset.slug!;
+    const title = btn.dataset.title!;
+    closeMenus();
+    // style-guide 11章の型：段落を分けて誘導文を1つ、アンカーは記事タイトル。
+    // ◯◯（リンク先のテーマ）だけ選択状態にして、そこから打ち始められるようにする。
+    block(
+      () =>
+        `また、${MARK}◯◯${MARK}については、[${title}](/media/${slug})で解説していますので` +
+        'ぜひお読みください。',
+      false,
+    );
+  });
 
   /* ── ツールバー（Markdown記法の挿入）──
    *
@@ -1234,6 +1607,22 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
       if (menu) {
         menu.hidden = !open;
         menuBtn.setAttribute('aria-expanded', String(open));
+        // 内部リンクは開くたびに作り直す（前回の絞り込みを持ち越さない）
+        if (open && menu.id === 'menu-internal') {
+          internalFilter.value = '';
+          renderInternalList();
+          internalFilter.focus();
+        }
+        // ボタンの真下に出すと、右寄りのボタンでは画面からはみ出して読めない。
+        // はみ出したぶんだけ左へ寄せる（ツールバーは幅で段数が変わるので位置は固定できない）。
+        // 幅は clientWidth で見る（innerWidth はスクロールバーを含む）。
+        menu.style.left = '';
+        if (open) {
+          const rect = menu.getBoundingClientRect();
+          const over = rect.right - (document.documentElement.clientWidth - 8);
+          // 左端を割ってまでは寄せない（今度は左が切れる）
+          if (over > 0) menu.style.left = `${-Math.min(over, Math.max(rect.left - 8, 0))}px`;
+        }
       }
       return;
     }
@@ -1352,7 +1741,7 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
     // 保存後も一覧へ飛ばさない（書いている途中で画面が変わるのを避ける）。
     if ((ev.ctrlKey || ev.metaKey) && !ev.shiftKey && !ev.altKey && ev.key.toLowerCase() === 's') {
       ev.preventDefault();
-      save(fStatus.value === 'published' ? 'published' : 'draft', true);
+      save(fStatus.value === 'published' ? 'published' : 'draft');
     }
   });
 
@@ -1388,10 +1777,39 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
     history.replaceState(null, '', `/admin/${id}/edit`);
   }
 
-  /** stay=true なら保存後に一覧へ飛ばさない（Ctrl+S の「その場保存」用）。 */
-  async function save(status: 'draft' | 'published', stay = false) {
-    // 状態セレクトと保存ボタンは同じ値を指す。ボタンは「セレクトを切り替えて保存する」
-    // ショートカットとして扱い、真の値は常にセレクト側に置く。
+  /**
+   * 状態に合わせて保存ボタンの文言を決める。
+   * 公開済みの記事で「公開する」と出ていると、押していいのか毎回止まる。
+   * 公開中なら「更新する」、下書きへ戻すのは別ボタン、という言い方に揃える。
+   */
+  function syncSaveButtons() {
+    const published = fStatus.value === 'published';
+    btnDraft.textContent = published ? '下書きに戻す' : '下書き保存';
+    btnPublish.textContent = published ? '更新する' : '公開する';
+  }
+
+  /**
+   * 公開ページへのリンクと削除エリアを、保存後の実体に合わせる。
+   * 公開した直後に「見に行く」ためだけにページを読み直すのは無駄だし、
+   * 下書きに戻したあとも公開ページのリンクが残っていると404を踏む。
+   */
+  function syncArticleLinks() {
+    const linkPublic = el<HTMLAnchorElement>('link-public');
+    if (linkPublic) {
+      linkPublic.hidden = fStatus.value !== 'published';
+      linkPublic.href = `/media/${fSlug.value.trim()}`;
+    }
+    const danger = el<HTMLElement>('danger-zone');
+    if (danger) danger.hidden = boot.mode !== 'edit';
+  }
+
+  async function save(status: 'draft' | 'published') {
+    // 公開中の記事を下書きに戻すのは、実質「公開ページを消す」操作。確認を挟む。
+    if (status === 'draft' && fStatus.value === 'published') {
+      if (!confirm('公開中の記事を下書きに戻します。公開ページは見られなくなります。よろしいですか？')) {
+        return;
+      }
+    }
     fStatus.value = status;
     hide(msgError, msgWarn, msgRestore);
 
@@ -1413,7 +1831,13 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      const data = (await res.json()) as { id?: number; warnings?: string[]; error?: string };
+      const data = (await res.json()) as {
+        id?: number;
+        warnings?: string[];
+        error?: string;
+        /** キーワード台帳を追従させた結果（該当が無ければ null、変化が無ければ changed:false） */
+        keyword?: { keyword: string; status: string; changed: boolean } | null;
+      };
 
       if (!res.ok) {
         show(msgError, escapeHtml(data.error ?? '保存に失敗しました'));
@@ -1422,30 +1846,36 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
       }
 
       clearAutosave();
+      dirty = false;
       if (isNew && data.id) becomeEdit(data.id);
+      // 開いた時点のスナップショットを保存後の実体に合わせる。
+      // ここを更新しないと、slug を変えて保存したあとに自分自身と重複していると
+      // 言われ続ける（内部リンクの候補も古いままになる）。
+      registerSelf(payload);
+      syncSaveButtons();
+      syncArticleLinks();
+      runChecks();
+
+      // 何時の状態が保存されたのかが分からないと、書き直しながら押したときに
+      // 「今のが入ったのか」が判断できないので時刻を出す。
+      const t = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+      const what = status === 'published' ? '公開' : '下書き保存';
+      const ledger =
+        data.keyword && data.keyword.changed
+          ? `／台帳「${data.keyword.keyword}」を ${KW_STATUS_LABEL[data.keyword.status] ?? data.keyword.status} にした`
+          : '';
+      saveState.textContent = `${t} に${what}した${ledger}`;
 
       if (data.warnings && data.warnings.length) {
-        // 警告があるときは一覧へ飛ばさない。飛ばすと警告を読む前に画面が消える。
-        // 「保存は成功している」ことを明示した上で、その場で直せるようにする。
+        // 保存は済んでいる。「止めずに知らせる」方針なので、公開はさせた上で
+        // 直すべき点をその場に出す（一覧へ飛ばすと読む前に画面が消える）。
         show(
           msgWarn,
           '<strong>保存は完了している</strong>が、公開前に確認したい点がある：<ul>' +
             data.warnings.map((w) => `<li>${escapeHtml(w)}</li>`).join('') +
-            '</ul><div class="notice-actions"><a class="btn btn-sm" href="/admin">一覧へ戻る</a></div>',
+            '</ul>',
         );
-        saveState.textContent = '保存済み';
-        return;
       }
-
-      if (stay) {
-        // 何時の状態が保存されたのかが分からないと、書き直しながら押したときに
-        // 「今のが入ったのか」が判断できないので時刻を出す。
-        const t = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-        saveState.textContent = `${t} に保存しました`;
-        return;
-      }
-
-      location.href = '/admin';
     } catch {
       show(msgError, '通信に失敗しました');
       saveState.textContent = '';
@@ -1457,6 +1887,33 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
 
   btnDraft.addEventListener('click', () => save('draft'));
   btnPublish.addEventListener('click', () => save('published'));
+
+  /** 台帳のステータスを日本語に。/admin/keywords の表記と合わせる。 */
+  const KW_STATUS_LABEL: Record<string, string> = {
+    todo: '未着手',
+    writing: '執筆中',
+    done: '記事化済み',
+    dropped: '見送り',
+  };
+
+  /**
+   * 保存した内容を、開いた時点の記事一覧スナップショットへ反映する。
+   * 自分自身は slug の重複判定から外れる（id で除いている）ので、
+   * ここでやることは「自分の行を今の値に更新する（無ければ足す）」だけ。
+   */
+  function registerSelf(p: Payload) {
+    if (boot.id === null) return;
+    const mine = boot.articles.find((a) => a.id === boot.id);
+    const next = {
+      id: boot.id,
+      slug: p.slug,
+      title: p.title,
+      axis: p.axis,
+      status: (p.status === 'published' ? 'published' : 'draft') as 'published' | 'draft',
+    };
+    if (mine) Object.assign(mine, next);
+    else boot.articles.unshift(next);
+  }
 
   /* ── 削除（編集モードのみ）── */
 
@@ -1470,6 +1927,8 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
         return;
       }
       clearAutosave();
+      // 消した記事の内容で離脱ガードを出しても意味がないので下ろしてから移動する
+      dirty = false;
       location.href = '/admin';
     } catch {
       show(msgError, '通信に失敗しました');
@@ -1482,6 +1941,7 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
     queuePreview();
     queueAutosave();
     updateBodyCount();
+    queueChecks();
   });
   fSlug.addEventListener('input', () => {
     validateSlug();
@@ -1490,14 +1950,36 @@ const boot = JSON.stringify({ mode: isEdit ? 'edit' : 'new', id: article?.id ?? 
   fDesc.addEventListener('input', () => {
     updateDescCount();
     queueAutosave();
+    queueChecks();
   });
-  for (const node of [fTitle, fKeyword, fAxis, fFunnel, fStatus, fIsAd]) {
-    node.addEventListener('input', queueAutosave);
+  fKeyword.addEventListener('input', () => {
+    syncKeyword();
+    queueAutosave();
+    queueChecks();
+  });
+  for (const node of [fTitle, fAxis, fFunnel, fIsAd]) {
+    node.addEventListener('input', () => {
+      queueAutosave();
+      queueChecks();
+    });
   }
+
+  /* 未保存のまま閉じようとしたら止める（dirty は queueAutosave が立てる）。 */
+  window.addEventListener('beforeunload', (ev) => {
+    if (!dirty) return;
+    ev.preventDefault();
+    // 文言はブラウザ側の固定文になる。returnValue は古いブラウザ向けの作法
+    ev.returnValue = '';
+  });
 
   setHero(fHero.value);
   validateSlug();
   updateDescCount();
   updateBodyCount();
+  // 開いた直後は台帳の値で上書きしない（既存記事の軸を勝手に書き換えないため）。
+  // 注記だけ出して、KWを触ったときに初めて引き当てる。
+  syncKeyword(false);
+  syncSaveButtons();
+  runChecks();
   offerRestore();
 </script>

@@ -7,7 +7,7 @@
  * currentPublishedAt（公開日を引き継ぐ）の2点だけに閉じ込めている。
  */
 import type { APIRoute } from 'astro';
-import { deleteArticle, getById, updateArticle } from '../../../lib/db';
+import { deleteArticle, getById, syncKeywordForArticle, updateArticle } from '../../../lib/db';
 import { buildArticleInput, fail, json, readJson } from '../articles';
 
 export const prerender = false;
@@ -34,7 +34,9 @@ export const PUT: APIRoute = async ({ params, request }) => {
   if (!built.ok) return fail(built.status, built.message);
 
   await updateArticle(id, built.input);
-  return json({ id, warnings: built.warnings });
+  // 記事の保存に台帳を追従させる（手で「記事化済み」に倒す運用は必ず抜けるため）。
+  const keyword = await syncKeywordForArticle(built.input.keyword, id, built.input.status);
+  return json({ id, warnings: built.warnings, keyword });
 };
 
 export const DELETE: APIRoute = async ({ params }) => {

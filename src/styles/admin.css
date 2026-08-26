@@ -856,3 +856,261 @@ textarea.mono {
     padding: 18px 14px 70px;
   }
 }
+
+/* ────────────────────────────────────────────────
+ * 記事エディタの追加分（取り込みの折りたたみ・チェックパネル・内部リンク・削除）
+ *
+ * 既存の .pane-head や .md-menu と同じ寸法に合わせてある。特に右ペインの
+ * タブは高さ20pxで固定する——ここが高くなると左の「Markdown」見出しと
+ * 上端がズレて、2ペインの下端も揃わなくなる（.pane-head のコメント参照）。
+ * ──────────────────────────────────────────────── */
+
+/* 取り込みカードの折りたたみ */
+details.import-area > summary.admin-card-head {
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+details.import-area > summary::-webkit-details-marker {
+  display: none;
+}
+details.import-area > summary.admin-card-head::after {
+  content: '▾';
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-light);
+}
+details.import-area[open] > summary.admin-card-head::after {
+  content: '▴';
+}
+/* 閉じているときは下線が浮くので消す */
+details.import-area:not([open]) > summary.admin-card-head {
+  border-bottom: 0;
+}
+
+/* 右ペインの表示切替（プレビュー／チェック） */
+.view-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--white);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-light);
+  cursor: pointer;
+}
+.view-tab[aria-selected='true'] {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: var(--white);
+}
+.view-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #b7791f;
+  color: var(--white);
+  font-size: 10px;
+}
+.view-badge.is-ng {
+  background: var(--admin-danger);
+}
+.view-badge[hidden] {
+  display: none;
+}
+
+/* 公開前チェック */
+.view-checks {
+  padding: 14px 16px;
+}
+.view-checks[hidden] {
+  display: none;
+}
+.check-list {
+  list-style: none;
+}
+.check {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  flex-wrap: wrap;
+  padding: 6px 6px 6px 22px;
+  border-bottom: 1px dashed var(--border);
+  border-radius: 4px;
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+.check::before {
+  position: absolute;
+  left: 3px;
+  font-weight: 700;
+}
+.check-ok::before {
+  content: '○';
+  color: var(--admin-ok);
+}
+.check-warn::before {
+  content: '△';
+  color: #b7791f;
+}
+.check-ng::before {
+  content: '×';
+  color: var(--admin-danger);
+}
+.check-label {
+  font-weight: 700;
+  color: var(--navy);
+}
+.check-detail {
+  color: var(--text-light);
+  word-break: break-word;
+}
+/* 行が分かっているものだけ飛べる（飛べるものだけ手のひらを出す） */
+.check[data-line] {
+  cursor: pointer;
+}
+.check[data-line]:hover {
+  background: var(--blue-pale);
+}
+
+/* 見出し構成 */
+.outline {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.outline-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 8px;
+}
+.outline-head .admin-hint {
+  margin-left: auto;
+}
+.outline-list {
+  list-style: none;
+}
+.outline-list li {
+  padding: 3px 7px;
+  border-radius: 4px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  cursor: pointer;
+}
+.outline-list li:hover {
+  background: var(--blue-pale);
+}
+.outline-list .outline-h3 {
+  padding-left: 26px;
+  color: var(--text-light);
+}
+.outline-list .outline-empty {
+  color: var(--text-light);
+  cursor: default;
+}
+.outline-list .outline-empty:hover {
+  background: transparent;
+}
+
+/* 内部リンクの候補メニュー（.md-menu を横に広げたもの） */
+.md-menu-wide {
+  width: 320px;
+  padding: 8px;
+}
+input.md-menu-filter {
+  height: 28px;
+  padding: 0 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.md-menu-list {
+  max-height: 260px;
+  overflow-y: auto;
+}
+.md-menu-list button {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  height: auto;
+  padding: 6px 8px;
+}
+.md-menu-title {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text);
+}
+.md-menu-slug {
+  font-family: var(--admin-mono);
+  font-size: 10.5px;
+  color: var(--text-light);
+}
+.md-menu-empty {
+  padding: 8px;
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* 保存バーのチェック件数（押すとチェックのタブが開く） */
+.check-jump {
+  border-color: #eddcb0;
+  background: #fdf6e7;
+  color: #8a6d2f;
+}
+.check-jump.is-ng {
+  border-color: #eccac5;
+  background: #fdf1ef;
+  color: var(--admin-danger);
+}
+.check-jump[hidden] {
+  display: none;
+}
+
+/* 危険な操作（削除）。保存バーの直前に置く */
+.danger-zone {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding: 14px 18px;
+  border: 1px solid #eccac5;
+  border-radius: var(--admin-radius);
+  background: #fdf7f6;
+}
+.danger-zone strong {
+  font-size: 13px;
+  color: var(--admin-danger);
+}
+.danger-zone .field-note {
+  margin-top: 3px;
+}
+.danger-zone .btn {
+  margin-left: auto;
+}
+
+@media (max-width: 900px) {
+  /* 候補メニューが画面からはみ出さないようにする */
+  .md-menu-wide {
+    width: min(320px, calc(100vw - 48px));
+  }
+}
+
+/* 保存で出し入れするボタン・エリア（.btn は inline-flex なので hidden が効かない） */
+.btn[hidden],
+.danger-zone[hidden] {
+  display: none;
+}

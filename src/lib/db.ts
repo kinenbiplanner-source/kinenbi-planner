@@ -367,3 +367,94 @@ export async function countKeywordsGrouped(): Promise<
   return results ?? [];
 }
 
+/* ────────────────────────────────────────────────
+ * 記事エディタ（/admin/new・/admin/[id]/edit）用
+ * ──────────────────────────────────────────────── */
+
+export interface SlugIndexRow {
+  id: number;
+  slug: string;
+  title: string;
+  axis: string;
+  status: 'draft' | 'published';
+}
+
+/**
+ * 全記事の slug 一覧（下書きも含む）。
+ *
+ * エディタでは3つの用途に使う：
+ *   1. slug の重複を保存前に知らせる（今までは保存して409で初めて分かった）
+ *   2. 内部リンクの挿入候補（style-guide 11章：URLを推測・生成しない）
+ *   3. 本文中の /media/<slug> が実在するかの確認
+ * 立ち上げ期の記事数を前提に全件引く。数百本になったら候補側にLIMITを入れる。
+ */
+export async function listSlugIndex(): Promise<SlugIndexRow[]> {
+  const { results } = await db()
+    .prepare(
+      `SELECT id, slug, title, axis, status FROM articles
+       ORDER BY COALESCE(published_at, updated_at) DESC, id DESC LIMIT 500`,
+    )
+    .all<SlugIndexRow>();
+  return results ?? [];
+}
+
+/** slug → 状態。/api/articles の公開前チェック（内部リンクの実在確認）で使う。 */
+export async function slugStatusMap(): Promise<Record<string, 'published' | 'draft'>> {
+  const { results } = await db()
+    .prepare('SELECT slug, status FROM articles')
+    .all<{ slug: string; status: 'published' | 'draft' }>();
+  return Object.fromEntries((results ?? []).map((r) => [r.slug, r.status]));
+}
+
+/** エディタのKW候補。台帳の全列は要らないので判断に使う列だけ引く。 */
+export type KeywordChoice = Pick<
+  KeywordRow,
+  'id' | 'keyword' | 'axis' | 'funnel' | 'difficulty' | 'volume' | 'priority' | 'status' | 'article_id'
+>;
+
+export async function listKeywordChoices(): Promise<KeywordChoice[]> {
+  const { results } = await db()
+    .prepare(
+      `SELECT id, keyword, axis, funnel, difficulty, volume, priority, status, article_id
+       FROM keywords WHERE status <> 'dropped' ORDER BY priority ASC, id ASC`,
+    )
+    .all<KeywordChoice>();
+  return results ?? [];
+}
+
+/**
+ * 記事の保存に合わせてキーワード台帳を追従させる。
+ *
+ * これまでは記事を公開したあと /admin/keywords で手動で「記事化済み」に倒していた。
+ * 手作業だと必ず抜けるうえ、抜けると台帳の「在庫」が実態とズレて着手順の判断が狂う。
+ * 記事の keyword 列と台帳の keyword は完全一致で突き合わせる（表記ゆれは寄せない。
+ * 曖昧一致で別のKWを勝手に消化済みにする方が害が大きい）。
+ *
+ * 戻り値は画面に出す文言のための情報。該当が無ければ null。
+ */
+export async function syncKeywordForArticle(
+  keyword: string,
+  articleId: number,
+  articleStatus: 'draft' | 'published',
+): Promise<{ keyword: string; status: KeywordRow['status']; changed: boolean } | null> {
+  const row = await db()
+    .prepare('SELECT id, status, article_id FROM keywords WHERE keyword=?')
+    .bind(keyword)
+    .first<{ id: number; status: KeywordRow['status']; article_id: number | null }>();
+  if (!row) return null;
+
+  // 公開＝記事化済み。下書き保存は「着手した」までしか言えないので writing 止まり。
+  // dropped（見送り）に倒したKWを保存のたびに復活させないよう、そこだけは触らない。
+  const next: KeywordRow['status'] =
+    articleStatus === 'published' ? 'done' : row.status === 'todo' ? 'writing' : row.status;
+  if (row.status === 'dropped') return null;
+  // 変化が無いときも「台帳と繋がっている」ことは返す（changed:false）。
+  // 画面はここを見て文言を変える——毎回「〜にした」と出ると、
+  // 実際には何も動いていないのに動いたように読めてしまう。
+  if (next === row.status && row.article_id === articleId) {
+    return { keyword, status: row.status, changed: false };
+  }
+
+  await updateKeywordStatus(row.id, next, articleId);
+  return { keyword, status: next, changed: true };
+}

@@ -11,10 +11,22 @@
  * （＝入力は全部サーバ側で検証する。クライアント側の検証は体験のためのおまけ）。
  */
 import type { APIRoute } from 'astro';
-import { insertArticle, slugTaken, type ArticleInput } from '../../lib/db';
+import {
+  insertArticle,
+  slugStatusMap,
+  slugTaken,
+  syncKeywordForArticle,
+  type ArticleInput,
+} from '../../lib/db';
 import { isValidSlug } from '../../lib/frontmatter';
 import { isAxisSlug, isFunnel } from '../../lib/axis';
 import { renderArticle } from '../../lib/markdown';
+/**
+ * 公開前の品質チェック。判定そのものは lib/quality.ts に置いてある——
+ * 同じ関数をエディタのチェックパネルも呼ぶので、「画面では何も出ないのに
+ * 公開したら警告が出る」という食い違いが起きない。
+ */
+import { inspectArticle, warningsFrom } from '../../lib/quality';
 
 export const prerender = false;
 
@@ -30,15 +42,6 @@ export function json(data: unknown, status = 200): Response {
 
 export function fail(status: number, message: string): Response {
   return json({ error: message }, status);
-}
-
-/** description の目安。style-guide の「120字前後」から上下に幅を持たせた警告レンジ。 */
-const DESC_MIN = 60;
-const DESC_MAX = 140;
-
-/** 日本語は1文字＝1コードポイントで数えたいのでスプレッドして length を取る。 */
-function charCount(s: string): number {
-  return [...s].length;
 }
 
 function str(v: unknown): string {
@@ -113,22 +116,24 @@ export async function buildArticleInput(
   const rendered = renderArticle(bodyMd);
 
   // 公開のときだけ品質チェック。ここは「止めずに知らせる」方針にしている。
-  // 画像の差し替え漏れや description の字数は、公開を止めるほどではないが
-  // 見落とすと確実に損をする類なので、保存はさせた上で必ず画面に出す。
-  const warnings: string[] = [];
-  if (status === 'published') {
-    if (rendered.imagePlaceholders > 0) {
-      warnings.push(
-        `未差し替えの画像プレースホルダー［画像：…］が ${rendered.imagePlaceholders} 件あります`,
-      );
-    }
-    const len = charCount(description);
-    if (len < DESC_MIN || len > DESC_MAX) {
-      warnings.push(
-        `ディスクリプションが ${len} 字です（目安は ${DESC_MIN}〜${DESC_MAX} 字、120字前後）`,
-      );
-    }
-  }
+  // 画像の差し替え漏れ・description の字数・内部リンクの飛び先などは、
+  // 公開を止めるほどではないが見落とすと確実に損をする類なので、
+  // 保存はさせた上で必ず画面に出す。
+  const warnings =
+    status === 'published'
+      ? warningsFrom(
+          inspectArticle({
+            title,
+            description,
+            keyword,
+            axis,
+            body_md: bodyMd,
+            // 内部リンクの飛び先が実在するかを見るために slug の一覧を渡す
+            // （style-guide 11章：URLを推測・生成しない）。
+            slugStatus: await slugStatusMap(),
+          }),
+        )
+      : [];
 
   // 公開日は「最初に公開した日」。下書きに戻しても消さず、再公開でも上書きしない。
   // ここを毎回 now にすると、誤字修正で公開し直しただけで記事の日付が飛んでしまう。
@@ -174,5 +179,6 @@ export const POST: APIRoute = async ({ request }) => {
   if (!built.ok) return fail(built.status, built.message);
 
   const id = await insertArticle(built.input);
-  return json({ id, warnings: built.warnings }, 201);
+  const keyword = await syncKeywordForArticle(built.input.keyword, id, built.input.status);
+  return json({ id, warnings: built.warnings, keyword }, 201);
 };
