@@ -5,7 +5,8 @@ Anniv（記念日のプレゼント選び・レストラン予約・サプライ
 ## トップレベル構成
 
 - `public/` — 本番LPの静的ファイル（旧 `lp/`）。素のHTMLのまま Astro が無加工で配信する。**URLは従来どおり**（`/`、`/contact.html` など）
-- `src/` — Astroのメディア基盤。`pages/media/`（一覧・記事）・`pages/admin/`（記事の投稿・編集）・`pages/api/`（保存・プレビュー・画像アップロード・CSV出力）・`lib/`（D1アクセス・Markdownレンダラー・軸定義）・`layouts/` ・`components/` ・`styles/`
+- `src/` — Astroのメディア基盤。`pages/media/`（一覧・記事）・`pages/admin/`（記事の投稿・編集・キーワード台帳・**メディア分析** `/admin/stats`）・`pages/api/`（保存・プレビュー・画像アップロード・CSV出力・PV計測）・`lib/`（D1アクセス・Markdownレンダラー・軸定義・**PV集計** `stats.ts`）・`layouts/` ・`components/` ・`styles/`
+  - 「見る画面」は3つあって別物：`/admin/stats`（自前PV。記事ごとの相対比較とリライト判断）／ GA4（流入元・行動の詳細）／ `/dashboard`（事業側の固定費と各サービスの入口。中身は `ダッシュボード.html`）
 - `astro.config.mjs` / `wrangler.jsonc` / `schema.sql` — ビルドとCloudflareの設定。**Astro 7 ＋ `@astrojs/cloudflare` で Cloudflare Workers にデプロイ**（root dir はリポジトリルート）
 - **記事の実体は Cloudflare D1**（`articles` テーブル。スキーマは `schema.sql` が正）。画像は R2（`anniv-media`）
 - `.claude/agents/` — 記事制作サブエージェント定義（competitor-researcher / article-writer / article-reviewer）

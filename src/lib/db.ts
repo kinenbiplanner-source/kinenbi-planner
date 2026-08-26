@@ -303,3 +303,67 @@ export async function updateKeywordStatus(
 export async function deleteKeyword(id: number): Promise<void> {
   await db().prepare('DELETE FROM keywords WHERE id=?').bind(id).run();
 }
+
+/* ────────────────────────────────────────────────
+ * ダッシュボード（/admin/stats）用の集計
+ *
+ * 画面側で使う形（日付の穴埋め・期間比較・スパークライン）への加工は
+ * src/lib/stats.ts が持つ。ここは「DBから何を引くか」だけに絞る。
+ * ──────────────────────────────────────────────── */
+
+/** 日別のPV合計（グラフ用）。since 以降のある日だけが返るので、穴埋めは呼び出し側で行う。 */
+export async function pvDailyTotals(sinceYmd: string): Promise<Array<{ ymd: string; n: number }>> {
+  const { results } = await db()
+    .prepare(
+      `SELECT ymd, SUM(count) AS n FROM pageviews
+       WHERE ymd >= ? GROUP BY ymd ORDER BY ymd ASC`,
+    )
+    .bind(sinceYmd)
+    .all<{ ymd: string; n: number }>();
+  return results ?? [];
+}
+
+/**
+ * since 以降のPVを記事×日のまま返す。
+ * 期間比較（直近28日 vs その前28日）とスパークラインの両方で使うので、
+ * 集計せずに素のまま渡して stats.ts 側で好きに畳む。
+ * 行数は 記事数 × 日数 なので、記事が数百本になったら期間を切るか
+ * SQL 側で畳むこと。立ち上げ期の規模では取り回しの良さを優先する。
+ */
+export async function pvSince(sinceYmd: string): Promise<Array<{ article_id: number; ymd: string; count: number }>> {
+  const { results } = await db()
+    .prepare(
+      `SELECT article_id, ymd, count FROM pageviews
+       WHERE ymd >= ? ORDER BY ymd ASC`,
+    )
+    .bind(sinceYmd)
+    .all<{ article_id: number; ymd: string; count: number }>();
+  return results ?? [];
+}
+
+/**
+ * PVを最初に記録した日。null なら1件も計測できていない。
+ *
+ * 「PVが少ない＝伸びていない」と判定してよいのは、計測がその期間ずっと動いていた場合だけ。
+ * 計測を始めた直後は、古い記事ほど不当に「伸び悩み」に見えてしまうので、
+ * ダッシュボード側でこの日付を見て判定を保留する。
+ */
+export async function pvFirstYmd(): Promise<string | null> {
+  const row = await db().prepare('SELECT MIN(ymd) AS ymd FROM pageviews').first<{ ymd: string | null }>();
+  return row?.ymd ?? null;
+}
+
+/**
+ * KW台帳の件数を 軸 × ステータス × 優先度 で刻んで返す。
+ * この3つの組み合わせがあれば「軸1の未着手が何本」「優先度1の残りが何本」を
+ * 画面側で足すだけで出せるので、集計のたびにクエリを増やさずに済む。
+ */
+export async function countKeywordsGrouped(): Promise<
+  Array<{ axis: string; status: string; priority: number; n: number }>
+> {
+  const { results } = await db()
+    .prepare('SELECT axis, status, priority, COUNT(*) AS n FROM keywords GROUP BY axis, status, priority')
+    .all<{ axis: string; status: string; priority: number; n: number }>();
+  return results ?? [];
+}
+

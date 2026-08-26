@@ -19,7 +19,7 @@ interface Props {
    * `(string & {})` を足してあるのは、ページ側が知らないキーを渡しても
    * ビルドを落とさないため（補完には既知のキーだけが出る）。
    */
-  current?: 'list' | 'new' | 'edit' | 'keywords' | (string & {});
+  current?: 'list' | 'new' | 'edit' | 'keywords' | 'stats' | (string & {});
 }
 
 const { title, current } = Astro.props;
@@ -53,9 +53,11 @@ const email = Astro.locals.user?.email ?? '';
     <header class="admin-header">
       <a href="/admin" class="admin-brand">Anniv 管理</a>
       {/*
-        並びは「書く（記事一覧・新規作成・キーワードDB）→ 見る（アナリティクス・ダッシュボード）
-        → 出す（CSV）」の順。外部サービスは別タブで開き、is-external で矢印を出して
+        並びは「書く（記事一覧・新規作成・キーワードDB）→ 見る（メディア分析・アナリティクス・
+        ダッシュボード）→ 出す（CSV）」の順。外部サービスは別タブで開き、is-external で矢印を出して
         管理画面内のページと見分けられるようにしている。
+        「メディア分析」は自前のPV（D1）で記事ごとの相対比較をする画面、「アナリティクス」はGA4、
+        「ダッシュボード」は事業側（固定費・各サービスの入口）と、見るものが3つとも違う。
       */}
       <nav class="admin-nav">
         <a href="/admin" aria-current={current === 'list' ? 'page' : undefined}>記事一覧</a>
@@ -63,6 +65,7 @@ const email = Astro.locals.user?.email ?? '';
         <a href="/admin/keywords" aria-current={current === 'keywords' ? 'page' : undefined}>
           キーワードDB
         </a>
+        <a href="/admin/stats" aria-current={current === 'stats' ? 'page' : undefined}>メディア分析</a>
         <a
           class="is-external"
           href="https://analytics.google.com/"

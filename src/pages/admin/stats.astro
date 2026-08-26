@@ -1,0 +1,737 @@
+---
+/**
+ * メディア分析（/admin/stats）。
+ *
+ * 作った理由：記事一覧に出るのは累計PVだけで、「どれが伸びていて、どれが死んでいるか」が
+ * 判断できなかった（改良ロードマップ B）。pageviews は日付ごとに持っているので、
+ * 期間で切って前期と比べれば、リライトの判断材料までは出せる。
+ *
+ * 出しているもの：
+ *   1. サマリ（公開数・直近28日PVと前期比・今月の公開ペース・KW在庫）
+ *   2. PVの推移（日次の棒＋7日移動平均。30日/90日をGETで切り替え）
+ *   3. 記事別のPV（直近28日 / 前28日 / 増減 / スパークライン）＋リライト候補の印
+ *   4. 軸別カバレッジ（公開本数とKW在庫を並べる。次にどの軸を書くかの判断用）
+ *   5. 公開ペース（月別の本数）
+ *
+ * ここのPVは `POST /api/pv` のビーコンで数えた自前の値で、GA4とは別物。
+ * 突き合わせると必ずズレる（ビーコンは30秒の重複除去あり・JS無効では飛ばない）。
+ * 細かい分析はGA4、記事ごとの相対比較と日々の運用判断はこの画面、という住み分け。
+ *
+ * 期間の切り替えをJSではなくGETのクエリにしているのは keywords.astro と同じ理由で、
+ * リロードで状態が消えず、見たい期間のURLをそのまま残せるため。
+ */
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import {
+  countKeywordsGrouped,
+  jstYmd,
+  listForAdmin,
+  pvDailyTotals,
+  pvFirstYmd,
+  pvSince,
+  pvTotals,
+} from '../../lib/db';
+import { AXES, axisShort } from '../../lib/axis';
+import {
+  CHART_RANGES,
+  DROP_RATIO,
+  STALE_AFTER_DAYS,
+  STALE_PV_UNDER,
+  WINDOW_DAYS,
+  buildBarChart,
+  buildSpark,
+  daysBetween,
+  deltaPct,
+  fillSeries,
+  isoToYmd,
+  perfFlag,
+  pivotByArticle,
+  seriesOver,
+  shiftYmd,
+  sumOver,
+  ymdRange,
+  type ChartRange,
+} from '../../lib/stats';
+
+export const prerender = false;
+
+// ── 期間（不正な値は既定に戻す。URLを手で書き換えられても落ちない）──
+const rawDays = Number(Astro.url.searchParams.get('days'));
+const days: ChartRange = (CHART_RANGES as readonly number[]).includes(rawDays)
+  ? (rawDays as ChartRange)
+  : 30;
+
+const today = jstYmd();
+const chartYmds = ymdRange(today, days);
+// 比較する2つの窓。curYmds が今日を含む28日、prevYmds はその直前の28日。
+const curYmds = ymdRange(today, WINDOW_DAYS);
+const prevYmds = ymdRange(shiftYmd(today, -WINDOW_DAYS), WINDOW_DAYS);
+const windowSince = prevYmds[0]!;
+
+// どれも独立したクエリなので同時に投げる。
+const [articles, dailyRows, windowRows, totals, kwRows, firstYmd] = await Promise.all([
+  listForAdmin(),
+  pvDailyTotals(chartYmds[0]!),
+  pvSince(windowSince),
+  pvTotals(),
+  countKeywordsGrouped(),
+  pvFirstYmd(),
+]);
+
+// 計測できている日数。窓（28日）に満たないうちは、
+// 古い記事が「PVが無い＝伸び悩み」に見えてしまうのでリライト判定を出さない。
+const measuredDays = firstYmd ? daysBetween(firstYmd, today) + 1 : 0;
+const canJudge = measuredDays >= WINDOW_DAYS;
+
+// ── グラフ ──
+const chart = buildBarChart(chartYmds, fillSeries(dailyRows, chartYmds));
+
+// ── サイト全体のPV（期間比較）──
+// 記事別の合計ではなく生の行から足す。記事を削除しても pageviews の行は残るので、
+// 「消した記事の分が消えてサイト全体のPVが減る」のを避けたい（グラフと数字を合わせる）。
+const curSet = new Set(curYmds);
+const prevSet = new Set(prevYmds);
+let pvCur = 0;
+let pvPrev = 0;
+for (const r of windowRows) {
+  if (curSet.has(r.ymd)) pvCur += r.count;
+  else if (prevSet.has(r.ymd)) pvPrev += r.count;
+}
+const pvDelta = deltaPct(pvCur, pvPrev);
+
+// ── 記事別 ──
+const perArticle = pivotByArticle(windowRows);
+const published = articles.filter((a) => a.status === 'published');
+const draftCount = articles.length - published.length;
+
+const perf = published
+  .map((a) => {
+    const by = perArticle.get(a.id);
+    const pv = sumOver(by, curYmds);
+    const prevPv = sumOver(by, prevYmds);
+    const pubYmd = isoToYmd(a.published_at);
+    const ageDays = pubYmd ? daysBetween(pubYmd, today) : null;
+    return {
+      ...a,
+      pubYmd,
+      ageDays,
+      pv,
+      prevPv,
+      delta: deltaPct(pv, prevPv),
+      total: totals.get(a.id) ?? 0,
+      spark: buildSpark(seriesOver(by, curYmds)),
+      flag: canJudge ? perfFlag({ ageDays, pv, prevPv }) : null,
+    };
+  })
+  // 直近28日の多い順。同数なら累計で割る（新しい記事が上に来すぎないように）。
+  .sort((x, y) => y.pv - x.pv || y.total - x.total);
+
+const flagged = perf.filter((p) => p.flag !== null).length;
+
+// ── 軸別カバレッジ ──
+// KW台帳の在庫と公開本数を並べる。「軸1を3〜4本ためてから軸3」という
+// メディア戦略の着手順（7章）を、数字を見ながら判断するための表。
+const kwByAxis = new Map<string, { todo: number; writing: number; done: number }>();
+for (const r of kwRows) {
+  const cur = kwByAxis.get(r.axis) ?? { todo: 0, writing: 0, done: 0 };
+  if (r.status === 'todo') cur.todo += r.n;
+  else if (r.status === 'writing') cur.writing += r.n;
+  else if (r.status === 'done') cur.done += r.n;
+  kwByAxis.set(r.axis, cur);
+}
+const pvByAxis = new Map<string, number>();
+for (const p of perf) pvByAxis.set(p.axis, (pvByAxis.get(p.axis) ?? 0) + p.pv);
+
+const coverage = AXES.map((ax) => ({
+  ...ax,
+  published: published.filter((a) => a.axis === ax.slug).length,
+  draft: articles.filter((a) => a.axis === ax.slug && a.status === 'draft').length,
+  pv: pvByAxis.get(ax.slug) ?? 0,
+  kw: kwByAxis.get(ax.slug) ?? { todo: 0, writing: 0, done: 0 },
+}));
+
+/** 未着手のうち優先度1（＝次に書く候補の在庫）。 */
+const todoP1 = kwRows.filter((r) => r.status === 'todo' && r.priority === 1).reduce((n, r) => n + r.n, 0);
+const todoAll = kwRows.filter((r) => r.status === 'todo').reduce((n, r) => n + r.n, 0);
+
+// ── 公開ペース（月別・直近6か月）──
+const months: Array<{ key: string; label: string; n: number }> = [];
+for (let i = 5; i >= 0; i--) {
+  const d = new Date(`${today.slice(0, 7)}-01T12:00:00Z`);
+  d.setUTCMonth(d.getUTCMonth() - i);
+  const key = d.toISOString().slice(0, 7);
+  months.push({
+    key,
+    label: `${Number(key.slice(5, 7))}月`,
+    n: published.filter((a) => isoToYmd(a.published_at)?.startsWith(key)).length,
+  });
+}
+const paceMax = Math.max(1, ...months.map((m) => m.n));
+const thisMonth = months[months.length - 1]!;
+const lastMonth = months[months.length - 2]!;
+
+// PVが1件も無いときは、グラフも表も「0が並ぶだけ」で読み取れるものが無い。
+// 計測が壊れているのか、まだ読まれていないだけなのかを区別できるよう明示する。
+const noPv = pvCur === 0 && pvPrev === 0;
+
+const num = (n: number) => n.toLocaleString('ja-JP');
+/** 前期比の表示。前期が0なら比率を出さない（stats.ts の deltaPct と対）。 */
+const deltaText = (d: number | null) => (d === null ? '—' : `${d > 0 ? '+' : ''}${d}%`);
+const deltaClass = (d: number | null) => (d === null ? 'is-flat' : d > 0 ? 'is-up' : d < 0 ? 'is-down' : 'is-flat');
+---
+
+<AdminLayout title="メディア分析" current="stats">
+  <div class="admin-bar">
+    <h1 class="admin-title">
+      メディア分析<span class="admin-hint">（{today} 時点 / JST）</span>
+    </h1>
+    <a class="btn" href="/admin">記事一覧</a>
+    <a class="btn" href="/admin/keywords">キーワード台帳</a>
+  </div>
+
+  {
+    noPv && (
+      <div class="notice notice-info">
+        <strong>PVがまだ1件も記録されていません。</strong>
+        計測は公開中の記事ページ（<code>/media/&lt;slug&gt;</code>）が読まれたときだけ走ります。
+        公開直後で読者がいないのか、ビーコン（<code>POST /api/pv</code>）が落ちているのかを切り分けるには、
+        公開ページを1回開いてからこの画面を再読み込みしてください。
+      </div>
+    )
+  }
+
+  {/* ── サマリ ── */}
+  <div class="stat-tiles">
+    <div class="stat-tile">
+      <span class="stat-label">公開記事</span>
+      <span class="stat-value">{num(published.length)}<small>本</small></span>
+      <span class="stat-sub">下書き {num(draftCount)}本</span>
+    </div>
+
+    <div class="stat-tile">
+      <span class="stat-label">直近{WINDOW_DAYS}日のPV</span>
+      <span class="stat-value">{num(pvCur)}</span>
+      <span class="stat-sub">
+        前{WINDOW_DAYS}日 {num(pvPrev)}
+        <span class={`stat-delta ${deltaClass(pvDelta)}`}>{deltaText(pvDelta)}</span>
+      </span>
+    </div>
+
+    <div class="stat-tile">
+      <span class="stat-label">今月の公開</span>
+      <span class="stat-value">{num(thisMonth.n)}<small>本</small></span>
+      <span class="stat-sub">先月 {num(lastMonth.n)}本</span>
+    </div>
+
+    <div class="stat-tile">
+      <span class="stat-label">未着手のKW</span>
+      <span class="stat-value">{num(todoAll)}</span>
+      <span class="stat-sub">
+        優先度1が {num(todoP1)}件
+        <a class="stat-link" href="/admin/keywords?status=todo&priority=1">見る</a>
+      </span>
+    </div>
+  </div>
+
+  {/* ── PVの推移 ── */}
+  <div class="admin-card">
+    <div class="admin-card-head">
+      PVの推移
+      <span class="admin-hint">日次（棒）と7日移動平均（線）</span>
+      <div class="stat-range">
+        {
+          CHART_RANGES.map((r) => (
+            <a
+              href={`/admin/stats?days=${r}`}
+              class="stat-range-btn"
+              aria-current={days === r ? 'page' : undefined}
+            >
+              {r}日
+            </a>
+          ))
+        }
+      </div>
+    </div>
+    <div class="admin-card-body">
+      {
+        chart.empty ? (
+          <p class="admin-empty">この期間のPVはまだありません。</p>
+        ) : (
+          <svg
+            class="stat-chart"
+            viewBox={`0 0 ${chart.width} ${chart.height}`}
+            role="img"
+            aria-label={`直近${days}日の日次PV。最大 ${chart.max}。`}
+          >
+            {chart.ticks.map((t) => (
+              <>
+                <line
+                  class="stat-grid"
+                  x1={chart.plot.x}
+                  x2={chart.plot.x + chart.plot.w}
+                  y1={t.y}
+                  y2={t.y}
+                />
+                <text class="stat-axis" x={chart.plot.x - 6} y={t.y + 3} text-anchor="end">
+                  {t.label}
+                </text>
+              </>
+            ))}
+
+            {chart.bars.map((b) => (
+              <g class="stat-bar-g">
+                <title>{`${b.ymd}　${num(b.n)} PV`}</title>
+                {/* 0PVの日にもツールチップを出すための当たり判定 */}
+                <rect
+                  class="stat-hit"
+                  x={b.hx}
+                  y={chart.plot.y}
+                  width={b.hw}
+                  height={chart.plot.h}
+                />
+                {b.h > 0 && <rect class="stat-bar" x={b.x} y={b.y} width={b.w} height={b.h} rx="1" />}
+              </g>
+            ))}
+
+            {chart.avg && <polyline class="stat-avg" points={chart.avg} />}
+
+            {chart.xLabels.map((l) => (
+              <text class="stat-axis" x={l.x} y={chart.height - 6} text-anchor="middle">
+                {l.label}
+              </text>
+            ))}
+          </svg>
+        )
+      }
+    </div>
+  </div>
+
+  {/* ── 記事別 ── */}
+  <div class="admin-card">
+    <div class="admin-card-head">
+      記事別のPV
+      <span class="admin-hint">直近{WINDOW_DAYS}日／多い順</span>
+      {
+        canJudge ? (
+          flagged > 0 && <span class="stat-flagged">要注目 {flagged}本</span>
+        ) : (
+          <span class="admin-hint stat-judge-note">
+            計測できているのは{measuredDays}日分。{WINDOW_DAYS}日たつまでリライト判定は出さない
+          </span>
+        )
+      }
+    </div>
+    {
+      perf.length === 0 ? (
+        <div class="admin-card-body">
+          <p class="admin-empty">公開中の記事がまだありません。</p>
+        </div>
+      ) : (
+        <div class="admin-table-wrap">
+          <table class="admin-table stat-table">
+            <thead>
+              <tr>
+                <th>タイトル</th>
+                <th>軸</th>
+                <th class="col-num">直近{WINDOW_DAYS}日</th>
+                <th class="col-num">前{WINDOW_DAYS}日</th>
+                <th class="col-num">増減</th>
+                <th>推移</th>
+                <th class="col-num">累計</th>
+                <th class="col-num">公開から</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {perf.map((p) => (
+                <tr>
+                  <td class="col-title">
+                    <a href={`/admin/${p.id}/edit`}>{p.title}</a>
+                    {p.flag && (
+                      <span class={`stat-flag stat-flag-${p.flag.kind}`} title={p.flag.hint}>
+                        {p.flag.label}
+                      </span>
+                    )}
+                  </td>
+                  <td>{axisShort(p.axis)}</td>
+                  <td class={`cell-num${p.pv === 0 ? ' is-zero' : ''}`}>{num(p.pv)}</td>
+                  <td class={`cell-num${p.prevPv === 0 ? ' is-zero' : ''}`}>{num(p.prevPv)}</td>
+                  <td class={`cell-num stat-delta ${deltaClass(p.delta)}`}>{deltaText(p.delta)}</td>
+                  <td class="stat-spark-cell">
+                    {p.spark.empty ? (
+                      <span class="stat-spark-empty">—</span>
+                    ) : (
+                      <svg
+                        class="stat-spark"
+                        viewBox={`0 0 ${p.spark.width} ${p.spark.height}`}
+                        role="img"
+                        aria-label={`直近${WINDOW_DAYS}日の推移`}
+                      >
+                        <polygon class="stat-spark-area" points={p.spark.area} />
+                        <polyline class="stat-spark-line" points={p.spark.line} />
+                      </svg>
+                    )}
+                  </td>
+                  <td class={`cell-num${p.total === 0 ? ' is-zero' : ''}`}>{num(p.total)}</td>
+                  <td class="cell-num cell-date">{p.ageDays === null ? '—' : `${num(p.ageDays)}日`}</td>
+                  <td>
+                    <div class="row-actions">
+                      <a class="btn btn-sm" href={`/admin/${p.id}/edit`}>
+                        編集
+                      </a>
+                      <a
+                        class="btn btn-sm"
+                        href={`/media/${p.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        公開ページ
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+    <div class="admin-card-body stat-legend">
+      <span><span class="stat-flag stat-flag-drop">下降</span>直近{WINDOW_DAYS}日が前{WINDOW_DAYS}日の{Math.round(DROP_RATIO * 100)}%未満（前期に十分なPVがあったものだけ）</span>
+      <span><span class="stat-flag stat-flag-stale">伸び悩み</span>公開から{STALE_AFTER_DAYS}日以上たって直近{WINDOW_DAYS}日が{STALE_PV_UNDER}PV未満</span>
+      <span class="admin-hint">しきい値は立ち上げ期の暫定値（src/lib/stats.ts）。実データが溜まったら見直す。</span>
+    </div>
+  </div>
+
+  <div class="stat-cols">
+    {/* ── 軸別カバレッジ ── */}
+    <div class="admin-card">
+      <div class="admin-card-head">
+        軸別カバレッジ
+        <span class="admin-hint">公開本数とKW在庫</span>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table stat-table">
+          <thead>
+            <tr>
+              <th>軸</th>
+              <th class="col-num">公開</th>
+              <th class="col-num">下書き</th>
+              <th class="col-num">直近{WINDOW_DAYS}日PV</th>
+              <th class="col-num">未着手KW</th>
+              <th class="col-num">執筆中</th>
+            </tr>
+          </thead>
+          <tbody>
+            {coverage.map((c) => (
+              <tr>
+                <td class="col-title">
+                  <a href={`/admin/keywords?axis=${c.slug}`}>{c.short}</a>
+                  <span class="stat-axis-name">{c.name}</span>
+                </td>
+                <td class={`cell-num${c.published === 0 ? ' is-zero' : ''}`}>{num(c.published)}</td>
+                <td class={`cell-num${c.draft === 0 ? ' is-zero' : ''}`}>{num(c.draft)}</td>
+                <td class={`cell-num${c.pv === 0 ? ' is-zero' : ''}`}>{num(c.pv)}</td>
+                <td class={`cell-num${c.kw.todo === 0 ? ' is-zero' : ''}`}>{num(c.kw.todo)}</td>
+                <td class={`cell-num${c.kw.writing === 0 ? ' is-zero' : ''}`}>{num(c.kw.writing)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div class="admin-card-body stat-legend">
+        <span class="admin-hint">
+          着手順は 軸1（ギフト）→ 軸2（デート）→ 軸3（代行）。軸1が3〜4本たまったら軸3を取りにいく
+          （メディア方針/メディア戦略.md 7章）。
+        </span>
+      </div>
+    </div>
+
+    {/* ── 公開ペース ── */}
+    <div class="admin-card">
+      <div class="admin-card-head">
+        公開ペース
+        <span class="admin-hint">月別の公開本数（直近6か月）</span>
+      </div>
+      <div class="admin-card-body">
+        <ul class="stat-pace">
+          {
+            months.map((m) => (
+              <li>
+                <span class="stat-pace-label">{m.label}</span>
+                <span class="stat-pace-track">
+                  <span class="stat-pace-bar" style={`width:${(m.n / paceMax) * 100}%`} />
+                </span>
+                <span class={`stat-pace-num${m.n === 0 ? ' is-zero' : ''}`}>{num(m.n)}</span>
+              </li>
+            ))
+          }
+        </ul>
+        <p class="admin-hint stat-pace-note">
+          公開日（published_at）で数える。下書きは含まない。
+        </p>
+      </div>
+    </div>
+  </div>
+</AdminLayout>
+
+<style>
+  /* 見出しの数字。ここだけは一覧表より大きく取って、開いた瞬間に目が行くようにする。 */
+  .stat-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .stat-tile {
+    padding: 13px 16px 14px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--admin-radius);
+    box-shadow: var(--shadow-sm);
+  }
+  .stat-label {
+    display: block;
+    font-size: 11.5px;
+    color: var(--text-light);
+  }
+  .stat-value {
+    display: block;
+    margin: 2px 0 1px;
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--navy);
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-value small {
+    margin-left: 3px;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text-light);
+  }
+  .stat-sub {
+    display: block;
+    font-size: 11.5px;
+    color: var(--text-light);
+  }
+  .stat-sub .stat-delta {
+    margin-left: 6px;
+  }
+  .stat-link {
+    margin-left: 6px;
+    color: var(--blue-mid);
+  }
+
+  /* 増減は色だけで意味を持たせない（記号と数字も出す）。 */
+  .stat-delta {
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-delta.is-up {
+    color: var(--admin-ok);
+  }
+  .stat-delta.is-down {
+    color: var(--admin-danger);
+  }
+  .stat-delta.is-flat {
+    color: var(--text-light);
+  }
+
+  /* ── 期間切り替え ── */
+  .stat-range {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+  }
+  .stat-range-btn {
+    padding: 3px 11px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-light);
+    text-decoration: none;
+  }
+  .stat-range-btn:hover {
+    background: var(--blue-pale);
+    border-color: var(--blue-pastel);
+  }
+  .stat-range-btn[aria-current='page'] {
+    background: var(--navy);
+    border-color: var(--navy);
+    color: var(--white);
+  }
+
+  /* ── グラフ（SVGはサーバ側で組み立て済み。ここは見た目だけ）── */
+  .stat-chart {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .stat-grid {
+    stroke: var(--border);
+    stroke-width: 1;
+  }
+  .stat-axis {
+    font-size: 10px;
+    fill: var(--text-light);
+  }
+  .stat-bar {
+    fill: var(--blue-mid);
+  }
+  /* 0PVの日にもホバーが効くよう、日ごとに透明な帯を敷いてある */
+  .stat-hit {
+    fill: transparent;
+  }
+  .stat-bar-g:hover .stat-hit {
+    fill: rgba(26, 40, 64, 0.05);
+  }
+  .stat-bar-g:hover .stat-bar {
+    fill: var(--navy);
+  }
+  .stat-avg {
+    fill: none;
+    stroke: var(--gold);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    pointer-events: none;
+  }
+
+  /* ── スパークライン ── */
+  .stat-spark-cell {
+    width: 112px;
+  }
+  .stat-spark {
+    display: block;
+    width: 96px;
+    height: 24px;
+  }
+  .stat-spark-line {
+    fill: none;
+    stroke: var(--blue-mid);
+    stroke-width: 1.5;
+    stroke-linejoin: round;
+  }
+  .stat-spark-area {
+    fill: rgba(74, 138, 181, 0.14);
+    stroke: none;
+  }
+  .stat-spark-empty {
+    color: var(--text-light);
+  }
+
+  /* ── リライト候補の印 ── */
+  .stat-flag {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 7px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    font-size: 11px;
+    line-height: 1.6;
+    cursor: help;
+  }
+  .stat-flag-stale {
+    background: #fdf6e7;
+    border-color: #eddcb0;
+    color: #8a6d2f;
+  }
+  .stat-flag-drop {
+    background: #fdf1ef;
+    border-color: #eccac5;
+    color: var(--admin-danger);
+  }
+  .stat-flagged {
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 400;
+    color: #8a6d2f;
+  }
+  .stat-judge-note {
+    margin-left: auto;
+  }
+
+  /* 判定基準は画面の中に書いておく（読み手が別ファイルを見に行かなくて済むように）。 */
+  .stat-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    align-items: center;
+    border-top: 1px solid var(--border);
+    font-size: 11.5px;
+    color: var(--text-light);
+  }
+  .stat-legend .stat-flag {
+    margin-left: 0;
+    margin-right: 5px;
+  }
+
+  .stat-axis-name {
+    display: block;
+    font-size: 11px;
+    color: var(--text-light);
+  }
+
+  /* ── 下段の2カラム ── */
+  .stat-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-top: 18px;
+    align-items: start;
+  }
+  /* admin.css の `.admin-card + .admin-card` はグリッド内では効かせない（列がずれる） */
+  .stat-cols .admin-card + .admin-card {
+    margin-top: 0;
+  }
+
+  /* ── 公開ペース ── */
+  .stat-pace {
+    list-style: none;
+  }
+  .stat-pace li {
+    display: grid;
+    grid-template-columns: 42px 1fr 34px;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 9px;
+  }
+  .stat-pace-label {
+    font-size: 12px;
+    color: var(--text-light);
+  }
+  .stat-pace-track {
+    display: block;
+    height: 8px;
+    background: var(--blue-pale);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .stat-pace-bar {
+    display: block;
+    height: 100%;
+    background: var(--blue-mid);
+    border-radius: 4px;
+  }
+  .stat-pace-num {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--navy);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-pace-num.is-zero {
+    color: var(--text-light);
+    font-weight: 400;
+  }
+  .stat-pace-note {
+    margin-top: 12px;
+  }
+
+  @media (max-width: 1000px) {
+    .stat-cols {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
