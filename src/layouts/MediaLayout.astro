@@ -132,6 +132,19 @@ const {
             return;
           }
 
+          // メディアTOP・カテゴリのサイドバー「更新を受け取る」。行き先ごとに分けて数える。
+          // ここだけ label が発火場所ではなく行き先になる（links.html の links_click と同じ扱い）。
+          var follow = t.closest('[data-follow]');
+          if (follow) {
+            if (typeof gtag === 'function') {
+              gtag('event', 'follow_click', {
+                event_category: 'engagement',
+                event_label: follow.getAttribute('data-follow') || 'unknown',
+              });
+            }
+            return;
+          }
+
           // フッターのLINEアイコン。LPの index_footer と揃えて label だけ分ける。
           if (t.closest('.footer-social a[href*="lin.ee"]')) {
             if (typeof gtag === 'function') {

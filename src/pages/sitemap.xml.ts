@@ -8,12 +8,24 @@
  * noindex 運用（メディア方針/計測設計.md 2章）なので入れない。
  */
 import type { APIRoute } from 'astro';
-import { listAllPublished } from '../lib/db';
+import { listAllPublished, db } from '../lib/db';
 import { AXES } from '../lib/axis';
 
 export const prerender = false;
 
 const SITE = 'https://anniv.gift';
+
+/**
+ * 公開記事が1本以上ある軸だけを返す。
+ * 記事0本のカテゴリページは中身が「準備中」だけになるので、載せると
+ * 薄いページを自分から申告することになる（そちら側でも noindex にしてある）。
+ */
+async function axesWithArticles(): Promise<Set<string>> {
+  const { results } = await db()
+    .prepare("SELECT axis FROM articles WHERE status='published' GROUP BY axis")
+    .all<{ axis: string }>();
+  return new Set((results ?? []).map((r) => r.axis));
+}
 
 /** LP側の静的ページ。public/ 配下に素のHTMLで置いてあるもの。 */
 const STATIC_PATHS = ['/', '/privacy', '/tokutei'];
@@ -33,7 +45,7 @@ function urlEntry(path: string, lastmod?: string | null): string {
 }
 
 export const GET: APIRoute = async () => {
-  const articles = await listAllPublished();
+  const [articles, liveAxes] = await Promise.all([listAllPublished(), axesWithArticles()]);
   // 一覧の更新日は最新記事の更新日。listAllPublished は公開日の新しい順。
   const newest = articles[0]?.updated_at ?? null;
 
@@ -42,7 +54,9 @@ export const GET: APIRoute = async () => {
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
     STATIC_PATHS.map((p) => urlEntry(p)).join('') +
     urlEntry('/media', newest) +
-    AXES.map((a) => urlEntry(`/media/category/${a.slug}`)).join('') +
+    AXES.filter((a) => liveAxes.has(a.slug))
+      .map((a) => urlEntry(`/media/category/${a.slug}`))
+      .join('') +
     articles.map((a) => urlEntry(`/media/${a.slug}`, a.updated_at)).join('') +
     '</urlset>\n';
 

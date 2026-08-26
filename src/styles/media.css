@@ -180,6 +180,14 @@
   color: var(--navy);
   text-decoration: underline;
 }
+/* 「すべて見る」の無いセクション（新着）で件数だけ出す枠。位置を揃えるため同じ行に置く。 */
+.m-sec-count {
+  flex: 0 0 auto;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--text-light);
+  white-space: nowrap;
+}
 
 /* ── 横スクロールのカードレール ──
    記事が少ないときに間延びしないよう、カードは伸ばさず固定幅で左詰めにする。
@@ -245,6 +253,50 @@
 }
 .m-inline-cta a:hover {
   filter: brightness(1.06);
+}
+
+/* ── このメディアで扱うテーマ ──
+   まだ記事が1本も無い軸をここで受ける。立ち上げ期はトップの主コンテンツがこれになる。
+   記事が入った軸は上のレールへ移り、カードは自動で消える。
+   中身の無いカテゴリページへ送っても得るものが無いので、カード自体はリンクにしない。 */
+.m-topics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 20px;
+}
+.m-topic {
+  display: flex;
+  flex-direction: column;
+  padding: 24px 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
+}
+.m-topic-name {
+  font-family: var(--font-serif-jp);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--navy);
+  line-height: 1.55;
+  margin-bottom: 10px;
+}
+.m-topic-desc {
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--text-light);
+  margin-bottom: 18px;
+}
+.m-topic-soon {
+  margin-top: auto;
+  align-self: flex-start;
+  padding: 5px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--blue-pale);
+  color: var(--blue-mid);
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
 }
 
 /* ────────────────────────────────────────────────
@@ -501,13 +553,44 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--grad-navy);
 }
 .card-thumb.is-empty span {
   font-family: var(--font-serif-jp);
   font-size: 30px;
   color: rgba(255, 255, 255, 0.28);
   letter-spacing: 0.1em;
+}
+/* 軸で地の色（--tint-*）、id（is-v0〜2）でグラデーションの角度を変える。
+   アイキャッチ未設定のカードが並んでも同じ絵が続かないようにするための繋ぎで、
+   改良ロードマップ A で実画像の運用が決まったら消せる。
+   軸が未知の値のときは既定色（ネイビー）にフォールバックする。 */
+.card-thumb.is-empty {
+  /* 既定は --grad-navy と同じ2色。軸が未知の値でもこれで落ち着く。 */
+  --tint-a: #2a3d5c;
+  --tint-b: #1a2840;
+  background-image: linear-gradient(140deg, var(--tint-a) 0%, var(--tint-b) 100%);
+}
+.card-thumb.is-empty.is-gift {
+  --tint-a: #c4a35a;
+  --tint-b: #8a6d2f;
+}
+.card-thumb.is-empty.is-date {
+  --tint-a: #4a8ab5;
+  --tint-b: #1a2840;
+}
+.card-thumb.is-empty.is-concierge {
+  --tint-a: #2a3d5c;
+  --tint-b: #4a8ab5;
+}
+.card-thumb.is-empty.is-v1 {
+  background-image: linear-gradient(200deg, var(--tint-a) 0%, var(--tint-b) 100%);
+}
+.card-thumb.is-empty.is-v2 {
+  background-image: linear-gradient(75deg, var(--tint-a) 0%, var(--tint-b) 100%);
+}
+/* ゴールド地は白文字が沈むのでコントラストを上げる */
+.card-thumb.is-empty.is-gift span {
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .card-body {

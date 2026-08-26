@@ -35,10 +35,33 @@ const description =
   'プレゼント選びから記念日デートのお店選び、当日のサプライズ演出まで。記念日を成功させるための考え方と段取りをまとめた、Annivのメディアです。';
 
 const hrefOf = (n: number) => (n === 1 ? '/media' : `/media/page/${n}`);
+
+const SITE = 'https://anniv.gift';
+
+/** トップ・カテゴリ・記事と揃える。2ページ目以降は /media の下という階層を明示する。 */
+const breadcrumbLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Anniv', item: `${SITE}/` },
+    { '@type': 'ListItem', position: 2, name: 'メディア', item: `${SITE}/media` },
+    { '@type': 'ListItem', position: 3, name: `${page}ページ目`, item: `${SITE}/media/page/${page}` },
+  ],
+};
 ---
 
 <MediaLayout title={title} description={description} current="media">
+  <Fragment slot="head">
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(breadcrumbLd)} />
+  </Fragment>
+
   <div class="shell shell-media">
+    <nav class="art-crumb" aria-label="パンくず">
+      <a href="/">ホーム</a><span class="sep">›</span>
+      <a href="/media">メディア</a><span class="sep">›</span>
+      <span aria-current="page">{page}ページ目</span>
+    </nav>
+
     <header class="section-header">
       <p class="section-label">MEDIA</p>
       <h1 class="section-title">記念日のヒント</h1>

@@ -40,7 +40,11 @@ const date = article.published_at ? jstDate(article.published_at) : '';
         <img src={`/media/img/${article.hero_image}`} alt="" loading="lazy" decoding="async" />
       </div>
     ) : (
-      <div class="card-thumb is-empty">
+      /* アイキャッチ未設定のとき。全カードが同じ絵だと一覧で記事の見分けが付かないので、
+         軸で地の色を、id で濃淡を変える（media.css の .card-thumb.is-empty.is-*）。
+         id 由来なので同じ記事は毎回同じ見た目になる。
+         実画像の運用が決まるまでの繋ぎ（改良ロードマップ A）。 */
+      <div class:list={['card-thumb', 'is-empty', `is-${article.axis}`, `is-v${article.id % 3}`]}>
         <span>Anniv</span>
       </div>
     )

@@ -7,6 +7,10 @@
  *   検索バー＋タグ → 軸ごとの横スクロールレール（＋直後にCTA）→ 新着グリッド ＋ 右サイドバー
  * 「まず軸で見せてから全件」にすることで、記事が少ないうちでもトップが
  * 「何を扱うメディアか」を説明する面になる（メディア戦略.md 3章の着手順と対）。
+ *
+ * 記事が1本も無い軸はレールに出せないので、下の「このメディアで扱うテーマ」で受ける。
+ * 立ち上げ期はこれが3枚とも出る状態が続く前提で、**記事0本でもトップが白紙にならない**
+ * ようにしてある。記事が入った軸は自動でレール側へ移り、カードは消える。
  */
 export const prerender = false;
 
@@ -16,6 +20,8 @@ import { AXES, type AxisSlug } from '../../lib/axis';
 import { listPublished, countPublished, listPopular, db, PAGE_SIZE } from '../../lib/db';
 
 Astro.response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=86400');
+
+const SITE = 'https://anniv.gift';
 
 /** 軸レールの表示件数。横スクロールなので画面幅に収まる必要はない。 */
 const RAIL_SIZE = 6;
@@ -36,15 +42,36 @@ async function tagKeywords(limit = 6): Promise<string[]> {
   return (results ?? []).map((r) => r.keyword);
 }
 
+/**
+ * 軸ごとの公開記事数。セクション見出しの「すべて見る」に添える。
+ * レールは RAIL_SIZE で切っているので items.length では総数にならない。
+ * 軸ごとに COUNT を投げると3往復になるので1本にまとめる。
+ */
+async function countsByAxis(): Promise<Record<string, number>> {
+  const { results } = await db()
+    .prepare(`SELECT axis, COUNT(*) AS n FROM articles WHERE status='published' GROUP BY axis`)
+    .all<{ axis: string; n: number }>();
+  return Object.fromEntries((results ?? []).map((r) => [r.axis, r.n]));
+}
+
 // 軸レールは Promise.all を入れ子にする。展開して1本の配列にすると
 // 戻り値の型が union になり、以降の型が効かなくなる。
-const [total, articles, popular, keywords, rails] = await Promise.all([
+const [total, articles, popularAll, keywords, axisCounts, rails] = await Promise.all([
   countPublished(),
   listPublished({ limit: PAGE_SIZE }),
   listPopular(30, 5),
   tagKeywords(),
+  countsByAxis(),
   Promise.all(AXES.map((a) => listPublished({ axis: a.slug, limit: RAIL_SIZE }))),
 ]);
+
+// listPopular は PV が 0 の記事も新しい順で埋めて返す。
+// PVが1件も付いていないうちにそれを並べると「読まれていない記事を人気として出す」
+// ことになるので落とす。全部落ちればカードごと出ない（表示側で length を見ている）。
+const popular = popularAll.filter((p) => p.pv > 0);
+
+// 記事が1本も無い軸。レールに出せないぶんを下のテーマカードで受ける。
+const emptyAxes = AXES.filter((_, i) => (rails[i] ?? []).length === 0);
 
 const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -58,10 +85,57 @@ const RAIL_CTA: Record<AxisSlug, string> = {
 const title = '記念日のヒント | Anniv';
 const description =
   'プレゼント選びから記念日デートのお店選び、当日のサプライズ演出まで。記念日を成功させるための考え方と段取りをまとめた、Annivのメディアです。';
+
+/**
+ * 構造化データ。記事ページ（MediaArticle.astro）が Article ＋ BreadcrumbList を出しているのに
+ * 一覧の親であるここが無いと、メディア全体が1つの Blog として繋がらないので揃えておく。
+ * blogPost は新着グリッドに出している分だけ。載っていない記事まで並べても実体と合わない。
+ */
+const blogLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Blog',
+  '@id': `${SITE}/media#blog`,
+  name: '記念日のヒント',
+  description,
+  url: `${SITE}/media`,
+  inLanguage: 'ja',
+  publisher: { '@type': 'Organization', name: 'Anniv', url: `${SITE}/` },
+  ...(articles.length > 0
+    ? {
+        blogPost: articles.map((a) => ({
+          '@type': 'BlogPosting',
+          headline: a.title,
+          description: a.description,
+          url: `${SITE}/media/${a.slug}`,
+          ...(a.published_at ? { datePublished: a.published_at } : {}),
+        })),
+      }
+    : {}),
+};
+
+const breadcrumbLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Anniv', item: `${SITE}/` },
+    { '@type': 'ListItem', position: 2, name: 'メディア', item: `${SITE}/media` },
+  ],
+};
 ---
 
 <MediaLayout title={title} description={description} current="media">
+  <Fragment slot="head">
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(blogLd)} />
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(breadcrumbLd)} />
+  </Fragment>
+
   <div class="shell shell-media">
+    {/* カテゴリ・記事と同じ形のパンくず。トップだけ無いと構造化データと表示がズレる。 */}
+    <nav class="art-crumb" aria-label="パンくず">
+      <a href="/">ホーム</a><span class="sep">›</span>
+      <span aria-current="page">メディア</span>
+    </nav>
+
     <header class="section-header">
       <p class="section-label">MEDIA</p>
       <h1 class="section-title">記念日のヒント</h1>
@@ -92,8 +166,10 @@ const description =
           ))
         }
         {
+          /* 検索結果は noindex。クロールを送り込んでも拾われないので nofollow を付ける。
+             人が使う導線としてはそのまま残す。 */
           keywords.map((k) => (
-            <a class="findbar-tag" href={`/media/search?q=${encodeURIComponent(k)}`}>
+            <a class="findbar-tag" rel="nofollow" href={`/media/search?q=${encodeURIComponent(k)}`}>
               {k}
             </a>
           ))
@@ -104,10 +180,12 @@ const description =
     <div class="m-layout">
       <div class="m-main">
         {
-          /* 軸セクション。記事が1本も無い軸は見出しだけ残しても意味がないので丸ごと落とす。 */
+          /* 軸セクション。記事が1本も無い軸はレールが空になるだけなので、
+             ここでは出さず下の「このメディアで扱うテーマ」に回す。 */
           AXES.map((axis, i) => {
             const items = rails[i] ?? [];
             if (items.length === 0) return null;
+            const n = axisCounts[axis.slug] ?? items.length;
             return (
               <section class="m-sec">
                 <div class="m-sec-head">
@@ -116,11 +194,13 @@ const description =
                     <p class="m-sec-desc">{axis.description}</p>
                   </div>
                   <a class="m-sec-more" href={`/media/category/${axis.slug}`}>
-                    すべて見る
+                    すべて見る（{n}件）
                   </a>
                 </div>
 
-                <div class="m-rail">
+                {/* 横スクロール領域。カード以外の場所からキーボードでも送れるよう
+                    グループとして名前を付けておく（マウスホイール以外の手段が要る）。 */}
+                <div class="m-rail" role="group" aria-label={`${axis.name}の記事`}>
                   {items.map((a) => (
                     <ArticleCard article={a} headingLevel={3} />
                   ))}
@@ -141,50 +221,76 @@ const description =
           })
         }
 
-        <section class="m-sec">
-          <div class="m-sec-head">
-            <div>
-              <h2 class="m-sec-title">新着の記事</h2>
-              <p class="m-sec-desc">公開したものから順に並べています。</p>
-            </div>
-          </div>
+        {
+          /* 新着グリッド。記事が0本のときは「準備中です」の箱を置くより、
+             下のテーマカードに面を譲ったほうがトップが説明として成立する。 */
+          total > 0 && (
+            <section class="m-sec">
+              <div class="m-sec-head">
+                <div>
+                  <h2 class="m-sec-title">新着の記事</h2>
+                  <p class="m-sec-desc">公開したものから順に並べています。</p>
+                </div>
+                <span class="m-sec-count">全{total}件</span>
+              </div>
 
-          {
-            articles.length === 0 ? (
-              <p class="empty">記事は準備中です。</p>
-            ) : (
               <div class="card-grid">
                 {articles.map((a) => (
                   <ArticleCard article={a} headingLevel={3} />
                 ))}
               </div>
-            )
-          }
 
-          {
-            totalPages > 1 && (
-              <nav class="pager" aria-label="ページ送り">
-                <span class="is-disabled">前へ</span>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) =>
-                  n === 1 ? (
-                    <span class="is-current" aria-current="page">
-                      {n}
-                    </span>
-                  ) : (
-                    <a href={`/media/page/${n}`}>{n}</a>
-                  ),
-                )}
-                <a href="/media/page/2">次へ</a>
-              </nav>
-            )
-          }
-        </section>
+              {totalPages > 1 && (
+                <nav class="pager" aria-label="ページ送り">
+                  <span class="is-disabled">前へ</span>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) =>
+                    n === 1 ? (
+                      <span class="is-current" aria-current="page">
+                        {n}
+                      </span>
+                    ) : (
+                      <a href={`/media/page/${n}`}>{n}</a>
+                    ),
+                  )}
+                  <a href="/media/page/2">次へ</a>
+                </nav>
+              )}
+            </section>
+          )
+        }
+
+        {
+          /* まだ記事の無い軸。ここが「このメディアは何を扱うのか」を伝える面になる。
+             中身の無いカテゴリページへ送っても得るものが無いのでリンクにはしない。 */
+          emptyAxes.length > 0 && (
+            <section class="m-sec">
+              <div class="m-sec-head">
+                <div>
+                  <h2 class="m-sec-title">このメディアで扱うテーマ</h2>
+                  <p class="m-sec-desc">
+                    記念日の準備を3つの軸に分けて、順に記事を公開していきます。
+                  </p>
+                </div>
+              </div>
+
+              <div class="m-topics">
+                {emptyAxes.map((a) => (
+                  <article class="m-topic">
+                    <h3 class="m-topic-name">{a.name}</h3>
+                    <p class="m-topic-desc">{a.description}</p>
+                    <span class="m-topic-soon">記事は準備中です</span>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )
+        }
       </div>
 
       <aside class="m-aside">
         {
-          /* 直近30日のPVが多い順。PVが1件も無いうちは全記事が pv=0 で並ぶだけなので、
-             記事が0本のときだけ出さない。 */
+          /* 直近30日のPVが多い順。PV0のものは上で落としてあるので、
+             ここに並ぶのは実際に読まれている記事だけ。 */
           popular.length > 0 && (
             <section class="m-side-card">
               <p class="m-side-head">
@@ -221,6 +327,29 @@ const description =
           </p>
           <div class="m-side-nav">
             {AXES.map((a) => <a href={`/media/category/${a.slug}`}>{a.name}</a>)}
+          </div>
+        </nav>
+
+        {/* 更新を追いたい人向け。フィード自体は前からあるのにどこからも辿れなかった。 */}
+        <nav class="m-side-card" aria-label="更新情報">
+          <p class="m-side-head">
+            FEED
+            <span class="m-side-head-ja">更新を受け取る</span>
+          </p>
+          <div class="m-side-nav">
+            <a href="/media/feed.xml" data-follow="rss">RSSで購読する</a>
+            <a
+              href="https://www.instagram.com/anniv.gift/"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-follow="instagram">Instagram</a
+            >
+            <a
+              href="https://x.com/Anniv_gift"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-follow="x">X</a
+            >
           </div>
         </nav>
       </aside>
