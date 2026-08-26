@@ -7,6 +7,7 @@ Anniv（記念日のプレゼント選び・レストラン予約・サプライ
 - `public/` — 本番LPの静的ファイル（旧 `lp/`）。素のHTMLのまま Astro が無加工で配信する。**URLは従来どおり**（`/`、`/contact.html` など）
 - `src/` — Astroのメディア基盤。`pages/media/`（一覧・記事）・`pages/admin/`（記事の投稿・編集・キーワード台帳・**メディア分析** `/admin/stats`）・`pages/api/`（保存・プレビュー・画像アップロード・CSV出力・PV計測）・`lib/`（D1アクセス・Markdownレンダラー・軸定義・**PV集計** `stats.ts`）・`layouts/` ・`components/` ・`styles/`
   - 「見る画面」は3つあって別物：`/admin/stats`（自前PV。記事ごとの相対比較とリライト判断）／ GA4（流入元・行動の詳細）／ `/dashboard`（事業側の固定費と各サービスの入口。中身は `ダッシュボード.html`）
+  - `/dashboard` のコスト欄にある「SNS運用（今月の実績）」は**別プロジェクト multi-SNS-manager（`C:\dev\multi-SNS-manager` / 本番 `anniv-tool.date`）のD1を読み取り専用で参照している**（`SNS_DB` バインディング → `src/lib/sns-cost.ts` → `/api/sns-cost`）。あちらの `cost_events` / `cost_settings` の列名に依存するので、壊れたら真っ先にそこを疑う（読めないときは金額を出さず「—」に落とす作り）
 - `astro.config.mjs` / `wrangler.jsonc` / `schema.sql` — ビルドとCloudflareの設定。**Astro 7 ＋ `@astrojs/cloudflare` で Cloudflare Workers にデプロイ**（root dir はリポジトリルート）
 - **記事の実体は Cloudflare D1**（`articles` テーブル。スキーマは `schema.sql` が正）。画像は R2（`anniv-media`）
 - `.claude/agents/` — 記事制作サブエージェント定義（competitor-researcher / article-writer / article-reviewer）

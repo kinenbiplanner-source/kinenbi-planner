@@ -37,11 +37,21 @@
 
 
   // 記事本体。database_id は `wrangler d1 create anniv` の出力で置き換える。
+  //
+  // SNS_DB は別プロジェクト（multi-SNS-manager / 本番 anniv-tool.date）のDB。
+  // /dashboard のコスト欄に「今月いくら使ったか」を出すためだけに**読み取り専用で**参照する。
+  // 同じCloudflareアカウントなので、APIと共有シークレットを用意しなくてもバインドで届く。
+  // 依存しているのは cost_events / cost_settings の2テーブルだけ（詳細は src/lib/sns-cost.ts）。
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "anniv",
       "database_id": "1c4a6082-0ef7-4acf-9b4e-71dfc4996038"
+    },
+    {
+      "binding": "SNS_DB",
+      "database_name": "multi-sns-manager-db",
+      "database_id": "f2a1ca20-bffa-486e-9086-a9c9a1e3a4cf"
     }
   ],
 

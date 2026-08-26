@@ -116,6 +116,9 @@
     .cost-item-amount { font-size: 13px; font-weight: 500; color: var(--white); margin-top: 2px; }
     .cost-item-amount.free { color: var(--text-muted); font-weight: 300; }
     .cost-item-note { font-size: 10px; color: var(--text-muted); margin-top: 3px; line-height: 1.5; }
+    /* 別プロジェクトの画面へ飛ぶコスト項目。押せることが分かるようにホバーを付ける */
+    .cost-item-link { text-decoration: none; color: inherit; transition: background 0.18s, border-color 0.18s; }
+    .cost-item-link:hover { background: rgba(255,255,255,0.07); border-color: var(--border-gold); }
     .cost-divider {
       width: 1px;
       height: 40px;
@@ -309,6 +312,17 @@
         <div class="cost-item-amount" id="jalAmount">¥1,300</div>
       </div>
     </div>
+    <!-- multi-SNS-manager が記録している今月の費用。金額は /api/sns-cost が
+         あちらのD1（cost_events / cost_settings）を読んで返す。
+         固定費と違って月内で増えていくので、上の合計（固定費）には足さない。 -->
+    <a class="cost-item cost-item-link" id="snsCostItem" href="https://anniv-tool.date/cost" target="_blank" rel="noopener">
+      <div class="cost-item-dot dot-paid"></div>
+      <div class="cost-item-body">
+        <div class="cost-item-name">SNS運用（今月の実績）</div>
+        <div class="cost-item-amount" id="snsCostAmount">¥—</div>
+        <div class="cost-item-note" id="snsCostNote">X API・広告費・Workers Paid</div>
+      </div>
+    </a>
     <div class="cost-divider"></div>
     <div class="cost-item">
       <div class="cost-item-dot dot-free"></div>
@@ -352,25 +366,33 @@
 <div class="section-title">Media &amp; Infrastructure</div>
 <div class="grid">
 
-  <a href="/admin" target="_blank" class="card">
+  <a href="https://anniv.gift/admin" target="_blank" class="card">
     <div class="card-icon">📝</div>
     <div class="card-name">記事管理</div>
     <div class="card-desc">記事の作成・編集・公開</div>
   </a>
 
-  <a href="/admin/keywords" target="_blank" class="card">
+  <a href="https://anniv.gift/admin/keywords" target="_blank" class="card">
     <div class="card-icon">🔑</div>
     <div class="card-name">キーワードDB</div>
     <div class="card-desc">KW台帳・リサーチ結果の取り込み</div>
   </a>
 
-  <a href="/admin/stats" target="_blank" class="card">
+  <a href="https://anniv.gift/admin/stats" target="_blank" class="card">
     <div class="card-icon">📈</div>
     <div class="card-name">メディア分析</div>
     <div class="card-desc">自前PVの推移・記事別・リライト候補</div>
   </a>
 
-  <a href="/media" target="_blank" class="card">
+  <!-- 別プロジェクト（C:\dev\multi-SNS-manager）。SNSの投稿・予約とコスト計測はあちら側。
+       コストの数字は下のコスト欄にも出している（/api/sns-cost 経由）。 -->
+  <a href="https://anniv-tool.date" target="_blank" class="card">
+    <div class="card-icon">📣</div>
+    <div class="card-name">SNS管理</div>
+    <div class="card-desc">multi-SNS-manager／投稿・予約・広告</div>
+  </a>
+
+  <a href="https://anniv.gift/media" target="_blank" class="card">
     <div class="card-icon">📰</div>
     <div class="card-name">メディア</div>
     <div class="card-desc">公開中の記事一覧</div>
@@ -505,13 +527,13 @@
 
   <!-- LPは public/ 配下から配信され、正規URLは拡張子なし（wrangler.jsonc の html_handling）。
        lp/ という置き場所は Astro 移行時に無くなったので、サイトのURLを直接指す。 -->
-  <a href="/tokutei" target="_blank" class="card">
+  <a href="https://anniv.gift/tokutei" target="_blank" class="card">
     <div class="card-icon">📄</div>
     <div class="card-name">特定商取引法</div>
     <div class="card-desc">/tokutei</div>
   </a>
 
-  <a href="/contact" target="_blank" class="card">
+  <a href="https://anniv.gift/contact" target="_blank" class="card">
     <div class="card-icon">✉</div>
     <div class="card-name">お問い合わせ</div>
     <div class="card-desc">/contact</div>
@@ -541,6 +563,58 @@
   } else {
     document.getElementById('totalCost').textContent = '¥885＋JALモバイル';
   }
+
+  // ローカルのファイルとして開いたときだけ意味がある「local」カードは、
+  // 配信中（/dashboard）では 404 にしかならないので隠す。
+  // リンクを絶対URLにしたので、それ以外のカードはどちらで開いても動く。
+  if (location.protocol !== 'file:') {
+    for (const el of document.querySelectorAll('.card.local')) el.remove();
+  }
+
+  // multi-SNS-manager が記録している今月の費用を取りに行く。
+  // 同一オリジンの相対パスで叩く（配信中の /dashboard と astro dev の両方で動く）。
+  // ローカルのファイルとして開いた場合は file:///api/... を見に行って失敗するが、
+  // 絶対URLにしてもCORSで弾かれるだけなので、素直に catch でフォールバックする。
+  (async () => {
+    const amount = document.getElementById('snsCostAmount');
+    const note = document.getElementById('snsCostNote');
+    if (!amount || !note) return;
+
+    try {
+      const res = await fetch('/api/sns-cost', { credentials: 'same-origin' });
+      if (!res.ok) throw new Error(String(res.status));
+      const d = await res.json();
+
+      if (!d.available) {
+        // コストDBに届かなかった。金額を0と書くと「使っていない」と誤読するので出さない。
+        note.textContent = 'コストDBに接続できていない';
+        return;
+      }
+
+      amount.textContent = `¥${Number(d.totalJpy).toLocaleString('ja-JP')}`;
+
+      // 1行に収める。内訳まで出すと項目だけ背が高くなって並びが崩れるので、
+      // 詳細はホバー（title）に逃がす。もっと見たいならクリックで /cost へ飛べる。
+      const usd = (d.totalMicroUsd / 1000000).toFixed(2);
+      note.textContent =
+        `${d.month}／$${usd}を${Math.round(d.usdJpyRate)}円/USDで換算` +
+        // 固定費はあちらの設定画面で入れるまで積まない（払っていない額を出さないため）
+        (d.fixedConfigured ? '' : '・固定費未設定');
+
+      const parts = d.byPlatform
+        .filter(p => p.microUsd > 0)
+        .map(p => `${p.label}：¥${Number(p.jpy).toLocaleString('ja-JP')}`);
+      const item = document.getElementById('snsCostItem');
+      if (item) {
+        item.title = parts.length
+          ? `${d.month} の内訳\n${parts.join('\n')}`
+          : `${d.month} はまだ費用の記録なし`;
+      }
+    } catch {
+      // 認証切れ・オフライン・ローカルのファイルから開いた場合。
+      note.textContent = '本番の /dashboard から開くと今月の実績が出る';
+    }
+  })();
 </script>
 
 </body>
