@@ -262,62 +262,27 @@
       .cost-items { flex-direction: column; }
       .cost-divider { display: none; }
     }
-    /* ── 計測セクション ─────────────────────────
-       自前計測（/api/insights）とGA4（/api/ga4）を並べる。
-       **2つは別系統の数字**なので、意図的に列を分けて出す（足さない・突き合わせない）。 */
-    .mx-head {
-      display: flex; align-items: baseline; justify-content: space-between;
-      gap: 16px; flex-wrap: wrap; margin: 40px 0 14px;
+    /* ── 計測（別ページ）への入口 ─────────────────
+       計測本体は /dashboard/measurement（計測ダッシュボード.html）に分離した。
+       ここに残すのは入口だけ。数字を出すと結局この画面が伸びるので出さない。 */
+    .mx-link {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      margin: 32px 0 30px; padding: 16px 20px;
+      background: var(--navy-card); border: 1px solid var(--border-gold); border-radius: 12px;
+      text-decoration: none; color: var(--text);
+      transition: background 0.2s, border-color 0.2s;
     }
-    .mx-range { display: flex; gap: 6px; }
-    .mx-range button {
-      background: transparent; border: 1px solid var(--border); color: var(--text-muted);
-      font: inherit; font-size: 12px; padding: 4px 12px; border-radius: 3px; cursor: pointer;
-      letter-spacing: 0.04em;
+    .mx-link:hover { background: var(--navy-hover); }
+    .mx-link-title {
+      font-size: 10px; font-weight: 500; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--gold-soft);
     }
-    .mx-range button:hover { border-color: var(--border-gold); color: var(--text); }
-    .mx-range button[aria-pressed="true"] { background: var(--gold-dim); border-color: var(--border-gold); color: var(--gold-soft); }
-    .mx-range button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-
-    .mx-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, 1fr); }
-    @media (min-width: 880px) { .mx-grid { grid-template-columns: repeat(4, 1fr); } }
-    .mx-kpi {
-      background: var(--navy-card); border: 1px solid var(--border);
-      border-radius: 6px; padding: 16px 18px;
+    .mx-link-note { font-size: 12px; color: var(--text-muted); margin-top: 6px; line-height: 1.6; }
+    .mx-link-arrow {
+      flex: 0 0 auto; display: flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px; border-radius: 50%;
+      background: var(--gold-dim); color: var(--gold-soft); font-size: 13px;
     }
-    .mx-kpi-label {
-      font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
-      color: var(--text-muted); margin-bottom: 8px;
-    }
-    .mx-kpi-num { font-size: 26px; font-weight: 500; color: var(--white); font-variant-numeric: tabular-nums; line-height: 1.2; }
-    .mx-kpi-sub { font-size: 11px; color: var(--text-muted); margin-top: 6px; line-height: 1.6; }
-    .mx-kpi.accent .mx-kpi-num { color: var(--gold-soft); }
-
-    .mx-panels { display: grid; gap: 12px; grid-template-columns: 1fr; margin-top: 12px; }
-    @media (min-width: 880px) { .mx-panels { grid-template-columns: 1fr 1fr; } }
-    .mx-panel {
-      background: var(--navy-card); border: 1px solid var(--border);
-      border-radius: 6px; padding: 16px 18px 18px;
-    }
-    .mx-panel-title {
-      font-size: 12px; letter-spacing: 0.1em; color: var(--gold-soft);
-      margin-bottom: 4px;
-    }
-    .mx-panel-note { font-size: 11px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.6; }
-    .mx-rows { display: flex; flex-direction: column; gap: 9px; }
-    .mx-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: baseline; }
-    .mx-row-name { font-size: 13px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .mx-row-name small { color: var(--text-muted); font-size: 11px; margin-left: 6px; }
-    .mx-row-num { font-size: 13px; color: var(--white); font-variant-numeric: tabular-nums; }
-    .mx-row-num em { font-style: normal; color: var(--gold-soft); }
-    .mx-bar { grid-column: 1 / -1; height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
-    .mx-bar span { display: block; height: 100%; background: var(--gold); }
-    .mx-empty { font-size: 12px; color: var(--text-muted); line-height: 1.8; }
-
-    /* 日次の推移。棒はCSSだけで描く（ライブラリを増やさない） */
-    .mx-spark { display: flex; align-items: flex-end; gap: 2px; height: 56px; margin-top: 4px; }
-    .mx-spark div { flex: 1; background: var(--gold-dim); border-top: 2px solid var(--gold); min-height: 1px; border-radius: 1px 1px 0 0; }
-    .mx-spark-axis { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); margin-top: 6px; }
   </style>
 </head>
 <body>
@@ -411,69 +376,16 @@
   </div>
 </div>
 
-<!-- MEASUREMENT -->
-<!-- 計測。数字の出どころは2つあって別物：
-       自前（/api/insights → D1 の event_daily / pageviews）… 仕込んだ導線の成果
-       GA4（/api/ga4）                                      … 母数と流入の内訳
-     **足さない・突き合わせない**（計測設計.md 8章）。列を分けて出しているのはそのため。 -->
-<div class="mx-head">
-  <div class="section-title" style="margin:0">Measurement</div>
-  <div class="mx-range" id="mxRange" role="group" aria-label="集計期間">
-    <button type="button" data-days="7">7日</button>
-    <button type="button" data-days="28" aria-pressed="true">28日</button>
-    <button type="button" data-days="90">90日</button>
+<!-- MEASUREMENT（別ページ）-->
+<!-- 計測はKPI・流入元・CTA別・日次と縦に伸びて画面の大半を占めていたので、
+     /dashboard/measurement に分けた（2026-08-28）。数字の出どころは変えていない。 -->
+<a class="mx-link" href="/dashboard/measurement">
+  <div>
+    <div class="mx-link-title">Measurement</div>
+    <div class="mx-link-note">CV・導線クリック・記事PV・流入元（自前＋GA4）／期間は7日・28日・90日で切替</div>
   </div>
-</div>
-
-<div class="mx-grid">
-  <div class="mx-kpi accent">
-    <div class="mx-kpi-label">CV（自前）</div>
-    <div class="mx-kpi-num" id="mxCv">—</div>
-    <div class="mx-kpi-sub">LINEクリック＋フォーム完了</div>
-  </div>
-  <div class="mx-kpi">
-    <div class="mx-kpi-label">導線クリック（自前）</div>
-    <div class="mx-kpi-num" id="mxEvents">—</div>
-    <div class="mx-kpi-sub" id="mxEventsSub">計測イベントの総数</div>
-  </div>
-  <div class="mx-kpi">
-    <div class="mx-kpi-label">記事PV（自前）</div>
-    <div class="mx-kpi-num" id="mxPv">—</div>
-    <div class="mx-kpi-sub">/api/pv のビーコン</div>
-  </div>
-  <div class="mx-kpi">
-    <div class="mx-kpi-label">セッション（GA4）</div>
-    <div class="mx-kpi-num" id="mxSessions">—</div>
-    <div class="mx-kpi-sub" id="mxSessionsSub">自前の数字とは一致しない</div>
-  </div>
-</div>
-
-<div class="mx-panels">
-  <div class="mx-panel">
-    <div class="mx-panel-title">流入元別（自前・UTM）</div>
-    <div class="mx-panel-note">右の数字は「クリック総数／うちCV」。<strong>来ているのにCVしない流入元</strong>がここで見える。</div>
-    <div class="mx-rows" id="mxSources"><div class="mx-empty">読み込み中…</div></div>
-  </div>
-
-  <div class="mx-panel">
-    <div class="mx-panel-title">流入元別（GA4・セッション）</div>
-    <div class="mx-panel-note">GA4が見ている参照元。UTMを付けていない流入もここには出る。</div>
-    <div class="mx-rows" id="mxGaSources"><div class="mx-empty">読み込み中…</div></div>
-  </div>
-
-  <div class="mx-panel">
-    <div class="mx-panel-title">どのCTAが効いているか（自前）</div>
-    <div class="mx-panel-note">CVの発火場所ごと。伸びない置き場所は文言か位置を変える。</div>
-    <div class="mx-rows" id="mxCtas"><div class="mx-empty">読み込み中…</div></div>
-  </div>
-
-  <div class="mx-panel">
-    <div class="mx-panel-title">CVの推移（自前・日次）</div>
-    <div class="mx-panel-note" id="mxDailyNote">1本＝1日。計測開始前の期間は空で出る。</div>
-    <div class="mx-spark" id="mxSpark"></div>
-    <div class="mx-spark-axis"><span id="mxSparkFrom">—</span><span id="mxSparkTo">—</span></div>
-  </div>
-</div>
+  <span class="mx-link-arrow" aria-hidden="true">→</span>
+</a>
 
 <!-- LP BANNER -->
 <div class="lp-banner">
@@ -749,150 +661,6 @@
     }
   })();
 
-  // ── 計測セクション ───────────────────────────
-  // 自前（/api/insights）とGA4（/api/ga4）を**別々に**描く。
-  // 片方が落ちてももう片方は出す（GA4未設定でも自前の数字は見えるようにするため）。
-  (() => {
-    const $ = (id) => document.getElementById(id);
-    const fmt = (n) => Number(n || 0).toLocaleString('ja-JP');
-
-    /** 名前＋数値の行を、最大値に対する棒つきで描く。 */
-    function rows(el, items, opts) {
-      if (!el) return;
-      if (!items.length) {
-        el.innerHTML = `<div class="mx-empty">${opts.empty}</div>`;
-        return;
-      }
-      const max = Math.max(...items.map((i) => i.value)) || 1;
-      el.innerHTML = items
-        .slice(0, 8)
-        .map((i) => {
-          const w = Math.max(2, Math.round((i.value / max) * 100));
-          return (
-            '<div class="mx-row">' +
-            `<div class="mx-row-name">${i.name}${i.sub ? `<small>${i.sub}</small>` : ''}</div>` +
-            `<div class="mx-row-num">${fmt(i.value)}${i.extra != null ? ` / <em>${fmt(i.extra)}</em>` : ''}</div>` +
-            `<div class="mx-bar"><span style="width:${w}%"></span></div>` +
-            '</div>'
-          );
-        })
-        .join('');
-    }
-
-    /** 日次の棒。値が全部0でも「計測はできている」ことが分かるよう、枠は描く。 */
-    function spark(series) {
-      const el = $('mxSpark');
-      if (!el) return;
-      if (!series.length) {
-        el.innerHTML = '';
-        $('mxSparkFrom').textContent = '—';
-        $('mxSparkTo').textContent = '—';
-        return;
-      }
-      const max = Math.max(...series.map((d) => d.n)) || 1;
-      el.innerHTML = series
-        .map((d) => `<div style="height:${Math.max(1, Math.round((d.n / max) * 100))}%" title="${d.ymd}：${d.n}"></div>`)
-        .join('');
-      $('mxSparkFrom').textContent = series[0].ymd;
-      $('mxSparkTo').textContent = series[series.length - 1].ymd;
-    }
-
-    /** 自前計測。CV・クリック・PVと、流入元／CTAの内訳。 */
-    async function loadOwn(days) {
-      try {
-        const res = await fetch(`/api/insights?days=${days}`, { credentials: 'same-origin' });
-        if (!res.ok) throw new Error(String(res.status));
-        const d = await res.json();
-
-        $('mxCv').textContent = fmt(d.totals.conversions);
-        $('mxEvents').textContent = fmt(d.totals.events);
-        $('mxPv').textContent = fmt(d.totals.pageviews);
-
-        // 計測開始日を出す。ここより前が「0」に見えるのを防ぐ（/admin/stats と同じ考え方）。
-        $('mxEventsSub').textContent = d.firstYmd.events
-          ? `計測開始 ${d.firstYmd.events}`
-          : 'まだ1件も記録されていない';
-
-        rows(
-          $('mxSources'),
-          d.sources.map((s) => ({
-            name: s.source,
-            sub: s.medium || '',
-            value: s.events,
-            extra: s.conversions,
-          })),
-          { empty: 'まだ流入が記録されていない。UTM付きのリンクから着地すると出る' },
-        );
-
-        rows(
-          $('mxCtas'),
-          d.ctas.map((c) => ({
-            name: c.label || '(ラベル無し)',
-            sub: c.name === 'line_add_click' ? 'LINE' : 'フォーム',
-            value: c.count,
-          })),
-          { empty: 'まだCVが記録されていない' },
-        );
-
-        spark(d.cvDaily);
-      } catch {
-        for (const id of ['mxCv', 'mxEvents', 'mxPv']) $(id).textContent = '—';
-        rows($('mxSources'), [], { empty: '本番の /dashboard から開くと出る' });
-        rows($('mxCtas'), [], { empty: '本番の /dashboard から開くと出る' });
-      }
-    }
-
-    /** GA4。未設定と失敗を出し分ける（設定すれば出る、と分かるように）。 */
-    async function loadGa4(days) {
-      const sub = $('mxSessionsSub');
-      try {
-        const res = await fetch(`/api/ga4?days=${days}`, { credentials: 'same-origin' });
-        if (!res.ok) throw new Error(String(res.status));
-        const d = await res.json();
-
-        if (!d.available) {
-          $('mxSessions').textContent = '—';
-          sub.textContent =
-            d.reason === 'not_configured'
-              ? 'GA4_PROPERTY_ID などが未設定'
-              : d.reason === 'auth_failed'
-                ? '認証に失敗（鍵かGA4側の権限）'
-                : 'GA4への問い合わせに失敗';
-          rows($('mxGaSources'), [], { empty: 'GA4に接続できていない' });
-          return;
-        }
-
-        $('mxSessions').textContent = fmt(d.totals.sessions);
-        sub.textContent = `ユーザー ${fmt(d.totals.users)}／自前の数字とは一致しない`;
-        rows(
-          $('mxGaSources'),
-          d.sources.map((s) => ({ name: s.source, sub: s.medium, value: s.sessions })),
-          { empty: 'この期間に流入なし' },
-        );
-      } catch {
-        $('mxSessions').textContent = '—';
-        sub.textContent = '本番の /dashboard から開くと出る';
-        rows($('mxGaSources'), [], { empty: '本番の /dashboard から開くと出る' });
-      }
-    }
-
-    function load(days) {
-      loadOwn(days);
-      loadGa4(days);
-    }
-
-    const range = $('mxRange');
-    if (range) {
-      range.addEventListener('click', (e) => {
-        const btn = e.target.closest('button[data-days]');
-        if (!btn) return;
-        for (const b of range.querySelectorAll('button')) b.removeAttribute('aria-pressed');
-        btn.setAttribute('aria-pressed', 'true');
-        load(Number(btn.dataset.days));
-      });
-    }
-    load(28);
-  })();
 </script>
 
 </body>

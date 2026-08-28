@@ -57,7 +57,8 @@ const email = Astro.locals.user?.email ?? '';
         ダッシュボード）→ 出す（CSV）」の順。外部サービスは別タブで開き、is-external で矢印を出して
         管理画面内のページと見分けられるようにしている。
         「メディア分析」は自前のPV（D1）で記事ごとの相対比較をする画面、「アナリティクス」はGA4、
-        「ダッシュボード」は事業側（固定費・各サービスの入口）と、見るものが3つとも違う。
+        「計測」はCV・導線クリック・流入元（自前＋GA4を列を分けて並べる画面）、
+        「ダッシュボード」は事業側（固定費・各サービスの入口）と、見るものが4つとも違う。
       */}
       <nav class="admin-nav">
         <a href="/admin" aria-current={current === 'list' ? 'page' : undefined}>記事一覧</a>
@@ -71,6 +72,12 @@ const email = Astro.locals.user?.email ?? '';
           href="https://analytics.google.com/"
           target="_blank"
           rel="noopener noreferrer">アナリティクス</a
+        >
+        <a
+          class="is-external"
+          href="https://anniv.gift/dashboard/measurement"
+          target="_blank"
+          rel="noopener noreferrer">計測</a
         >
         <a
           class="is-external"
