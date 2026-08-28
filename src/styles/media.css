@@ -389,31 +389,6 @@
   color: var(--blue-mid);
 }
 
-/* ── サイドバーのカテゴリ一覧 ── */
-.m-side-nav {
-  display: flex;
-  flex-direction: column;
-}
-.m-side-nav a {
-  padding: 11px 0;
-  border-top: 1px solid var(--border);
-  font-size: 13px;
-  color: var(--text-light);
-  text-decoration: none;
-  transition: color 0.2s;
-}
-.m-side-nav a:first-child {
-  border-top: 0;
-}
-.m-side-nav a:hover {
-  color: var(--navy);
-}
-.m-side-nav a::before {
-  content: '›';
-  margin-right: 8px;
-  color: var(--gold);
-}
-
 /* ── サイドバーのCTAカード ── */
 .m-side-cta {
   padding: 22px 20px;

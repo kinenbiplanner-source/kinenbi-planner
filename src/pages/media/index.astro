@@ -320,38 +320,13 @@ const breadcrumbLd = {
           >
         </section>
 
-        <nav class="m-side-card" aria-label="カテゴリ">
-          <p class="m-side-head">
-            CATEGORY
-            <span class="m-side-head-ja">カテゴリ</span>
-          </p>
-          <div class="m-side-nav">
-            {AXES.map((a) => <a href={`/media/category/${a.slug}`}>{a.name}</a>)}
-          </div>
-        </nav>
-
-        {/* 更新を追いたい人向け。フィード自体は前からあるのにどこからも辿れなかった。 */}
-        <nav class="m-side-card" aria-label="更新情報">
-          <p class="m-side-head">
-            FEED
-            <span class="m-side-head-ja">更新を受け取る</span>
-          </p>
-          <div class="m-side-nav">
-            <a href="/media/feed.xml" data-follow="rss">RSSで購読する</a>
-            <a
-              href="https://www.instagram.com/anniv.gift/"
-              target="_blank"
-              rel="noopener noreferrer"
-              data-follow="instagram">Instagram</a
-            >
-            <a
-              href="https://x.com/Anniv_gift"
-              target="_blank"
-              rel="noopener noreferrer"
-              data-follow="x">X</a
-            >
-          </div>
-        </nav>
+        {/*
+          「CATEGORY」と「FEED（更新を受け取る）」のカードはここに置かない。
+          カテゴリは同じページの上（findbar のタグ）と各レールの「もっと見る」で
+          既に2回出ていて、3つ目のリンクは情報を足していない。
+          RSSは BaseHead の <link rel="alternate"> でリーダーから辿れるので、
+          本文の横に置く必要が無い。SNSはフッターに常設（計測は data-follow で継続）。
+        */}
       </aside>
     </div>
 

@@ -132,8 +132,10 @@ const {
             return;
           }
 
-          // メディアTOP・カテゴリのサイドバー「更新を受け取る」。行き先ごとに分けて数える。
+          // フッターのSNSアイコン。行き先ごとに分けて数える。
           // ここだけ label が発火場所ではなく行き先になる（links.html の links_click と同じ扱い）。
+          // 以前はサイドバーの「更新を受け取る」カードに付けていたが、カードごと外した
+          // （カテゴリは同じページに2回出ていて、RSSは <link rel="alternate"> で足りる）。
           var follow = t.closest('[data-follow]');
           if (follow) {
             if (typeof gtag === 'function') {
