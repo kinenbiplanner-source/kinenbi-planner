@@ -1,15 +1,17 @@
 /**
- * write-article（`.claude/skills/write-article/SKILL.md` Step 6-4）が出力する
+ * anniv-write-article（`.claude/skills/anniv-write-article/SKILL.md` Step 6-4）が出力する
  * `article.md` の frontmatter をほぐす。
  *
- * 管理画面の「article.md を貼り付けて取り込む」がこれを使う。
+ * 管理画面（記事エディタ）で本文に貼られた article.md の frontmatter を、これで剥がす。
  * ここが記事制作フローと公開システムの接続点なので、キー名は SKILL.md 側に合わせる：
  *   title / description / keyword / axis / funnel / published（＋アフィリ記事のみ ad: true）
  *
  * 依存を増やしたくないので YAML パーサは使わず、フラットな `key: value` だけを読む。
  * 記事の frontmatter にネストは出てこない。
  */
-import { normalizeAxis, isFunnel, type AxisSlug, type Funnel } from './axis';
+// 拡張子を付けているのはこの行だけ。scripts/put-draft.ts が Node から
+// このファイルを直接読む（＝Viteを通さない）ので、拡張子が無いと解決できない。
+import { normalizeAxis, isFunnel, type AxisSlug, type Funnel } from './axis.ts';
 
 export interface ParsedArticle {
   title: string;
@@ -91,4 +93,26 @@ export function parseArticle(source: string): ParsedArticle {
 /** slug は人が確定させる値（style-guide 11章）。形式だけ検証する。 */
 export function isValidSlug(slug: string): boolean {
   return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) && slug.length <= 80;
+}
+
+/**
+ * slug を決めずに下書きを保存したとき（＝一時保存）に割り当てる仮の値。
+ *
+ * articles.slug は NOT NULL UNIQUE で、公開URLそのものでもある。
+ * 「まだ決めていない」を素直に表すなら NULL 許容にするところだが、
+ * スキーマを緩めると公開記事の slug まで空を許すことになるので、
+ * 代わりに「見れば仮だと分かる値」を入れておき、公開時に本物を必ず要求する。
+ *
+ * 形は isValidSlug を通る範囲で作る（他の処理に例外を持ち込まないため）。
+ * 下書きは /media/ で配信されないので、この値がURLとして使われることはない。
+ */
+export function makePlaceholderSlug(): string {
+  const stamp = Date.now().toString(36);
+  const rand = Math.random().toString(36).slice(2, 6);
+  return `draft-x${stamp}${rand}`;
+}
+
+/** 仮の slug か（＝ユーザーがまだ決めていない）。画面では未設定として扱う。 */
+export function isPlaceholderSlug(slug: string): boolean {
+  return /^draft-x[a-z0-9]{6,}$/.test(slug);
 }

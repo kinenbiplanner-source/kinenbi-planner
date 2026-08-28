@@ -373,19 +373,6 @@ textarea.mono {
   gap: 0 16px;
 }
 
-/* ── 取り込みエリア ── */
-.import-area textarea {
-  min-height: 110px;
-  font-family: var(--admin-mono);
-  font-size: 12.5px;
-}
-.import-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 10px;
-  flex-wrap: wrap;
-}
 
 /* ── ヒーロー画像 ── */
 .hero-box {
@@ -865,27 +852,33 @@ textarea.mono {
  * 上端がズレて、2ペインの下端も揃わなくなる（.pane-head のコメント参照）。
  * ──────────────────────────────────────────────── */
 
-/* 取り込みカードの折りたたみ */
-details.import-area > summary.admin-card-head {
-  cursor: pointer;
-  list-style: none;
-  user-select: none;
+/*
+ * frontmatter の取り込み帯。
+ * 本文の上（ツールバーの上）に出す。取り込み専用の欄を廃したので、
+ * 「article.md をそのまま貼った」ことに気付いて促すのがこの帯の役目。
+ */
+.fm-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--admin-radius-sm);
+  background: var(--blue-pale);
 }
-details.import-area > summary::-webkit-details-marker {
+.fm-bar[hidden] {
   display: none;
 }
-details.import-area > summary.admin-card-head::after {
-  content: '▾';
+.fm-bar-text {
+  font-size: 12.5px;
+  color: var(--navy);
+}
+.fm-bar .btn {
+  margin-left: 0;
+}
+.fm-bar .btn:first-of-type {
   margin-left: auto;
-  font-size: 11px;
-  color: var(--text-light);
-}
-details.import-area[open] > summary.admin-card-head::after {
-  content: '▴';
-}
-/* 閉じているときは下線が浮くので消す */
-details.import-area:not([open]) > summary.admin-card-head {
-  border-bottom: 0;
 }
 
 /* 右ペインの表示切替（プレビュー／チェック） */
@@ -1113,4 +1106,10 @@ input.md-menu-filter {
 .btn[hidden],
 .danger-zone[hidden] {
   display: none;
+}
+
+/* slug 未設定（＝一時保存した下書き）。値が無いことを本文と同じ濃さで出さない */
+.cell-slug .is-unset {
+  color: var(--text-light);
+  font-family: 'Noto Sans JP', system-ui, sans-serif;
 }

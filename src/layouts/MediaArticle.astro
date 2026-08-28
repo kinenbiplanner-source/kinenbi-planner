@@ -6,7 +6,7 @@
  * 目次も toc_json に入っているものを使うので、表示のたびに Markdown を再パースしない。
  *
  * 構造は apptime.co.jp/media/ の記事ページを参照した3カラム：
- *   左＝将来の広告枠（今は空。1440px 以上でだけ場所を取る）
+ *   左＝広告枠（AdSense。未設定なら空のまま。1440px 以上でだけ場所を取る）
  *   中央＝パンくず／ヘッダー／カバー／本文／CTA／評価／前後ナビ／関連
  *   右＝目次＋CTAカード（追従）
  * ＋モバイル下部の固定CTAバーと、トップへ戻るボタン。
@@ -21,6 +21,8 @@
 import MediaLayout from './MediaLayout.astro';
 import ArticleCard from '../components/ArticleCard.astro';
 import CtaBox from '../components/CtaBox.astro';
+import AdSlot from '../components/AdSlot.astro';
+import { ADSENSE_CLIENT, adsEnabled } from '../lib/ads';
 import { db, type ArticleRow, type ArticleCard as ArticleCardData } from '../lib/db';
 import type { TocItem } from '../lib/markdown';
 import { axisName } from '../lib/axis';
@@ -137,12 +139,26 @@ const breadcrumbLd = {
   <Fragment slot="head">
     <script type="application/ld+json" is:inline set:html={JSON.stringify(articleLd)} />
     <script type="application/ld+json" is:inline set:html={JSON.stringify(breadcrumbLd)} />
+    {/* AdSense は記事ページにだけ読み込む（一覧・カテゴリには枠を置いていないため）。
+        設定が空のあいだは読まない＝記事ページの外部スクリプトは計測タグだけのまま。 */}
+    {
+      adsEnabled && (
+        <script
+          is:inline
+          async
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
+          crossorigin="anonymous"
+        />
+      )
+    }
   </Fragment>
 
   <div class="shell shell-art">
     <div class="art-grid">
-      {/* 将来の広告枠。今は空だが、後から入れたときに本文幅が動かないよう場所だけ取る。 */}
-      <aside class="art-ad" aria-hidden="true"><div class="art-ad-slot"></div></aside>
+      {/* 左の広告枠。AdSense が未設定でも、後から入れたときに本文幅が動かないよう場所だけ取る。 */}
+      <aside class="art-ad" aria-hidden={adsEnabled ? undefined : 'true'}>
+        <div class="art-ad-slot"><AdSlot name="side" variant="side" /></div>
+      </aside>
 
       <article class="art-main">
         <nav class="art-crumb" aria-label="パンくず">
@@ -188,6 +204,9 @@ const breadcrumbLd = {
         <div class="prose" set:html={article.body_html} />
 
         {!hasInlineCta && <CtaBox />}
+
+        {/* 記事末尾の広告。CTAより下に置く（CTAを押し下げると送客が減るため）。 */}
+        <AdSlot name="bottom" />
 
         {/* 記事の評価。送信先は持たず GA4 のイベントだけ飛ばす（計測設計.md 参照）。 */}
         <section class="art-fb" id="art-fb">

@@ -58,7 +58,7 @@ export function isFunnel(v: string): v is Funnel {
 }
 
 /**
- * write-article の frontmatter に入りうる軸の表記をスラッグへ寄せる。
+ * anniv-write-article の frontmatter に入りうる軸の表記をスラッグへ寄せる。
  * 正式名のほか、content.config.ts で使っていた短縮名やスラッグ直書きも受ける。
  */
 export function normalizeAxis(input: string): AxisSlug | null {

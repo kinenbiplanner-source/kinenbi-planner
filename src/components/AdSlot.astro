@@ -1,0 +1,55 @@
+---
+/**
+ * AdSense の広告枠。
+ *
+ * 設定（パブリッシャーID・スロットID）は `src/lib/ads.ts` が SSOT。
+ * **未設定のあいだは `<ins>` も `<script>` も出力しない**ので、
+ * 審査前・審査中にこのコンポーネントを置いたままにしておいて構わない。
+ *
+ * CLS対策：広告は読み込みが終わるまで高さが決まらない。何もしないと本文が
+ * 後からガクッと下がる（記事ページは他に外部スクリプトが無く軽いぶん、
+ * ここが一番大きく効く）。枠側で `min-height` を先に確保して場所を取る。
+ * 高さは `media.css` の `.ad-inline` / `.ad-side` で持つ。
+ *
+ * 「広告」ラベルは景表法・AdSenseポリシー双方の観点で必ず出す。
+ * 記事本文と地続きに見える広告は、ポリシー違反（誤クリック誘発）の指摘対象になる。
+ *
+ * 要素は `<aside>` ではなく `<div>`。サイド枠の置き場所（`.art-ad`）が既に
+ * `<aside>` なので、入れ子のランドマークを作らないため。
+ */
+import { ADSENSE_CLIENT, AD_SLOTS, type AdSlotName } from '../lib/ads';
+
+interface Props {
+  /** どの枠か。`ads.ts` の AD_SLOTS のキー。 */
+  name: AdSlotName;
+  /** 本文の流れの中（横長）か、サイドの縦長か。 */
+  variant?: 'inline' | 'side';
+}
+
+const { name, variant = 'inline' } = Astro.props;
+
+const slotId = AD_SLOTS[name];
+const show = ADSENSE_CLIENT !== '' && slotId !== '';
+
+// 縦長の枠に auto を渡すと横長を出そうとして潰れるので、向きは枠ごとに固定する。
+const format = variant === 'side' ? 'vertical' : 'auto';
+---
+
+{
+  show && (
+    <div class={`ad ad-${variant}`}>
+      <span class="ad-label">広告</span>
+      <ins
+        class="adsbygoogle"
+        style="display:block"
+        data-ad-client={ADSENSE_CLIENT}
+        data-ad-slot={slotId}
+        data-ad-format={format}
+        data-full-width-responsive={variant === 'inline' ? 'true' : 'false'}
+      />
+      <script is:inline>
+        (window.adsbygoogle = window.adsbygoogle || []).push({});
+      </script>
+    </div>
+  )
+}

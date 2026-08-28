@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Noto+Serif+JP:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  /* === レイアウト定数（render.py と一致させること） ===
+     stage padding 52px / card height 300px / grid gap 28px / stage width 1200px */
+
+  /* === Anniv ブランドカラー（src/styles/tokens.css と同じ値。あちらを変えたらここも） ===
+     ネイビー＋ゴールド＋淡いブルー。記事ページ（media.css）の上に置いても浮かない配色にする。 */
+  :root {
+    --navy:        #1a2840;
+    --navy-soft:   #243550;
+    --blue-mid:    #4a8ab5;
+    --blue-pastel: #a8c8e0;
+    --blue-light:  #d6eaf8;
+    --blue-pale:   #f0f7fc;
+    --gold:        #c4a35a;
+    --gold-soft:   #ddc488;
+    --gold-pale:   #fdf8ef;
+    --ivory:       #fafaf8;
+    --text:        #2d3748;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    font-family: "Noto Sans JP", -apple-system, "Segoe UI", sans-serif;
+    background: transparent;
+    color: var(--navy);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  /* stage: サイズは共通。背景は .v0〜 のバリアントクラスで切替。
+     色はブランド（淡いブルー地＋ゴールドの光）で統一し、柄（グラデの構図・パターン）だけで差をつける。
+     同じ記事で複数枚並べても「柄違い」でパッと見分けられるようにするのが狙い。 */
+  .stage {
+    width: 1200px;
+    padding: 52px 50px;
+    border-radius: 34px;
+    position: relative;
+    overflow: hidden;
+    /* fallback（バリアントクラスが無い場合の下地） */
+    background: linear-gradient(160deg, #fafaf8 0%, #d6eaf8 100%);
+  }
+  /* 4つの背景バリアント。柄のカテゴリを分けて（無地/点/縞/帯）、同じ記事で
+     並べても一目で別物と分かるようにする。色はブランドで統一。
+     記事内では variant 0,1,2,3 と順に振る（5枚以上なら循環）。 */
+  /* v0: 無地オーロラ（右上にゴールドの光） */
+  .stage.v0 {
+    background:
+      radial-gradient(820px 620px at 100% -10%, rgba(221,196,136,0.55) 0%, rgba(221,196,136,0) 62%),
+      radial-gradient(720px 600px at 88% 122%, rgba(168,200,224,0.85) 0%, rgba(168,200,224,0) 58%),
+      linear-gradient(160deg, #fbfcfa 0%, #dcebf7 100%);
+  }
+  /* v1: ドット（水玉・左下光ベース） */
+  .stage.v1 {
+    background:
+      radial-gradient(circle at center, rgba(26,40,64,0.10) 0 9px, transparent 10px) 0 0 / 66px 66px,
+      radial-gradient(860px 660px at 0% 112%, rgba(168,200,224,0.75) 0%, rgba(168,200,224,0) 62%),
+      linear-gradient(205deg, #fafaf8 0%, #d9e9f6 100%);
+  }
+  /* v2: ストライプ（ゴールドの斜め縞） */
+  .stage.v2 {
+    background:
+      repeating-linear-gradient(45deg, rgba(196,163,90,0.16) 0 34px, rgba(196,163,90,0) 34px 84px),
+      linear-gradient(160deg, #fdf8ef 0%, #d6eaf8 100%);
+  }
+  /* v3: バンド（対角の色帯で二分割・境目にゴールドの細線） */
+  .stage.v3 {
+    background:
+      linear-gradient(122deg,
+        #fafaf8 0%, #fafaf8 38%,
+        var(--gold-soft) 38%, var(--gold-soft) 39.2%,
+        #e4f0f9 39.2%, #e4f0f9 60%,
+        #c3dcee 60%, #a8c8e0 100%);
+  }
+  .grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 28px;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+  }
+  .grid.cols-3 .card { width: calc((100% - 56px) / 3); }
+  .grid.cols-2 .card { width: calc((100% - 28px) / 2); }
+  /* すりガラス（frosted glass）カード */
+  .card {
+    height: 300px;
+    border-radius: 26px;
+    padding: 34px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(160deg, rgba(255,255,255,0.86), rgba(255,255,255,0.58));
+    backdrop-filter: blur(16px) saturate(1.15);
+    -webkit-backdrop-filter: blur(16px) saturate(1.15);
+    border: 1px solid rgba(255,255,255,0.9);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.95),
+      inset 0 0 0 1px rgba(255,255,255,0.30),
+      0 26px 50px -30px rgba(26,40,64,0.45),
+      0 8px 18px -14px rgba(26,40,64,0.30);
+  }
+  .icon {
+    width: 88px;
+    height: 88px;
+    border-radius: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(145deg, var(--blue-mid) 0%, var(--navy) 100%);
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+      0 14px 24px -10px rgba(26,40,64,0.55),
+      inset 0 1px 0 rgba(255,255,255,0.45);
+  }
+  .icon::after {
+    content: "";
+    position: absolute;
+    top: -10px; left: -6px;
+    width: 64px; height: 38px;
+    background: rgba(255,255,255,0.30);
+    border-radius: 50%;
+    transform: rotate(-18deg);
+    filter: blur(2px);
+  }
+  .icon svg {
+    width: 46px; height: 46px;
+    color: #fff;
+    position: relative;
+    z-index: 1;
+  }
+  /* タイトルは記事の見出しと同じ明朝（media.css の --font-serif-jp と揃える） */
+  .card-title {
+    font-family: "Noto Serif JP", serif;
+    font-size: 23px;
+    font-weight: 600;
+    color: var(--navy);
+    letter-spacing: 0.04em;
+    line-height: 1.3;
+    position: relative;
+    padding-bottom: 12px;
+  }
+  .card-title::after {
+    content: "";
+    position: absolute;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 28px; height: 3px;
+    border-radius: 2px;
+    background: var(--gold);
+  }
+  .card-cap {
+    font-size: 30px;
+    font-weight: 900;
+    color: var(--navy);
+    line-height: 1.35;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+  }
+  .card-cap .hl {
+    background: linear-gradient(transparent 56%, var(--gold-soft) 56%);
+    padding: 0 4px;
+  }
+</style>
+</head>
+<body>
+<div class="stage __VARIANT__">
+  __CONTENT__
+</div>
+<script>
+/* auto-fit: caption が nowrap でカード内幅をはみ出す場合、収まるまで font-size を段階縮小する。
+   .card は overflow:hidden なので、縮めないと右端が無言で見切れる。収まっている caption には無害。 */
+(function () {
+  document.querySelectorAll('.card').forEach(function (card) {
+    var cap = card.querySelector('.card-cap');
+    if (!cap) return;
+    var cs = getComputedStyle(card);
+    var avail = card.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    var fs = parseFloat(getComputedStyle(cap).fontSize);
+    var guard = 0;
+    // テキスト実幅(offsetWidth)が使える幅を超える間だけ 1px ずつ下げる。下限 20px。
+    while (cap.offsetWidth > avail && fs > 20 && guard < 40) {
+      fs -= 1;
+      cap.style.fontSize = fs + 'px';
+      guard++;
+    }
+  });
+})();
+</script>
+</body>
+</html>

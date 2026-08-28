@@ -18,7 +18,7 @@ import {
   syncKeywordForArticle,
   type ArticleInput,
 } from '../../lib/db';
-import { isValidSlug } from '../../lib/frontmatter';
+import { isPlaceholderSlug, isValidSlug, makePlaceholderSlug } from '../../lib/frontmatter';
 import { isAxisSlug, isFunnel } from '../../lib/axis';
 import { renderArticle } from '../../lib/markdown';
 /**
@@ -73,7 +73,27 @@ export async function buildArticleInput(
   raw: Record<string, unknown>,
   opts: { exceptId?: number; currentPublishedAt?: string | null } = {},
 ): Promise<BuildOutcome> {
-  const slug = str(raw.slug);
+  const status = str(raw.status);
+  if (status !== 'draft' && status !== 'published') {
+    return { ok: false, status: 400, message: 'ステータスは draft か published のみです' };
+  }
+
+  /*
+   * slug は公開URLそのものなので自動生成しない（公開後に変えると301が要る）。
+   * ただし「下書きの間はまだ決めていない」は普通に起きる——書き上がった記事を
+   * ひとまず置いておく（一時保存）のに slug を先に決めさせる理由が無い。
+   * 空で来たら仮の値を割り当て、公開のときだけ本物を必ず要求する。
+   */
+  let slug = str(raw.slug);
+  if (!slug && status === 'draft') slug = makePlaceholderSlug();
+
+  if (status === 'published' && (!slug || isPlaceholderSlug(slug))) {
+    return {
+      ok: false,
+      status: 400,
+      message: '公開する前に slug を決めてください（下書きのままなら slug は空でも保存できます）',
+    };
+  }
   if (!isValidSlug(slug)) {
     return {
       ok: false,
@@ -91,11 +111,6 @@ export async function buildArticleInput(
 
   const funnel = str(raw.funnel);
   if (!isFunnel(funnel)) return { ok: false, status: 400, message: 'ファネル層の指定が不正です' };
-
-  const status = str(raw.status);
-  if (status !== 'draft' && status !== 'published') {
-    return { ok: false, status: 400, message: 'ステータスは draft か published のみです' };
-  }
 
   const title = str(raw.title);
   const description = str(raw.description);

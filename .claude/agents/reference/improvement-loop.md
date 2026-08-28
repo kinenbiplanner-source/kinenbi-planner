@@ -1,6 +1,6 @@
 # 記事品質 改善ループ（試験運用・共通仕様）
 
-`/write-article`（Step 5）と `/rewrite-article`（Step 2）が共通で使う「レビュー→再執筆」の自動改善ループの仕様。**ここが唯一の正本（SSOT）**。両オーケストレーターと article-writer はこのファイルを参照する（ルールをコピペしない）。
+`/anniv-write-article`（Step 5）と `/anniv-rewrite-article`（Step 2）が共通で使う「レビュー→再執筆」の自動改善ループの仕様。**ここが唯一の正本（SSOT）**。両オーケストレーターと article-writer はこのファイルを参照する（ルールをコピペしない）。
 
 ---
 
@@ -10,8 +10,8 @@
 
 このループは試験運用中。**無効化したくなったら、この行を「無効」に変えるだけでよい**（参照元は「無効なら通常フロー」と解釈する）。完全に撤去する場合は、このファイルを削除し、各参照元の「改善ループ（試験運用）」節を消す：
 
-- `.claude/skills/write-article/SKILL.md`
-- `.claude/skills/rewrite-article/SKILL.md`
+- `.claude/skills/anniv-write-article/SKILL.md`
+- `.claude/skills/anniv-rewrite-article/SKILL.md`
 - `.claude/agents/article-writer.md`
 
 無効化すると Step 5（レビュー）は1回で完了し、そのまま保存ステップへ進む（writer↔reviewer の再ループはしない）。
@@ -55,5 +55,5 @@ writer は上記手順2で再起動されたとき、新規執筆ではなく**�
 
 各ループのスコア推移（例：72→81→87）は、オーケストレーターが最終出力時に表示する：
 
-- `/write-article` … Step 6
-- `/rewrite-article` … Step 3
+- `/anniv-write-article` … Step 6
+- `/anniv-rewrite-article` … Step 3

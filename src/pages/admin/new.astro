@@ -11,20 +11,22 @@
  * 差分をプロップ1つに閉じ込めるのが、この制約下でいちばん破綻しない形だと判断した。
  *
  * 画面の作り：
- *   1. article.md の貼り付け取り込み（frontmatter のパースは /api/preview の mode:'import'）
- *      編集モードでは畳んでおく——本文がまるごと置き換わる操作なので誤爆させない
- *   2. メタ情報（slug / title / description / keyword / 軸 / ファネル / PR / ヒーロー画像）
+ *   1. メタ情報（slug / title / description / keyword / 軸 / ファネル / PR / ヒーロー画像）
  *      slug の重複とKW台帳の引き当ては、開いた時点のスナップショット（boot）で判定する
- *   3. 2ペイン。左＝Markdown＋記法を差し込むツールバー（記法の正は article-style-guide.md 9章）、
+ *   2. 2ペイン。左＝Markdown＋記法を差し込むツールバー（記法の正は article-style-guide.md 9章）、
  *      右＝プレビュー／公開前チェックの切り替え。プレビューは保存時と同じ renderArticle を、
  *      チェックは保存時と同じ lib/quality.ts を通す（サーバの警告と食い違わせないため）
- *   4. 危険な操作（削除）。取り消せないので他のボタンから離してここに置く
- *   5. 保存バー（下書き＝下書き保存／公開する、公開中＝下書きに戻す／更新する）
+ *   3. 危険な操作（削除）。取り消せないので他のボタンから離してここに置く
+ *   4. 保存バー（下書き＝下書き保存／公開する、公開中＝下書きに戻す／更新する）
  *      保存しても一覧へは飛ばない。書いている途中で画面が変わらない方が続けやすい
+ *
+ * article.md の取り込みは専用の欄を持たない。本文へそのまま貼れば、先頭の
+ * frontmatter を見つけてメタ情報へ移す（パースは /api/preview の mode:'import'）。
  */
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { AXES, FUNNELS } from '../../lib/axis';
 import { listKeywordChoices, listSlugIndex, type ArticleRow } from '../../lib/db';
+import { isPlaceholderSlug } from '../../lib/frontmatter';
 
 export const prerender = false;
 
@@ -43,6 +45,10 @@ const isEdit = article !== null;
  * 記事本文と違って量が小さいので、APIを増やさずJSONに載せて一度に渡す。
  */
 const [slugIndex, keywordChoices] = await Promise.all([listSlugIndex(), listKeywordChoices()]);
+
+// slug を決めずに保存された下書き（一時保存）は、仮の値が入っているだけなので
+// 画面では未設定として扱う。ここで空に戻しておけば、あとの判定は「空＝未設定」で済む。
+const slugValue = article && !isPlaceholderSlug(article.slug) ? article.slug : '';
 
 // 上の2つ以外の初期値はフォームの value / textarea に直接埋めてあるので、
 // 同じデータをJSONでも配って二重管理にならないようにする。
@@ -128,6 +134,8 @@ const boot = JSON.stringify({
 
   <div class="notice notice-error" id="msg-error" hidden></div>
   <div class="notice notice-warn" id="msg-warn" hidden></div>
+  {/* frontmatter を取り込んだ結果。slug だけは frontmatter に無いので必ず知らせる */}
+  <div class="notice notice-info" id="msg-import" hidden></div>
 
   <div class="notice notice-info" id="msg-restore" hidden>
     <div>保存されていない編集内容がこのブラウザに残っています。復元しますか？</div>
@@ -137,31 +145,7 @@ const boot = JSON.stringify({
     </div>
   </div>
 
-  {/*
-    ── 1. article.md の取り込み ──
-    開いておくのは新規のときだけ。編集中のこのカードは使い道が無いうえ、
-    ここで取り込むと本文がまるごと置き換わる。閉じておいた方が安全で、
-    書いている本文が画面の上に来るぶん編集も速い。
-  */}
-  <details class="admin-card import-area" open={!isEdit}>
-    <summary class="admin-card-head">
-      article.md を貼り付けて取り込む
-      <span class="admin-hint">frontmatter があればメタ情報も自動で埋まる</span>
-    </summary>
-    <div class="admin-card-body">
-      <textarea
-        id="import-src"
-        placeholder="--- で始まる article.md をまるごと貼り付け（本文だけでも可）"></textarea>
-      <div class="import-actions">
-        <button class="btn btn-primary" type="button" id="import-run">取り込む</button>
-        <span class="admin-hint" id="import-note">
-          slug は自動生成しない。取り込み後に自分で決めること。
-        </span>
-      </div>
-    </div>
-  </details>
-
-  {/* ── 2. メタ情報 ── */}
+  {/* ── 1. メタ情報 ── */}
   <div class="admin-card">
     <div class="admin-card-head">メタ情報</div>
     <div class="admin-card-body">
@@ -172,13 +156,13 @@ const boot = JSON.stringify({
             type="text"
             id="f-slug"
             class="mono"
-            value={article?.slug ?? ''}
-            placeholder="kinenbi-present-30dai"
+            value={slugValue}
+            placeholder="kinenbi-present-30dai（未設定のままでも下書き保存できる）"
             autocomplete="off"
             spellcheck="false"
           />
           <p class="field-note" id="slug-note">
-            公開URLは /media/&lt;slug&gt;。半角英数とハイフンのみ、80字以内。
+            公開URLは /media/&lt;slug&gt;。未設定のままでも下書き保存できる（公開時に必須）。
           </p>
         </div>
 
@@ -276,11 +260,14 @@ const boot = JSON.stringify({
     </div>
   </div>
 
-  {/* ── 3. 本文とプレビュー ── */}
+  {/* ── 2. 本文とプレビュー ── */}
   <div class="admin-card">
     <div class="admin-card-head">
       本文（Markdown）
-      <span class="admin-hint">記法は article-style-guide.md 9章。プレビューは本番と同じレンダラー</span>
+      <span class="admin-hint">
+        article.md をそのまま貼ってよい（frontmatter はメタ情報に移せる）。記法は
+        article-style-guide.md 9章
+      </span>
     </div>
     <div class="admin-card-body">
       <div class="pane-tabs" role="tablist">
@@ -309,6 +296,20 @@ const boot = JSON.stringify({
           </div>
 
           <div class="editor-shell">
+            {/*
+              article.md をそのまま貼れるようにしてあるので、先頭に frontmatter が
+              残っている間だけこの帯を出す。貼り付け先を本文に一本化したぶん、
+              「取り込む」操作はここに残す（frontmatter を外さずに保存すると
+              本文の先頭に設定が印字されるので、公開前チェックでも×にしている）。
+            */}
+            <div class="fm-bar" id="fm-bar" hidden>
+              <span class="fm-bar-text" id="fm-bar-text">
+                先頭に frontmatter がある。メタ情報に取り込んで本文から外す？
+              </span>
+              <button class="btn btn-sm btn-primary" type="button" id="fm-apply">取り込む</button>
+              <button class="btn btn-sm" type="button" id="fm-dismiss">そのままにする</button>
+            </div>
+
             {/*
               ツールバーは編集ペインの中に置く。プレビュー側の上に跨がせると
               900px以下でタブを切り替えたときに「プレビューを見ているのに
@@ -521,8 +522,8 @@ const boot = JSON.stringify({
                       style="--chip:var(--c-tip)"><span class="md-chip"></span>ラベル ▾</button
                     >
                     <div class="md-menu" id="menu-box" hidden>
-                      <button type="button" data-cmd="box-green">
-                        <span class="md-swatch" style="--sw:#88c542"></span>メリット・おすすめ
+                      <button type="button" data-cmd="box-navy">
+                        <span class="md-swatch" style="--sw:#1a2840"></span>要点・まとめ
                       </button>
                       <button type="button" data-cmd="box-red">
                         <span class="md-swatch" style="--sw:#e74c3c"></span>デメリット・注意点
@@ -606,7 +607,7 @@ const boot = JSON.stringify({
                     type="button"
                     data-cmd="cta"
                     data-tip="無料相談CTA（軸3の固定ブロック）"
-                    style="--chip:#88c542"><span class="md-chip"></span>CTA</button
+                    style="--chip:#c4a35a"><span class="md-chip"></span>CTA</button
                   >
                 </div>
               </div>
@@ -632,7 +633,13 @@ const boot = JSON.stringify({
               </ul>
             </div>
 
-            <textarea id="f-body" class="editor" spellcheck="false">{article?.body_md ?? ''}</textarea>
+            <textarea
+              id="f-body"
+              class="editor"
+              spellcheck="false"
+              placeholder="記事/[KW名]/article.md をそのまま貼り付け（frontmatter はメタ情報に取り込める）"
+              >{article?.body_md ?? ''}</textarea
+            >
             {/* 本文中の画像アップロード用。ボタンから click() して開く */}
             <input
               type="file"
@@ -686,7 +693,7 @@ const boot = JSON.stringify({
   </div>
 
   {/*
-    ── 4. 危険な操作 ──
+    ── 3. 危険な操作 ──
     削除を上部バーの「一覧へ戻る」の隣に置いていたが、取り消せない操作を
     移動系のリンクと同じ列に並べる理由が無い。画面のいちばん下へ、
     他のボタンから離して置く。
@@ -702,7 +709,7 @@ const boot = JSON.stringify({
     <button class="btn btn-danger" type="button" id="btn-delete">削除</button>
   </div>
 
-  {/* ── 5. 保存 ── */}
+  {/* ── 4. 保存 ── */}
   <div class="save-bar">
     <span class="save-state" id="save-state"></span>
     {/* 要修正・要確認の件数。押すとチェックのタブが開く（見ないまま公開しないため） */}
@@ -796,6 +803,7 @@ const boot = JSON.stringify({
   const msgError = el<HTMLElement>('msg-error')!;
   const msgWarn = el<HTMLElement>('msg-warn')!;
   const msgRestore = el<HTMLElement>('msg-restore')!;
+  const msgImport = el<HTMLElement>('msg-import')!;
 
   const kwNote = el<HTMLElement>('kw-note')!;
   const checkList = el<HTMLElement>('check-list')!;
@@ -910,9 +918,10 @@ const boot = JSON.stringify({
   function validateSlug() {
     const v = fSlug.value.trim();
     if (!v) {
+      // 空は「まだ決めていない」。下書きのままなら保存できるので、エラーにはしない。
       fSlug.classList.remove('is-invalid');
       slugNote.className = 'field-note';
-      slugNote.textContent = '公開URLは /media/<slug>。半角英数とハイフンのみ、80字以内。';
+      slugNote.textContent = '未設定。このまま下書き保存できる（公開するときに決める）。';
       return;
     }
     const ok = SLUG_RE.test(v) && v.length <= 80;
@@ -1068,6 +1077,7 @@ const boot = JSON.stringify({
       syncSaveButtons();
       runPreview();
       runChecks();
+      updateFmBar();
     });
     el<HTMLButtonElement>('restore-no')?.addEventListener('click', () => {
       clearAutosave();
@@ -1076,24 +1086,44 @@ const boot = JSON.stringify({
     });
   }
 
-  /* ── article.md の取り込み ── */
+  /* ── frontmatter の取り込み ──
+   *
+   * 貼り付け先は本文の textarea 一本にしてある。専用の取り込み欄も同じ
+   * 「Markdownを貼る箱」で、記事1本につき一度使ったら二度と触らないのに
+   * 画面のいちばん上を占め続けていた（貼った内容も本文と二重に残る）。
+   *
+   * article.md をそのまま本文へ貼ると先頭に frontmatter が付いてくるので、
+   * それを見つけてメタ情報へ移し、本文からは外す。
+   * パースそのものは lib/frontmatter.ts（サーバ側）が正で、こちらは
+   * 「先頭に frontmatter があるか」しか見ない——同じ解釈を2か所に書くとズレる。
+   */
 
-  el<HTMLButtonElement>('import-run')?.addEventListener('click', async () => {
-    const src = el<HTMLTextAreaElement>('import-src')!;
-    const note = el<HTMLElement>('import-note')!;
-    if (!src.value.trim()) {
-      note.textContent = '貼り付けてから押すこと。';
-      return;
-    }
-    note.textContent = '取り込み中…';
+  const fmBar = el<HTMLElement>('fm-bar')!;
+  const fmBarText = el<HTMLElement>('fm-bar-text')!;
+  const FM_PROMPT = '先頭に frontmatter がある。メタ情報に取り込んで本文から外す？';
+
+  /** 「そのままにする」を押されたら、次に貼り直されるまで黙る。 */
+  let fmDismissed = false;
+
+  /** 先頭が `---` で始まり、閉じる `---` がある＝frontmatter。 */
+  function hasFrontmatter(src: string): boolean {
+    return /^---\r?\n[\s\S]*?\r?\n---(\r?\n|$)/.test(src);
+  }
+
+  function updateFmBar() {
+    fmBar.hidden = fmDismissed || !hasFrontmatter(fBody.value);
+  }
+
+  async function applyFrontmatter() {
+    if (!hasFrontmatter(fBody.value)) return;
+    fmBarText.textContent = '取り込み中…';
     try {
-      // frontmatter のパースは lib/frontmatter.ts（サーバ側）が正。
-      // 同じ処理をクライアントに書き写すと記法の解釈が二重管理になるので、
-      // /api/preview の mode:'import' に投げてパース結果とHTMLを一度に受け取る。
+      // /api/preview の mode:'import' はパース結果とHTMLを一度に返す。
+      // 取り込み専用のエンドポイントを増やさないのは、防御すべき面を広げないため。
       const res = await fetch('/api/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'import', body_md: src.value }),
+        body: JSON.stringify({ mode: 'import', body_md: fBody.value }),
       });
       const data = (await res.json()) as {
         parsed?: {
@@ -1110,7 +1140,7 @@ const boot = JSON.stringify({
         error?: string;
       };
       if (!res.ok || !data.parsed) {
-        note.textContent = data.error ?? '取り込みに失敗しました';
+        fmBarText.textContent = data.error ?? '取り込みに失敗しました';
         return;
       }
       const p = data.parsed;
@@ -1121,19 +1151,54 @@ const boot = JSON.stringify({
         keyword: p.keyword || fKeyword.value,
         ...(p.axis ? { axis: p.axis } : {}),
         ...(p.funnel ? { funnel: p.funnel } : {}),
-        body_md: p.body,
         is_ad: p.isAd || fIsAd.checked,
       });
+      // 本文の差し替えは replaceRange 経由にして Ctrl+Z で戻せるようにする
+      // （apply の body_md は value を直接書くので undo 履歴が切れる）。
+      replaceRange(0, fBody.value.length, p.body);
+      fBody.setSelectionRange(0, 0);
+      fBody.scrollTop = 0;
+
       if (data.html !== undefined) previewBody.innerHTML = data.html;
       validateSlug();
       updateDescCount();
+      syncKeyword(false);
       queueAutosave();
-      note.textContent = p.bodyOnly
-        ? 'frontmatter が無かったので本文だけ取り込んだ。メタ情報は手で埋めること。'
-        : '取り込んだ。slug は自分で決めること。';
+      runChecks();
+
+      fmDismissed = false;
+      fmBarText.textContent = FM_PROMPT;
+      updateFmBar();
+      // 保存バーの文言は600msで自動退避のメッセージに上書きされるので、
+      // 消えては困る案内（slug）は上の通知に出す。
+      show(
+        msgImport,
+        'frontmatter からメタ情報を埋めた。<strong>slug だけは frontmatter に入っていない</strong>ので、' +
+          '自分で決めること（自動生成しない。公開後は変えない）。',
+      );
     } catch {
-      note.textContent = '通信に失敗しました';
+      fmBarText.textContent = '通信に失敗しました';
     }
+  }
+
+  el<HTMLButtonElement>('fm-apply')?.addEventListener('click', () => applyFrontmatter());
+  el<HTMLButtonElement>('fm-dismiss')?.addEventListener('click', () => {
+    fmDismissed = true;
+    fmBar.hidden = true;
+  });
+
+  fBody.addEventListener('paste', () => {
+    // 貼り直したなら、前に「そのままにする」と言われていても訊き直す
+    fmDismissed = false;
+    const wasEmpty = !fBody.value.trim();
+    // paste 直後は value がまだ古いので、反映を待ってから見る
+    window.setTimeout(() => {
+      if (!hasFrontmatter(fBody.value)) return;
+      // 空の本文に貼った＝新規に取り込んだということなので、訊かずに取り込む。
+      // 中身があるところへ貼ったときだけ、上書きしていいか確認する。
+      if (wasEmpty) applyFrontmatter();
+      else updateFmBar();
+    }, 0);
   });
 
   /* ── タブ切替（900px以下）── */
@@ -1350,13 +1415,17 @@ const boot = JSON.stringify({
   function replaceRange(start: number, end: number, text: string) {
     fBody.focus();
     fBody.setSelectionRange(start, end);
+    const before = fBody.value;
     let ok = false;
     try {
       ok = document.execCommand('insertText', false, text);
     } catch {
       ok = false;
     }
-    if (!ok) {
+    // execCommand は「成功した」と言いながら何も入れないことがある
+    // （ウィンドウがフォーカスを持っていないときなど）。戻り値だけを信じず、
+    // 値が実際に動いたかで判定する。動いていなければ下の保険に落とす。
+    if (!ok || fBody.value === before) {
       // execCommand が使えない環境の保険。undo 履歴は諦めるが挿入自体は通す。
       fBody.setRangeText(text, start, end, 'end');
       fBody.dispatchEvent(new Event('input', { bubbles: true }));
@@ -1499,7 +1568,7 @@ const boot = JSON.stringify({
 
   /** content-axis.md が定める軸3の固定CTA。文面ごと雛形として持つ。 */
   const CTA_BLOCK =
-    ':::box color=#88c542 label="無料相談・お問い合わせ"\n' +
+    ':::box label="無料相談・お問い合わせ"\n' +
     '記念日の準備をまるごと任せたいなら、[お問い合わせフォーム](https://anniv.gift/contact)から' +
     '無料でご相談いただけます。予算や希望が固まっていない段階のご相談も受け付けています。\n' +
     ':::';
@@ -1537,7 +1606,7 @@ const boot = JSON.stringify({
     warning: () => block(cbBlock('warning'), true),
     danger: () => block(cbBlock('danger'), true),
     tip: () => block(cbBlock('tip'), true),
-    'box-green': () => block(boxBlock('#88c542', 'メリット'), true),
+    'box-navy': () => block(boxBlock('#1a2840', '要点'), true),
     'box-red': () => block(boxBlock('#e74c3c', '注意点'), true),
     'box-blue': () => block(boxBlock('#3498db', 'ポイント'), true),
     faq: () =>
@@ -1810,15 +1879,26 @@ const boot = JSON.stringify({
         return;
       }
     }
-    fStatus.value = status;
-    hide(msgError, msgWarn, msgRestore);
+    hide(msgError, msgWarn, msgRestore, msgImport);
 
-    const payload = collect();
-    if (!SLUG_RE.test(payload.slug) || payload.slug.length > 80) {
+    // 状態はこれから保存する値で上書きする。fStatus 自体はまだ触らない——
+    // 検証で弾いたときに「下書きなのに状態だけ公開」が画面に残ってしまうため。
+    const payload = { ...collect(), status };
+
+    // 下書きのうちは slug 未設定でよい（サーバが仮の値を割り当てる＝一時保存）。
+    // 公開のときだけ必須にする——公開URLは後から変えられないので、ここで必ず手で決めさせる。
+    if (payload.slug && (!SLUG_RE.test(payload.slug) || payload.slug.length > 80)) {
       show(msgError, 'slug が不正です（半角英数とハイフンのみ、80字以内）');
       fSlug.focus();
       return;
     }
+    if (!payload.slug && status === 'published') {
+      show(msgError, '公開する前に slug を決めてください（/media/&lt;slug&gt; がそのまま公開URLになる）');
+      fSlug.focus();
+      return;
+    }
+
+    fStatus.value = status;
 
     btnDraft.disabled = true;
     btnPublish.disabled = true;
@@ -1942,6 +2022,7 @@ const boot = JSON.stringify({
     queueAutosave();
     updateBodyCount();
     queueChecks();
+    updateFmBar();
   });
   fSlug.addEventListener('input', () => {
     validateSlug();
@@ -1981,5 +2062,6 @@ const boot = JSON.stringify({
   syncKeyword(false);
   syncSaveButtons();
   runChecks();
+  updateFmBar();
   offerRestore();
 </script>

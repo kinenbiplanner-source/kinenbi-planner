@@ -1,5 +1,5 @@
 ---
-name: rewrite-article
+name: anniv-rewrite-article
 description: Annivメディアの既存記事リライト。公開サイトからコピペしたMarkdownにStep5レビュー＋85点改善ループを当てる軽量フロー
 argument-hint: <KW or ファイルパス> [メモ：方向性]
 disable-model-invocation: true
@@ -12,7 +12,7 @@ disable-model-invocation: true
 
 > 爆速開発部メディアの同名スキルをベースにAnniv向けに移植。
 
-**前提**：`/write-article` はStep 6-4で `記事/[KW名]/article.md` を保存する（Anniv版では公開後も自動削除しない運用。詳細はwrite-article Step 6-5）。そのため公開前の下書きはローカルの `article.md` から、公開済み記事は公開サイトからコピペした本文から、それぞれリライト対象にできる。
+**前提**：`/anniv-write-article` はStep 6-5で `記事/[KW名]/article.md` を保存する（Anniv版では公開後も自動削除しない運用。詳細はanniv-write-article Step 6-6）。そのため公開前の下書きはローカルの `article.md` から、公開済み記事は公開サイトからコピペした本文から、それぞれリライト対象にできる。
 
 ## このコマンドの役割
 
@@ -22,8 +22,8 @@ disable-model-invocation: true
 - 85点未満なら `article-writer`（改善ループモード）→ 再レビューのループ
 - 最終版の保存
 
-**新規記事の `/write-article` との違い：**
-| 項目 | /write-article | /rewrite-article |
+**新規記事の `/anniv-write-article` との違い：**
+| 項目 | /anniv-write-article | /anniv-rewrite-article |
 |---|---|---|
 | Step 0（KW確認） | あり | 既存記事の特定のみ |
 | Step 1（リサーチ） | あり | スキップ（レビュアーが事実確認パスで補完） |
@@ -37,8 +37,8 @@ disable-model-invocation: true
 ## 起動例
 
 ```
-/rewrite-article 彼女 誕生日プレゼント
-/rewrite-article 彼女 誕生日プレゼント メモ：予算1万円以下の話を厚くしたい
+/anniv-rewrite-article 彼女 誕生日プレゼント
+/anniv-rewrite-article 彼女 誕生日プレゼント メモ：予算1万円以下の話を厚くしたい
 ```
 
 公開済み記事は、上のコマンドと一緒に **公開先からコピペしたMarkdown本文** を貼って渡す（その本文が最新・正本）。本文を貼らずKWだけで来た場合は、こちらからコピペを依頼する（サイトを自動取得はしない）。
@@ -80,7 +80,7 @@ Agent ツールで `article-reviewer` を起動。
 
 #### 改善ループ（試験運用）
 
-レビュースコアが **85点未満** なら、article-writer（改善ループモード）↔ article-reviewer の再実行ループに入る。**発動条件・手順・最大ループ数・writerへの渡し方は共通仕様（SSOT）を参照**（`/write-article` と同一仕様）：
+レビュースコアが **85点未満** なら、article-writer（改善ループモード）↔ article-reviewer の再実行ループに入る。**発動条件・手順・最大ループ数・writerへの渡し方は共通仕様（SSOT）を参照**（`/anniv-write-article` と同一仕様）：
 
 `.claude/agents/reference/improvement-loop.md`
 
@@ -106,11 +106,13 @@ Agent ツールで `article-reviewer` を起動。
 ## 注意事項
 
 - リサーチエージェントは起動しない（コスト削減）
+- **要約カードは原則そのまま**：見出し構成を維持するリライトでは作り直さない（既に公開済みの記事は `/media/img/…` を指しているので触ると差し替え作業が増える）。H3の中身が変わってカードの文言と食い違ったときだけ `/anniv-card` で作り直し、管理画面で画像を上げ直す。**H3が2個以上あるH2にカードが無い記事**は、リライトのタイミングで新規に足してよい（手順は anniv-write-article Step 6-2）
 - 見出し構成は基本維持（レビュアーが「見出し変更が必要」と判断した場合のみMust Fixで反映）
 - 既存の差別化ポイントが不明な場合は、レビュアーに「再評価して」と指示
-- 大幅な内容変更（新規セクション追加・削除など）が必要な場合は、`/write-article` での新規執筆を検討するようユーザーに提案
+- 大幅な内容変更（新規セクション追加・削除など）が必要な場合は、`/anniv-write-article` での新規執筆を検討するようユーザーに提案
 
 ## ルールの所在
 
 - 記事執筆／レビューのルールSSOTは `.claude/agents/reference/article-style-guide.md`。reviewer / writer（改善ループ）が起動直後に自分でReadする。リライトでもこの基準で判定・修正される。
+- **旧記事のトーンは引き継がない**：style-guide 8-0章「メディアの声」（記念日のプランを一緒に考えている人が友人の相談に答えるトーン）が現在の基準。事務的・レポート調の旧原稿はリライトで書き換える対象なので、reviewer起動時に「8-0章の声に合っているかを5-B2でチェックする」と明示して渡す。
 - リライト固有のフロー（リサーチ・見出し提案をスキップ等）はこのSKILL内で完結。

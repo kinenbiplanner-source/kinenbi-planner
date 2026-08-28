@@ -9,6 +9,7 @@
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { listForAdmin, pvTotals } from '../../lib/db';
 import { axisShort } from '../../lib/axis';
+import { isPlaceholderSlug } from '../../lib/frontmatter';
 
 export const prerender = false;
 
@@ -45,7 +46,7 @@ const fmt = (iso: string | null): string => {
     {
       articles.length === 0 ? (
         <p class="admin-empty">
-          まだ記事がありません。「新規作成」から <code>article.md</code> を貼り付けて取り込めます。
+          まだ記事がありません。「新規作成」を開いて <code>article.md</code> を本文にそのまま貼れば始められます。
         </p>
       ) : (
         <div class="admin-table-wrap">
@@ -74,7 +75,10 @@ const fmt = (iso: string | null): string => {
                   <td class="col-title">
                     <a href={`/admin/${a.id}/edit`}>{a.title}</a>
                   </td>
-                  <td class="cell-slug">{a.slug}</td>
+                  {/* slug を決めずに保存した下書きは仮の値が入っているだけなので出さない */}
+                  <td class="cell-slug">
+                    {isPlaceholderSlug(a.slug) ? <span class="is-unset">未設定</span> : a.slug}
+                  </td>
                   <td>{axisShort(a.axis)}</td>
                   <td>{a.funnel}</td>
                   <td class={`cell-num${(pv.get(a.id) ?? 0) === 0 ? ' is-zero' : ''}`}>

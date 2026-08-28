@@ -5,7 +5,7 @@
  * HTML に変換する。記法の一次ソースは常に style-guide 側なので、
  * 記法を足すときは必ずあちらを先に更新すること。
  *
- * markdown-it を使う理由：style-guide の `:::box color=#88c542 label="この記事の要点"` や
+ * markdown-it を使う理由：style-guide の `:::box color=#1a2840 label="この記事の要点"` や
  * `:::timeline title=作業手順` は remark-directive の属性記法（`{key="value"}`）と形が違い、
  * remark ではそのままでは解釈できない。markdown-it-container は `:::` 直後の行が
  * まるごと token.info に渡るので、既存の記事仕様を1文字も変えずに実装できる。
@@ -16,6 +16,10 @@
 import MarkdownIt from 'markdown-it';
 import container from 'markdown-it-container';
 import type { Token, RendererRule, Env } from 'markdown-it';
+// 拡張子付きなのは scripts/put-draft.ts が Node から直接読むため（frontmatter.ts と同じ理由）。
+// 正規化を quality.ts 側に置いてあるのは、公開前チェックが同じ解釈で本文を読む必要があるから
+// （あちらはブラウザにも載るので markdown-it に依存させられない）。
+import { normalizeArticleSource } from './quality.ts';
 
 export interface TocItem {
   id: string;
@@ -463,7 +467,7 @@ export function renderArticle(source: string): RenderResult {
     hasToc?: boolean;
     imagePlaceholders?: number;
   } = {};
-  const html = md.render(source, env);
+  const html = md.render(normalizeArticleSource(source), env);
   return {
     html,
     toc: env.toc ?? [],

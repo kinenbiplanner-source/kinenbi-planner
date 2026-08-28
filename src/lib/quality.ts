@@ -65,6 +65,108 @@ export const DESC_MAX = 140;
 const FENCE_RE = /^\s*(```|~~~)/;
 /** カスタムブロック（:::name / ::::columns …）の開始と、名前なしの閉じ。 */
 const CONTAINER_RE = /^(:{3,})\s*([a-zA-Z][\w-]*)?/;
+/**
+ * 本文の末尾に閉じの `:::` が書かれている行（`… 決める :::`）。
+ * markdown-it-container は行頭のフェンスしか閉じと見なさないので、この形は
+ * 「閉じたつもりが閉じていない」＝以降の記事が丸ごとブロックの中に入る事故になる。
+ * 書き手の意図は明らかなので、正規化で単独行へ割る（下の normalizeArticleSource）。
+ */
+const FENCE_TAIL_RE = /^(.*?[^\s:])\s*(:{3,})\s*$/;
+/** 既に箇条書き・見出し・引用・表・画像になっている行（要点の自動箇条書きから外す）。 */
+const NOT_PLAIN_LINE_RE = /^\s*(?:[-*+]\s|\d+[.)]\s|#{1,6}\s|>|\||!\[|\[)/;
+
+/**
+ * レンダリング前の正規化。
+ *
+ * 記事は人とエージェントが書くので、「意図は明らかだが markdown-it が
+ * そのままでは解釈できない」形が混ざる。表示を壊したまま公開するより、
+ * ここで直してから流す方が実害が小さい（記法の正は style-guide 側のまま）。
+ *
+ *   1. 本文の末尾に書かれた閉じの `:::` を単独行に割る
+ *      —— 閉じ損なうと以降の記事が全部そのブロックの中に入ってしまう
+ *   2. `:::summary` の中の素の行を箇条書きにする
+ *      —— style-guide 4-3 が「箇条書きのみ」と決めており、素の行が続くと
+ *         markdown が1つの段落に畳んで要点が読めなくなる
+ *
+ * 保存する body_md は書き手が打ったまま。ここで変えるのは出力だけ。
+ */
+export function normalizeArticleSource(source: string): string {
+  const out: string[] = [];
+  const stack: string[] = [];
+  let inFence = false;
+
+  for (const line of source.split('\n')) {
+    if (FENCE_RE.test(line)) {
+      inFence = !inFence;
+      out.push(line);
+      continue;
+    }
+    if (inFence) {
+      out.push(line);
+      continue;
+    }
+
+    const c = line.match(CONTAINER_RE);
+    if (c) {
+      if (c[2]) stack.push(c[2]);
+      else stack.pop();
+      out.push(line);
+      continue;
+    }
+
+    const inSummary = stack[stack.length - 1] === 'summary';
+
+    // 1. 本文と同じ行に書かれた閉じフェンス（開いているときだけ閉じと解釈する）
+    const tail = stack.length ? line.match(FENCE_TAIL_RE) : null;
+    if (tail) {
+      const body = tail[1];
+      out.push(inSummary && body.trim() && !NOT_PLAIN_LINE_RE.test(body) ? `- ${body.trim()}` : body);
+      out.push(tail[2]);
+      stack.pop();
+      continue;
+    }
+
+    // 2. 要点の素の行
+    if (inSummary && line.trim() && !NOT_PLAIN_LINE_RE.test(line)) {
+      out.push(`- ${line.trim()}`);
+      continue;
+    }
+
+    out.push(line);
+  }
+
+  return out.join('\n');
+}
+
+/**
+ * 閉じられていないカスタムブロック。
+ * 閉じ忘れると以降の本文が丸ごとブロックの中に入るが、HTMLとしては壊れないので
+ * プレビューを流し読みすると気付けない。公開前チェックで拾うために返す。
+ */
+export function unclosedContainer(body: string): { name: string; line: number } | null {
+  const open: Array<{ name: string; line: number }> = [];
+  const lines = body.split('\n');
+  let inFence = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (FENCE_RE.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+
+    const c = line.match(CONTAINER_RE);
+    if (c) {
+      if (c[2]) open.push({ name: c[2], line: i });
+      else open.pop();
+      continue;
+    }
+    // 本文の末尾に書かれた ::: も閉じとして数える（正規化がそう解釈するため）
+    if (open.length && FENCE_TAIL_RE.test(line)) open.pop();
+  }
+  return open[open.length - 1] ?? null;
+}
 
 /**
  * H2/H3 を拾う。
@@ -82,7 +184,7 @@ export function scanHeadings(body: string): Heading[] {
   let pos = 0;
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+    let line = lines[i];
     const lineStart = pos;
     pos += line.length + 1;
 
@@ -91,6 +193,14 @@ export function scanHeadings(body: string): Heading[] {
       continue;
     }
     if (inFence) continue;
+
+    // 行末に書かれた閉じフェンスは、正規化と同じく「閉じ」として扱う。
+    // ここで数え損なうと、以降の見出しがブロックの中と判定されて目次から消える。
+    // 行そのものは残す（行番号がズレるとエディタのジャンプ先が狂う）。
+    if (stack.length && FENCE_TAIL_RE.test(line)) {
+      line = line.replace(/\s*:{3,}\s*$/, '');
+      stack.pop();
+    }
 
     const c = line.match(CONTAINER_RE);
     if (c) {
@@ -199,6 +309,16 @@ function internalLinks(body: string): Array<{ slug: string; line: number }> {
   return out;
 }
 
+/**
+ * 先頭に frontmatter（`---` で囲まれた設定ブロック）が残っているか。
+ * 記事の実体は D1 で、メタ情報は列として持つ。本文に残したまま保存すると
+ * 設定がそのまま記事の先頭に印字される。
+ */
+export function leadingFrontmatterLines(body: string): number {
+  const m = body.match(/^---\r?\n[\s\S]*?\r?\n---(\r?\n|$)/);
+  return m ? m[0].replace(/\r?\n$/, '').split('\n').length : 0;
+}
+
 /** マーカー記号だけ残した本文（マーカーの数を数えるためのもの）。 */
 function keepMarkers(body: string): string {
   return body.replace(/```[\s\S]*?```/g, '').replace(/^:{3,}.*$/gm, '');
@@ -262,6 +382,13 @@ export function inspectArticle(input: InspectInput): CheckItem[] {
     }
   }
 
+  /* ── frontmatter の消し残し ──
+     普段は無いのが当たり前なので、残っているときだけ行を出す（○の行は増やさない）。 */
+  const fmLines = leadingFrontmatterLines(body);
+  if (fmLines) {
+    add('frontmatter', 'frontmatter', 'ng', '本文の先頭に残っている（メタ情報に取り込むこと）', 0);
+  }
+
   /* ── リード（4章：冒頭100字にメインKW／:::summary 必須）── */
   const leadRaw = h2.length ? body.slice(0, h2[0].pos) : body;
   const lead = plainText(leadRaw).replace(/\s+/g, '');
@@ -286,6 +413,20 @@ export function inspectArticle(input: InspectInput): CheckItem[] {
     hasSummary ? 'ok' : 'warn',
     hasSummary ? ':::summary がある' : 'リードに :::summary が無い（4章で必須）',
   );
+
+  /* ── ブロックの閉じ忘れ ──
+     閉じ忘れても HTML は壊れないが、以降の本文が丸ごとブロックの中に入る。
+     プレビューを流し読みすると気付けないので、残っているときだけ行を出す。 */
+  const unclosed = unclosedContainer(body);
+  if (unclosed) {
+    add(
+      'container',
+      'ブロックの閉じ',
+      'ng',
+      `:::${unclosed.name} が閉じられていない（以降の本文が中に入る）`,
+      unclosed.line,
+    );
+  }
 
   /* ── 目次（9章：記法は [[toc]] のみ）── */
   const hasToc = /\[\[toc\]\]/.test(body);
@@ -368,6 +509,24 @@ export function inspectArticle(input: InspectInput): CheckItem[] {
     phLine >= 0 ? phLine : undefined,
   );
 
+  /* ── ローカル画像パスの残り（9章「要約カード」。R2へ上げないと公開先で壊れる）──
+     要約カードは `記事/[KW名]/images/*.png` として手元で作るので、本文には
+     `![alt](images/card_01_x.png)` の形で入ったまま貼られやすい。相対パスは
+     /media/<slug> 配下から解決されるので404になる。絶対パス(/media/img/...)か
+     外部URLになっていない画像参照を拾う。 */
+  const localImgRe = /!\[[^\]]*\]\((?!https?:|\/|data:)[^)]+\)/g;
+  const localImgCount = (body.match(localImgRe) ?? []).length;
+  const localImgLine = lines.findIndex((l) => new RegExp(localImgRe.source).test(l));
+  add(
+    'image-local',
+    'ローカル画像パス',
+    localImgCount === 0 ? 'ok' : 'ng',
+    localImgCount === 0
+      ? '残っていない'
+      : `${localImgCount}件（管理画面でアップロードして /media/img/… に差し替える）`,
+    localImgLine >= 0 ? localImgLine : undefined,
+  );
+
   /* ── 自己言及・看板ワード（2章。軸3だけ解禁）── */
   const hitWord = SELF_WORDS.find((w) => clean.includes(w));
   const hitSuffix = hitWord ? null : clean.match(SELF_SUFFIX_RE);
@@ -393,8 +552,9 @@ export function inspectArticle(input: InspectInput): CheckItem[] {
     );
   }
 
-  /* ── 水平線（9章：--- は使わない）── */
-  const hrLine = lines.findIndex((l) => /^\s*-{3,}\s*$/.test(l));
+  /* ── 水平線（9章：--- は使わない）──
+     frontmatter の `---` を水平線として二重に数えない（上の行で別途出している）。 */
+  const hrLine = lines.findIndex((l, i) => i >= fmLines && /^\s*-{3,}\s*$/.test(l));
   add(
     'hr',
     '水平線',

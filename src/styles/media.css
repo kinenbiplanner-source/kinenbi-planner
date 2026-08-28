@@ -760,7 +760,7 @@
 .art-main {
   min-width: 0;
 }
-/* 左の広告枠。今は何も入れないので見えないまま場所だけ確保する。
+/* 左の広告枠。AdSense 未設定のあいだは中身が空のまま場所だけ確保する。
    1440px 未満では本文が --article-max を割るので列ごと落とす。 */
 .art-ad {
   display: none;
@@ -769,6 +769,36 @@
   position: sticky;
   top: 120px;
   min-height: 600px;
+}
+
+/* ── AdSense の広告枠（components/AdSlot.astro） ──
+   広告は読み込み完了まで高さが決まらない。min-height を先に取らないと
+   本文が後からガクッと下がる（CLS）。記事ページは他に重い外部スクリプトが
+   無いぶん、ここを外すと Core Web Vitals に一番大きく効く。 */
+.ad {
+  display: block;
+  margin: 0 auto;
+}
+.ad-label {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--text-light);
+  text-align: center;
+  margin-bottom: 6px;
+}
+/* 本文の流れの中（記事末尾）。300×250〜336×280 と、モバイルの
+   レスポンシブ枠が収まる高さを見込んで確保する。 */
+.ad-inline {
+  margin: 48px auto 8px;
+  min-height: 280px;
+}
+/* 左サイドの縦長（160×600）。列の幅は .art-grid 側で 160px 固定。 */
+.ad-side {
+  min-height: 600px;
+}
+.ad .adsbygoogle {
+  width: 100%;
 }
 
 .art-crumb {

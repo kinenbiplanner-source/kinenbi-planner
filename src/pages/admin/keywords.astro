@@ -309,6 +309,23 @@ const boot = JSON.stringify({
   .kw-import[open] > summary::before {
     content: '−';
   }
+  /*
+   * JSONを貼る欄とボタンの並び。記事エディタにも同じ形の取り込み欄があって
+   * admin.css で共有していたが、あちらは本文へ直接貼る形に変えて無くなったので、
+   * 使う場所が1つになったこちらへ引き取った。
+   */
+  .import-area textarea {
+    min-height: 110px;
+    font-family: var(--admin-mono);
+    font-size: 12.5px;
+  }
+  .import-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
 
   .kw-filter {
     margin-top: 18px;
