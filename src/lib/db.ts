@@ -353,6 +353,56 @@ export async function pvFirstYmd(): Promise<string | null> {
   return row?.ymd ?? null;
 }
 
+// ────────────────────────────────────────────────
+// 導線のイベント（schema.sql の event_daily）。
+// 正規化は受け口（src/pages/api/ev.ts）の責任で、ここは受け取った値をそのまま畳む。
+
+/** イベント1件ぶんの記録。日付×イベント×場所×流入元で1行に加算する。 */
+export interface EventKey {
+  name: string;
+  label: string;
+  source: string;
+  medium: string;
+  campaign: string;
+}
+
+export async function recordEvent(e: EventKey): Promise<void> {
+  await db()
+    .prepare(
+      `INSERT INTO event_daily (ymd, name, label, source, medium, campaign, count)
+       VALUES (?, ?, ?, ?, ?, ?, 1)
+       ON CONFLICT(ymd, name, label, source, medium, campaign) DO UPDATE SET count = count + 1`,
+    )
+    .bind(jstYmd(), e.name, e.label, e.source, e.medium, e.campaign)
+    .run();
+}
+
+export interface EventRow extends EventKey {
+  ymd: string;
+  count: number;
+}
+
+/** 指定日以降の生の行。ダッシュボード側で好きに畳めるよう、集計せずに返す。 */
+export async function eventsSince(sinceYmd: string): Promise<EventRow[]> {
+  const { results } = await db()
+    .prepare(
+      `SELECT ymd, name, label, source, medium, campaign, count
+       FROM event_daily WHERE ymd >= ? ORDER BY ymd`,
+    )
+    .bind(sinceYmd)
+    .all<EventRow>();
+  return results ?? [];
+}
+
+/**
+ * 計測を最初に記録した日。null なら1件も取れていない。
+ * pvFirstYmd と同じ理由で要る（計測開始前の期間を「ゼロ」と読ませないため）。
+ */
+export async function eventFirstYmd(): Promise<string | null> {
+  const row = await db().prepare('SELECT MIN(ymd) AS ymd FROM event_daily').first<{ ymd: string | null }>();
+  return row?.ymd ?? null;
+}
+
 /**
  * KW台帳の件数を 軸 × ステータス × 優先度 で刻んで返す。
  * この3つの組み合わせがあれば「軸1の未着手が何本」「優先度1の残りが何本」を

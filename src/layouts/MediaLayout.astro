@@ -184,5 +184,17 @@ const {
         </script>
       )
     }
+
+    {/*
+      自前計測（/api/ev）。上の /api/pv とは役割が違う：
+      あちらは「記事ごとのPV」（pageviews テーブル・/admin/stats 用）、
+      こちらは「導線のイベントを流入元つきで数える」（event_daily・/dashboard 用）。
+      両方が page_view 相当を持つので数は一致しない。**突き合わせない**。
+
+      メディア側は data-cta / data-follow を track.js がそのまま拾うので、
+      このファイルのマークアップにも上の gtag リスナーにも手を入れていない。
+      同じクリックで GA4 と自前に1件ずつ飛ぶのが意図した動き。
+    */}
+    <script is:inline src="/assets/track.js" defer></script>
   </body>
 </html>

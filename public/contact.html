@@ -466,6 +466,8 @@
           if (typeof fbq === 'function') {
             fbq('track', 'CompleteRegistration');
           }
+          // 自前計測。**メディア発の成果はこのラベルで数える**（計測設計.md 5章）。
+          (window.annivQueue = window.annivQueue || []).push(['form_complete', 'contact_form']);
           formCard.style.display = 'none';
           successState.classList.add('show');
           document.querySelector('.lead').style.display = 'none';
@@ -478,6 +480,7 @@
         if (typeof gtag === 'function') {
           gtag('event', 'form_error', { event_category: 'error', event_label: 'contact_form' });
         }
+        (window.annivQueue = window.annivQueue || []).push(['form_error', 'contact_form']);
         submitBtn.disabled = false;
         btnLabel.textContent = '送信する';
         btnArrow.style.display = '';
@@ -486,5 +489,6 @@
     });
   </script>
 
+  <script src="/assets/track.js" defer></script>
 </body>
 </html>

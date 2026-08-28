@@ -88,8 +88,13 @@ function readToken(request: Request): string | null {
  * `/api/pv` は公開中の記事ページからビーコンで叩かれるので、ここを塞ぐとPVが取れない。
  * 書き込み系だが、記録できるのは「既存の公開記事の閲覧数を1増やす」だけで、
  * 情報は一切返さない（常に204）。認証を課す価値より計測できないことの損失が大きい。
+ *
+ * `/api/ev` も同じ理由（LP・メディア両方の導線イベント。塞ぐと /dashboard の数字が全部止まる）。
+ * **こちらは文字列を受けて行を作る**ぶん `/api/pv` より危ないので、
+ * 受け口側でイベント名・流入元を許可リストに閉じ、ラベルを正規化してある
+ * （src/pages/api/ev.ts の冒頭コメント）。ここを開ける以上、あの正規化は外さないこと。
  */
-const PUBLIC_API = new Set(['/api/pv']);
+const PUBLIC_API = new Set(['/api/pv', '/api/ev']);
 
 function isProtected(pathname: string): { protectedPath: boolean; api: boolean } {
   const path = pathname.replace(/\.html$/i, '').replace(/\/+$/, '') || '/';

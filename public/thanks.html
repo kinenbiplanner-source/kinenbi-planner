@@ -13,6 +13,9 @@
     gtag('js', new Date());
     gtag('config', 'G-77X1XS59RB');
     gtag('event', 'form_complete', { event_category: 'conversion', event_label: 'tally_form' });
+    // 自前計測にも同じ完了を積む。track.js はこの下（body末尾）で読むので、
+    // 先に呼ばれても取りこぼさないよう待ち行列に入れる（track.js の annivQueue）。
+    (window.annivQueue = window.annivQueue || []).push(['form_complete', 'tally_form']);
   </script>
 
   <!-- Meta Pixel Code -->
@@ -351,6 +354,8 @@
 
   <script>
     document.querySelectorAll('a[href*="lin.ee"]').forEach(function (el) {
+      el.setAttribute('data-ev', 'line_add_click');
+      el.setAttribute('data-ev-label', 'thanks');
       el.addEventListener('click', function () {
         if (typeof gtag === 'function') {
           gtag('event', 'line_add_click', { event_category: 'conversion', event_label: 'thanks' });
@@ -361,5 +366,6 @@
       });
     });
   </script>
+  <script src="/assets/track.js" defer></script>
 </body>
 </html>

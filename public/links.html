@@ -352,6 +352,11 @@
       }
       if (!label) return;
 
+      // 自前計測（/api/ev）は属性を見て /assets/track.js が拾う。
+      // ラベルの決め方を上の if 連鎖1か所に保つため、ここで属性を付ける。
+      el.setAttribute('data-ev', label === 'line' ? 'line_add_click' : 'links_click');
+      el.setAttribute('data-ev-label', label === 'line' ? 'links' : label);
+
       el.addEventListener('click', function () {
         if (label === 'line') {
           if (typeof gtag === 'function') {
@@ -368,5 +373,6 @@
       });
     });
   </script>
+  <script src="/assets/track.js" defer></script>
 </body>
 </html>

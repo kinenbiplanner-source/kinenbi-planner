@@ -241,31 +241,6 @@
       width: 100%;
       align-items: center;
     }
-    .hero-label {
-      display: inline-flex;
-      align-items: center;
-      font-size: 11px;
-      font-weight: 500;
-      letter-spacing: 0.15em;
-      color: var(--blue-mid);
-      text-transform: uppercase;
-      margin-bottom: 26px;
-      padding: 7px 16px;
-      background: var(--glass);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid var(--glass-border);
-      border-radius: 20px;
-      box-shadow: var(--shadow-sm);
-    }
-    .hero-label::before {
-      content: '';
-      width: 5px; height: 5px;
-      border-radius: 50%;
-      background: var(--gold);
-      box-shadow: 0 0 8px var(--gold);
-      margin-right: 9px;
-    }
     .hero-title {
       font-family: var(--font-serif-jp);
       font-size: clamp(44px, 5.4vw, 70px);
@@ -435,28 +410,6 @@
       animation: scrollCue 2.2s ease-in-out infinite;
     }
     @keyframes scrollCue { 0% { top: -40px; } 60%,100% { top: 40px; } }
-
-    /* ── TRUST BAR ── */
-    .trust-bar {
-      background: var(--navy);
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-    .trust-bar-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      color: rgba(255,255,255,0.82);
-      font-size: 13px;
-      font-weight: 300;
-      letter-spacing: 0.04em;
-      padding: 14px 40px;
-      border-right: 1px solid rgba(255,255,255,0.1);
-      white-space: nowrap;
-    }
-    .trust-bar-item:first-child { border-left: 1px solid rgba(255,255,255,0.1); }
-    .trust-bar-item svg { color: var(--gold); flex-shrink: 0; }
 
     /* ── SECTION BASE ── */
     section { padding: 120px 60px; }
@@ -681,20 +634,7 @@
       font-weight: 300;
       color: rgba(255,255,255,0.75);
       line-height: 2;
-      margin-bottom: 28px;
     }
-    .concierge-tags { display: flex; flex-wrap: wrap; gap: 10px; }
-    .concierge-tag {
-      font-size: 12px;
-      color: var(--blue-pastel);
-      border: 1px solid rgba(168,200,224,0.38);
-      border-radius: 20px;
-      padding: 6px 16px;
-      font-weight: 400;
-      letter-spacing: 0.03em;
-      transition: border-color 0.25s, color 0.25s, background 0.25s;
-    }
-    .concierge-tag:hover { border-color: var(--gold); color: var(--gold-soft); background: rgba(196,163,90,0.06); }
     .concierge-cards { display: flex; flex-direction: column; gap: 16px; }
     .concierge-card {
       background: rgba(255,255,255,0.05);
@@ -804,28 +744,12 @@
       transition: transform 0.28s var(--ease), box-shadow 0.28s;
     }
     .pricing-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); }
-    .pricing-card.featured {
-      border-color: transparent;
-      background: linear-gradient(165deg, #2a3d5c 0%, var(--navy) 100%);
-      color: var(--white);
-      box-shadow: 0 28px 64px rgba(26,40,64,0.32);
-      transform: translateY(-10px);
-    }
-    .pricing-card.featured:hover { transform: translateY(-15px); }
-    .pricing-featured-badge {
-      position: absolute;
-      top: -13px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--grad-gold);
-      color: var(--navy);
+    .pricing-budget-label {
       font-size: 11px;
-      font-weight: 600;
-      padding: 5px 16px;
-      border-radius: 20px;
-      white-space: nowrap;
-      box-shadow: 0 5px 18px rgba(196,163,90,0.5);
-      letter-spacing: 0.05em;
+      font-weight: 400;
+      letter-spacing: 0.1em;
+      color: var(--text-light);
+      margin-bottom: 7px;
     }
     .pricing-budget-range {
       font-family: 'Cormorant Garamond', serif;
@@ -835,14 +759,6 @@
       line-height: 1;
       margin-bottom: 8px;
     }
-    .pricing-card.featured .pricing-budget-range { color: var(--white); }
-    .pricing-plan-name {
-      font-size: 12px;
-      font-weight: 300;
-      color: var(--text-light);
-      margin-bottom: 20px;
-    }
-    .pricing-card.featured .pricing-plan-name { color: rgba(255,255,255,0.52); }
     .pricing-examples-label {
       font-size: 11px;
       font-weight: 500;
@@ -851,13 +767,11 @@
       text-transform: uppercase;
       margin-bottom: 10px;
     }
-    .pricing-card.featured .pricing-examples-label { color: var(--gold-soft); }
     .pricing-divider {
       height: 1px;
       background: var(--border);
       margin-bottom: 20px;
     }
-    .pricing-card.featured .pricing-divider { background: rgba(255,255,255,0.15); }
     .pricing-features { list-style: none; }
     .pricing-features li {
       font-size: 12px;
@@ -869,7 +783,6 @@
       gap: 8px;
       line-height: 1.65;
     }
-    .pricing-card.featured .pricing-features li { color: rgba(255,255,255,0.80); }
     .pricing-features li::before {
       content: '';
       width: 5px; height: 5px;
@@ -878,9 +791,21 @@
       flex-shrink: 0;
       margin-top: 6px;
     }
-    .pricing-card.featured .pricing-features li::before { background: var(--gold); }
-    .pricing-express {
+    .pricing-custom-note {
       margin-top: 30px;
+      padding: 26px 32px;
+      background: linear-gradient(165deg, #2a3d5c 0%, var(--navy) 100%);
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 300;
+      line-height: 1.95;
+      color: rgba(255,255,255,0.80);
+      text-align: center;
+      box-shadow: 0 24px 56px rgba(26,40,64,0.24);
+    }
+    .pricing-custom-note strong { color: var(--gold-soft); font-weight: 500; }
+    .pricing-express {
+      margin-top: 16px;
       padding: 22px 28px;
       background: linear-gradient(135deg, var(--blue-pale), #fafdff);
       border-radius: var(--radius);
@@ -1274,16 +1199,13 @@
       .pain-grid, .services-grid, .trust-grid, .testimonials-grid { grid-template-columns: 1fr; }
       .gallery-grid { grid-template-columns: 1fr 1fr; }
       .pricing-grid { grid-template-columns: 1fr 1fr; }
-      .pricing-card.featured { transform: none; }
-      .pricing-card.featured:hover { transform: translateY(-5px); }
-      .trust-bar-item { padding: 12px 20px; font-size: 12px; }
+      .pricing-custom-note { padding: 22px 24px; }
       footer { flex-direction: column; align-items: flex-start; padding: 30px 24px; }
       #cta { padding: 80px 24px; }
     }
     @media (max-width: 560px) {
       .pricing-grid { grid-template-columns: 1fr; }
       .hero-title br, .section-title br { display: none; }
-      .trust-bar { display: none; }
     }
 
     /* ── a11y ── */
@@ -1345,7 +1267,7 @@
     <li><a href="#flow">ご利用の流れ</a></li>
     <li><a href="#pricing">料金</a></li>
     <li><a href="/media">メディア</a></li>
-    <li><a href="#cta" class="nav-cta">申し込む</a></li>
+    <li><a href="#cta" class="nav-cta">無料相談</a></li>
   </ul>
 </nav>
 
@@ -1355,12 +1277,11 @@
   <div class="hero-glow"></div>
   <div class="hero-grid">
     <div class="hero-content">
-      <span class="hero-label animate">Anniversary Concierge</span>
-      <h1 class="hero-title animate delay-1">記念日を、<br>もっと<em>特別</em>に。</h1>
-      <p class="hero-sub animate delay-2">
+      <h1 class="hero-title animate">記念日を、<br>もっと<em>特別</em>に。</h1>
+      <p class="hero-sub animate delay-1">
         プレゼント選びから、レストラン予約、当日の演出まで。大切な日に、外さない選択を。
       </p>
-      <div class="hero-cta-wrap animate delay-3">
+      <div class="hero-cta-wrap animate delay-2">
         <a href="#pricing" class="btn-primary">
           プランを見る
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -1400,27 +1321,10 @@
   </div>
 </section>
 
-<!-- TRUST BAR -->
-<div class="trust-bar" aria-label="安心ポイント">
-  <div class="trust-bar-item">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-    12時間以内にご返信
-  </div>
-  <div class="trust-bar-item">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-    ご相談・ヒアリング無料
-  </div>
-  <div class="trust-bar-item">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
-    入金前キャンセル無料
-  </div>
-</div>
-
 <!-- PAIN -->
 <section id="pain">
   <div class="section-inner">
     <div class="section-header animate">
-      <div class="section-label">こんな悩み、ありませんか？</div>
       <h2 class="section-title">記念日の準備、<br>毎回迷っていませんか。</h2>
     </div>
     <div class="pain-grid">
@@ -1520,20 +1424,13 @@
         <div class="section-label animate">Concierge</div>
         <h2 class="section-title animate delay-1">多様な経験を持つプランナーがあなたの想いに寄り添います。</h2>
         <p class="concierge-text animate delay-2">
-          元化粧品販売員や主婦、大学生など、さまざまな視点を持つプランナーが在籍。幅広い感性を活かし、大切な方に本当に喜ばれるご提案をお届けします。
+          元百貨店販売員や主婦、大学生など、さまざまな視点を持つプランナーが在籍。幅広い感性を活かし、大切な方に本当に喜ばれるご提案をお届けします。
         </p>
-        <div class="concierge-tags animate delay-3">
-          <span class="concierge-tag">元化粧品販売員</span>
-          <span class="concierge-tag">主婦</span>
-          <span class="concierge-tag">大学生</span>
-          <span class="concierge-tag">20代〜アラフィフ</span>
-          <span class="concierge-tag">多様なバックグラウンド</span>
-        </div>
       </div>
       <div class="concierge-cards animate delay-2">
         <div class="concierge-card">
           <div class="concierge-card-role">プレゼント担当</div>
-          <div class="concierge-card-desc">元化粧品販売員のプランナーが、女性目線でパートナーの好みに合ったギフトを厳選します。</div>
+          <div class="concierge-card-desc">元百貨店販売員のプランナーが、女性目線でパートナーの好みに合ったギフトを厳選します。</div>
         </div>
         <div class="concierge-card">
           <div class="concierge-card-role">レストラン担当</div>
@@ -1598,23 +1495,25 @@
   <div class="section-inner">
     <div class="section-header animate">
       <div class="section-label">Pricing</div>
-      <h2 class="section-title">ご予算の目安</h2>
-      <p class="section-sub">定額プランはありません。すべて完全オーダーメイドで、ご予算とご要望をお伺いしながらプランナーがゼロから組み立てます。表示金額はプレゼント・レストラン予約・演出手配をすべて含めた目安です。</p>
+      <h2 class="section-title">料金は、完全オーダーメイド。</h2>
+      <p class="section-sub">決まったプランも、定額メニューもありません。ご予算とご要望をお伺いしたうえで、プランナーが一件ずつゼロから組み立てます。下記は「このくらいのご予算なら、こんなことができます」という目安です。金額はプレゼント・レストラン予約・演出手配をすべて含みます。</p>
     </div>
     <div class="pricing-grid">
       <div class="pricing-card animate delay-1">
+        <div class="pricing-budget-label">ご予算</div>
         <div class="pricing-budget-range">〜¥20,000</div>
         <div class="pricing-divider"></div>
-        <div class="pricing-examples-label">サービス例</div>
+        <div class="pricing-examples-label">できることの一例</div>
         <ul class="pricing-features">
           <li>プレゼント選定・直送</li>
           <li>演出プラン（渡し方・タイミング・言葉の提案）</li>
         </ul>
       </div>
-      <div class="pricing-card featured animate delay-2">
+      <div class="pricing-card animate delay-2">
+        <div class="pricing-budget-label">ご予算</div>
         <div class="pricing-budget-range">〜¥35,000</div>
         <div class="pricing-divider"></div>
-        <div class="pricing-examples-label">サービス例</div>
+        <div class="pricing-examples-label">できることの一例</div>
         <ul class="pricing-features">
           <li>プレゼント選定・直送</li>
           <li>レストラン予約・サプライズプレート手配</li>
@@ -1623,9 +1522,10 @@
         </ul>
       </div>
       <div class="pricing-card animate delay-3">
+        <div class="pricing-budget-label">ご予算</div>
         <div class="pricing-budget-range">〜¥50,000</div>
         <div class="pricing-divider"></div>
-        <div class="pricing-examples-label">サービス例</div>
+        <div class="pricing-examples-label">できることの一例</div>
         <ul class="pricing-features">
           <li>こだわりのプレゼント選定・直送</li>
           <li>レストラン・演出フル手配</li>
@@ -1635,15 +1535,20 @@
         </ul>
       </div>
       <div class="pricing-card animate delay-3">
+        <div class="pricing-budget-label">ご予算</div>
         <div class="pricing-budget-range">¥50,000〜</div>
         <div class="pricing-divider"></div>
-        <div class="pricing-examples-label">サービス例</div>
+        <div class="pricing-examples-label">できることの一例</div>
         <ul class="pricing-features">
           <li>丁寧なヒアリングをもとに完全カスタマイズ</li>
           <li>記念日を含めた特別な体験を一貫サポート</li>
           <li>ご要望に応じてすべて対応・要相談</li>
         </ul>
       </div>
+    </div>
+    <div class="pricing-custom-note animate">
+      <strong>ご予算が決まっていなくても大丈夫です。</strong><br>
+      「これくらいで何ができる？」というご相談から一緒に考えます。上記はあくまで目安なので、この枠に収まらないご要望もお気軽にお聞かせください。内容も金額も、お一人おひとりに合わせて組み立てます。
     </div>
     <div class="pricing-express animate">
       <strong>スピード対応オプション</strong>　記念日2日前までのお申し込みは +¥3,000〜5,000 で対応可能です。
@@ -1933,7 +1838,12 @@
 </script>
 
 <script>
+  // GA4 / Pixel への送信はここ。自前計測（/api/ev）へは data-ev / data-ev-label を
+  // 付けておくだけで /assets/track.js が拾う。**ラベルの定義をこの1か所に保つ**ため、
+  // 属性はHTMLに直接書かず、gtag のリスナーを張るのと同じループで付ける。
   document.querySelectorAll('a[href*="tally.so"]').forEach(function (el) {
+    el.setAttribute('data-ev', 'cta_click');
+    el.setAttribute('data-ev-label', 'tally_form');
     el.addEventListener('click', function () {
       if (typeof gtag === 'function') {
         gtag('event', 'cta_click', { event_category: 'engagement', event_label: 'tally_form' });
@@ -1946,6 +1856,8 @@
 
   document.querySelectorAll('a[href*="lin.ee"]').forEach(function (el) {
     var label = el.closest('.footer-social') ? 'index_footer' : 'index_cta';
+    el.setAttribute('data-ev', 'line_add_click');
+    el.setAttribute('data-ev-label', label);
     el.addEventListener('click', function () {
       if (typeof gtag === 'function') {
         gtag('event', 'line_add_click', { event_category: 'conversion', event_label: label });
@@ -1956,5 +1868,6 @@
     });
   });
 </script>
+<script src="/assets/track.js" defer></script>
 </body>
 </html>
