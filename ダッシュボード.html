@@ -368,6 +368,17 @@
         <div class="cost-item-amount" id="jalAmount">¥1,300</div>
       </div>
     </div>
+    <!-- X Premium（Annivのアカウント）。SNS運用の実績とは性質が違って月額固定なので、
+         下の変動費（今月の実績）ではなく上の合計に入れる。 -->
+    <div class="cost-item">
+      <div class="cost-item-dot dot-paid"></div>
+      <div class="cost-item-body">
+        <div class="cost-item-name">X Premium（Anniv）</div>
+        <div class="cost-item-amount">¥1,380</div>
+        <div class="cost-item-note">投稿の文字数上限・分析。API課金とは別</div>
+      </div>
+    </div>
+
     <!-- multi-SNS-manager が記録している今月の費用。金額は /api/sns-cost が
          あちらのD1（cost_events / cost_settings）を読んで返す。
          固定費と違って月内で増えていくので、上の合計（固定費）には足さない。 -->
@@ -674,14 +685,16 @@
   updateClock();
   setInterval(updateClock, 1000);
 
-  // JAL Mobileの料金が入ったら合計を計算（現在はプレースホルダー）
+  // 固定費の合計。内訳は上のコスト項目と対で、増やしたらここにも足す
+  // （GMO 660 ／ ドメイン 225 ／ X Premium 1,380 ／ JALモバイル）。
+  // SNS運用は月内で増える変動費なので、この合計には入れない。
   const JAL_MOBILE = 1300;
   if (JAL_MOBILE !== null) {
     document.getElementById('jalAmount').textContent = `¥${JAL_MOBILE.toLocaleString()}`;
-    const total = 660 + 225 + JAL_MOBILE;
+    const total = 660 + 225 + 1380 + JAL_MOBILE;
     document.getElementById('totalCost').textContent = `¥${total.toLocaleString()}`;
   } else {
-    document.getElementById('totalCost').textContent = '¥885＋JALモバイル';
+    document.getElementById('totalCost').textContent = '¥2,265＋JALモバイル';
   }
 
   // ローカルのファイルとして開いたときだけ意味がある「local」カードは、
