@@ -35,6 +35,9 @@ interface Props {
 
 const { article, toc, related } = Astro.props;
 
+/** 右レールに出す目次。H2だけに絞る（理由は下の aside のコメント）。 */
+const tocH2 = toc.filter((t) => t.level === 2);
+
 const SITE = 'https://anniv.gift';
 const axisLabel = axisName(article.axis);
 const categoryPath = `/media/category/${article.axis}`;
@@ -254,13 +257,17 @@ const breadcrumbLd = {
       </article>
 
       <aside class="art-side">
+        {/* 右レールの目次はH2だけ。H3まで出すと縦に伸びてCTAカードが押し下げられるうえ、
+            章の粒度が掴みにくくなる。H3まで見たい読者向けの目次は本文中の [[toc]] が持つ。
+            現在地ハイライトの IntersectionObserver も、ここに出したリンクだけを見る
+            （H3を読んでいる間はどのH2も判定帯に入らないので、直前のH2が点灯したまま残る）。 */}
         {
-          toc.length > 0 && (
+          tocH2.length > 0 && (
             <nav class="art-toc" aria-label="目次">
               <p class="art-toc-head">Contents</p>
               <ul>
-                {toc.map((t) => (
-                  <li class={t.level === 3 ? 'is-l3' : 'is-l2'}>
+                {tocH2.map((t) => (
+                  <li class="is-l2">
                     <a href={`#${t.id}`}>{t.text}</a>
                   </li>
                 ))}
@@ -268,12 +275,26 @@ const breadcrumbLd = {
             </nav>
           )
         }
+        {/* 右レールのCTA。正方形のビジュアルを載せ、文字はHTMLで出す（画像に焼き込まない）。
+            レールは1000px以下で display:none になるので、loading="lazy" だとモバイルでは
+            そもそも取りに行かない＝転送量ゼロで済む。 */}
         <div class="art-sidecta">
-          <p class="art-sidecta-title">記念日の準備を任せる</p>
-          <p class="art-sidecta-text">
-            プレゼント選びからお店の予約、当日の演出まで。関係性と予算に合わせて、記念日の準備をまるごとお手伝いします。
-          </p>
-          <a href="https://anniv.gift/contact" data-cta="form" data-cta-label="article_side">無料で相談する</a>
+          <img
+            class="art-sidecta-img"
+            src="/assets/cta-square.webp"
+            alt=""
+            width="600"
+            height="600"
+            loading="lazy"
+            decoding="async"
+          />
+          <div class="art-sidecta-body">
+            <p class="art-sidecta-title">記念日の準備を相談する</p>
+            <p class="art-sidecta-text">
+              プレゼント選びからお店の予約、当日の演出まで。何から決めればいいか迷っている段階でも相談できます。
+            </p>
+            <a href="https://anniv.gift/contact" data-cta="form" data-cta-label="article_side">無料で相談する</a>
+          </div>
         </div>
       </aside>
     </div>

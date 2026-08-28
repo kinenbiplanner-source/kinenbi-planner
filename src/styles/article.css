@@ -662,6 +662,126 @@ a.badge:hover {
   color: var(--white);
 }
 
+/* ── :::hero（本文中のビジュアルCTA）──
+   :::banner が文字だけの細い導線なのに対し、こちらは写真を敷いた面で見せる強い導線。
+   文字は画像に焼き込まずHTMLで出すので、モバイルで潰れずコピーも後から差し替えられる。
+   重なりは img → ::after（ネイビーのグラデ）→ .cta-hero-inner の順。
+   3要素とも position 指定なので、順序を DOM 任せにせず z-index を明示する。 */
+.cta-hero {
+  position: relative;
+  display: block;
+  margin: 40px 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+  text-decoration: none;
+  /* .prose a より優先させる必要があるので !important（.cta-banner-navy と同じ理由） */
+  color: var(--white) !important;
+  box-shadow: var(--shadow-md);
+  transition: transform 0.25s var(--ease), box-shadow 0.25s;
+}
+.cta-hero-bg {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* 縦横比が合わない画像を入れても構図が残るように cover で切る。
+     デスクトップは左66%をグラデが覆うので、写真の主役は右寄りに置く前提。
+     モバイルは箱が縦に伸びて横がトリミングされるため、切り取りの基準も右寄りにする */
+  object-fit: cover;
+  object-position: 62% center;
+  transition: transform 0.5s var(--ease);
+}
+.cta-hero::after {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  /* 左（文字側）を濃く、右（写真側）を薄く。文字が乗る72%までは濃さを保ち、
+     そこから一気に抜いて写真を見せる（全体を均一に暗くすると紺の板に見える） */
+  background: linear-gradient(
+    100deg,
+    rgba(26, 40, 64, 0.9) 0%,
+    rgba(26, 40, 64, 0.82) 50%,
+    rgba(26, 40, 64, 0.66) 72%,
+    rgba(26, 40, 64, 0.26) 100%
+  );
+}
+.cta-hero-inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 210px;
+  padding: 30px 32px;
+  /* 右に写真の見える余白を残す。文字が薄いグラデ側へ伸びると読みにくい */
+  max-width: 66%;
+}
+.cta-hero-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--gold-soft);
+}
+.cta-hero-title {
+  margin-top: 10px;
+  font-family: var(--font-serif-jp);
+  font-size: 23px;
+  font-weight: 500;
+  line-height: 1.55;
+  letter-spacing: 0.01em;
+}
+.cta-hero-note {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.76);
+}
+/* 補足行は省略できる。空の div が余白を作らないように畳む */
+.cta-hero-note:empty {
+  display: none;
+}
+.cta-hero-note p {
+  margin: 0;
+}
+.cta-hero-note p + p {
+  margin-top: 4px;
+}
+.cta-hero-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  padding: 12px 24px;
+  border-radius: 8px;
+  background: var(--grad-gold);
+  color: var(--navy);
+  font-size: 14.5px;
+  font-weight: 500;
+  box-shadow: 0 8px 22px rgba(26, 40, 64, 0.3);
+  transition: filter 0.2s;
+}
+.cta-hero-arrow {
+  font-size: 13px;
+  line-height: 1;
+  transition: transform 0.2s var(--ease);
+}
+.cta-hero:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+.cta-hero:hover .cta-hero-bg {
+  transform: scale(1.04);
+}
+.cta-hero:hover .cta-hero-btn {
+  filter: brightness(1.06);
+}
+.cta-hero:hover .cta-hero-arrow {
+  transform: translateX(3px);
+}
+
 /* ── :::details title=〇〇（長い補足の折りたたみ）──
    :::faq が一問一答なのに対し、こちらは本文の流れを止めたくない長い補足を畳む。 */
 .fold {
@@ -1004,6 +1124,29 @@ a.badge:hover {
   .cta-banner-label {
     font-size: 14.5px;
   }
+  /* 幅が狭いと文字が写真側にはみ出すので、全面を暗くして1カラムに寄せる */
+  .cta-hero::after {
+    background: linear-gradient(
+      165deg,
+      rgba(26, 40, 64, 0.76) 0%,
+      rgba(26, 40, 64, 0.86) 55%,
+      rgba(26, 40, 64, 0.92) 100%
+    );
+  }
+  .cta-hero-inner {
+    max-width: 100%;
+    min-height: 0;
+    padding: 24px 20px 26px;
+  }
+  .cta-hero-title {
+    font-size: 19px;
+  }
+  .cta-hero-btn {
+    justify-content: center;
+    width: 100%;
+    margin-top: 16px;
+  }
+
   .fold-head {
     padding: 13px 16px 13px 38px;
   }

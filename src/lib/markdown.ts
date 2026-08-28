@@ -242,6 +242,73 @@ md.use(container, 'banner', {
   },
 });
 
+/* ── :::hero image=… label=… title=… btn=… href=…（本文中のビジュアルCTA）──
+   :::banner が文字だけの細い導線なのに対し、こちらは写真を敷いた面で見せる強い導線。
+   文字は画像に焼き込まずHTMLで出す：モバイルで潰れない・コピーだけ後から差し替えられる・
+   リンク文言がそのまま検索と計測に乗る。写真は装飾なので alt="" にする（リンク名は文字側が持つ）。
+   1記事に1本まで（style-guide 9章）。 */
+const HERO_IMAGE = '/assets/cta-hero.webp';
+const HERO_LABEL = '無料相談・お問い合わせ';
+const HERO_TITLE = '記念日の準備、まずは相談してみる';
+const HERO_BTN = '無料で相談する';
+
+function parseHeroParams(info: string): {
+  image: string;
+  label: string;
+  title: string;
+  btn: string;
+  href: string;
+} {
+  const rest = info.trim().replace(/^hero\s*/, '');
+  return {
+    // 画像も href と同じ検証に通す（`javascript:` や別ドメインの読み込みを防ぐ）
+    image: safeHref(param(rest, 'image'), HERO_IMAGE),
+    label: param(rest, 'label') || HERO_LABEL,
+    title: param(rest, 'title') || HERO_TITLE,
+    btn: param(rest, 'btn') || HERO_BTN,
+    href: safeHref(param(rest, 'href'), CONTACT_URL),
+  };
+}
+
+md.use(container, 'hero', {
+  render: (tokens: Token[], idx: number) => {
+    if (tokens[idx].nesting !== 1) {
+      // ボタン文言は開きマーカーの属性にあるので、閉じるときに遡って拾う（:::box のCTAと同じ手）。
+      let btn = HERO_BTN;
+      for (let i = idx - 1; i >= 0; i--) {
+        if (tokens[i].type === 'container_hero_open') {
+          btn = parseHeroParams(tokens[i].info).btn;
+          break;
+        }
+      }
+      return (
+        '</div>\n' +
+        `<span class="cta-hero-btn">${esc(btn)}` +
+        '<span class="cta-hero-arrow" aria-hidden="true">→</span></span>\n' +
+        '</div>\n</a>\n'
+      );
+    }
+    const { image, label, title, href } = parseHeroParams(tokens[idx].info);
+    // 計測設計.md 3章：種類は見た目ではなく遷移先で決める（event_label は article_hero）。
+    const kind = LINE_HREF.test(href) ? 'line' : 'form';
+    const external = /^https:\/\//i.test(href) && !href.includes('anniv.gift');
+    const target = external ? ' target="_blank" rel="noopener noreferrer"' : '';
+    return (
+      `<a class="cta-hero" href="${esc(href)}"${target}` +
+      ' data-cta="' +
+      kind +
+      '" data-cta-label="article_hero">\n' +
+      `<img class="cta-hero-bg" src="${esc(image)}" alt="" width="1200" height="400"` +
+      ' loading="lazy" decoding="async">\n' +
+      '<div class="cta-hero-inner">\n' +
+      `<span class="cta-hero-eyebrow">${esc(label)}</span>\n` +
+      `<span class="cta-hero-title">${esc(title)}</span>\n` +
+      // 補足行は省略できる。空のまま閉じても .cta-hero-note:empty で畳まれる。
+      '<div class="cta-hero-note">'
+    );
+  },
+});
+
 /* ── :::details title=〇〇（長い補足を畳む）──
    :::faq が一問一答の見せ方なのに対し、こちらは本文の流れを止めたくない
    長い補足（内訳・前提条件・細かい注意）を初期状態で閉じておくためのもの。 */
