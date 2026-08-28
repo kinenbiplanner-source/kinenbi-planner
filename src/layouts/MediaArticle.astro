@@ -60,9 +60,14 @@ const updatedText = jstDate(article.updated_at);
 // 情報が増えないので、日付が変わってから初めて「更新」を出す。
 const showUpdated = updatedText !== '' && updatedText !== publishedText;
 
-// 軸3の記事は本文中に固定CTA（markdown.ts が .cta-box として出す）が入っている。
-// content-axis.md が「1記事に1つだけ」と定めているので、その場合は記事末のCTAを重ねない。
-const hasInlineCta = article.body_html.includes('class="cta-box"');
+// 本文中に強いCTAが既にあるなら、記事末のCTAは重ねない。
+//   .cta-box  … 軸3の固定CTA（content-axis.md が「1記事に1つだけ」と定めている）
+//   .cta-hero … 本文中のビジュアルCTA（style-guide 9章。1記事に1本まで）
+// 記事末CTAは3つとも同じ見た目なので、重ねると同じ写真の面が2回出て「またこれか」になる。
+// 相談導線は右レールのカードとモバイル下部バーが記事の最後まで並走しているので、
+// ここを畳んでも出口は消えない。
+const hasInlineCta =
+  article.body_html.includes('class="cta-box"') || article.body_html.includes('class="cta-hero"');
 
 /**
  * 前後の記事（公開日順・軸をまたぐ）。
@@ -172,9 +177,11 @@ const breadcrumbLd = {
         </nav>
 
         <header class="art-head">
+          {/* ファネル（集客／比較・検討／課題解決）は記事を設計するための社内分類なので
+              公開ページには出さない。読者には意味が伝わらないうえ、狙いが露出する。
+              管理画面（/admin・/admin/stats）では従来どおり出す。 */}
           <div class="art-tags">
             <a class="art-tag" href={categoryPath}>{axisLabel}</a>
-            <span class="art-tag is-funnel">{article.funnel}</span>
           </div>
 
           <h1 class="art-title">{article.title}</h1>

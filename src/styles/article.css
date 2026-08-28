@@ -662,37 +662,47 @@ a.badge:hover {
   color: var(--white);
 }
 
-/* ── :::hero（本文中のビジュアルCTA）──
-   :::banner が文字だけの細い導線なのに対し、こちらは写真を敷いた面で見せる強い導線。
-   文字は画像に焼き込まずHTMLで出すので、モバイルで潰れずコピーも後から差し替えられる。
-   重なりは img → ::after（ネイビーのグラデ）→ .cta-hero-inner の順。
-   3要素とも position 指定なので、順序を DOM 任せにせず z-index を明示する。 */
-.cta-hero {
+/* ── 相談CTA（共通の見た目）──────────────────────
+   記事に出る送客ブロックは全部この1枚の面で統一する：写真の上にネイビーのグラデ、
+   ゴールドの小見出し＋明朝の見出し＋ゴールドのボタン。内訳は3つ。
+     .cta-hero … 本文中の `:::hero`。全体がリンクでボタンは1つ
+     .cta-box  … 軸3の固定CTA（`:::box label="無料相談・お問い合わせ"`）と
+                 記事末に自動で入る CtaBox.astro。ボタンは相談フォームとLINEの2つ
+   文字は画像に焼き込まない（モバイルで潰れず、写真を差し替えても文言が生きる）。
+   重なりは img → ::after（グラデ）→ inner の順。3つとも position 指定なので
+   順序を DOM 任せにせず z-index を明示する。 */
+.cta-hero,
+.cta-box {
   position: relative;
   display: block;
   margin: 40px 0;
   border-radius: var(--radius);
   overflow: hidden;
+  /* 画像が無い・読めないときはネイビーの面として成立させる */
+  background: var(--navy);
+  box-shadow: var(--shadow-md);
+}
+.cta-hero {
   text-decoration: none;
   /* .prose a より優先させる必要があるので !important（.cta-banner-navy と同じ理由） */
   color: var(--white) !important;
-  box-shadow: var(--shadow-md);
   transition: transform 0.25s var(--ease), box-shadow 0.25s;
 }
-.cta-hero-bg {
+.cta-bg {
   position: absolute;
   z-index: 0;
   inset: 0;
   width: 100%;
   height: 100%;
   /* 縦横比が合わない画像を入れても構図が残るように cover で切る。
-     デスクトップは左66%をグラデが覆うので、写真の主役は右寄りに置く前提。
+     デスクトップは左側をグラデが覆うので、写真の主役は右寄りに置く前提。
      モバイルは箱が縦に伸びて横がトリミングされるため、切り取りの基準も右寄りにする */
   object-fit: cover;
   object-position: 62% center;
   transition: transform 0.5s var(--ease);
 }
-.cta-hero::after {
+.cta-hero::after,
+.cta-box::after {
   content: '';
   position: absolute;
   z-index: 1;
@@ -707,7 +717,8 @@ a.badge:hover {
     rgba(26, 40, 64, 0.26) 100%
   );
 }
-.cta-hero-inner {
+.cta-hero-inner,
+.cta-box-inner {
   position: relative;
   z-index: 2;
   display: flex;
@@ -719,22 +730,48 @@ a.badge:hover {
   /* 右に写真の見える余白を残す。文字が薄いグラデ側へ伸びると読みにくい */
   max-width: 66%;
 }
-.cta-hero-eyebrow {
+/* ボタンが2つ並ぶ分だけ横幅が要る */
+.cta-box-inner {
+  max-width: 72%;
+}
+/* .cta-box だけ余白を外枠に持たせる。**再レンダリング前の古いHTMLへの保険**で、
+   `.cta-box-inner` が無い版（2026-08-29 より前に保存された記事の body_html）でも
+   余白とz-indexが効いて、文字がグラデの下に潜らない。
+   /admin の「全記事を再レンダリング」を押せば新しいHTMLに揃う。 */
+.cta-box {
+  padding: 30px 32px;
+}
+.cta-box .cta-box-inner {
+  padding: 0;
+}
+.cta-box > .cta-label,
+.cta-box > .cta-title,
+.cta-box > .cta-lead,
+.cta-box > .cta-actions {
+  position: relative;
+  z-index: 2;
+}
+.cta-hero-eyebrow,
+.cta-label {
+  margin: 0;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.14em;
   color: var(--gold-soft);
 }
-.cta-hero-title {
+.cta-hero-title,
+.cta-title {
   margin-top: 10px;
   font-family: var(--font-serif-jp);
   font-size: 23px;
   font-weight: 500;
   line-height: 1.55;
   letter-spacing: 0.01em;
+  color: var(--white);
 }
-.cta-hero-note {
-  margin-top: 10px;
+.cta-hero-note,
+.cta-lead {
+  margin: 10px 0 0;
   font-size: 13px;
   line-height: 1.8;
   color: rgba(255, 255, 255, 0.76);
@@ -743,25 +780,54 @@ a.badge:hover {
 .cta-hero-note:empty {
   display: none;
 }
-.cta-hero-note p {
+.cta-hero-note p,
+.cta-lead p {
   margin: 0;
 }
-.cta-hero-note p + p {
+.cta-hero-note p + p,
+.cta-lead p + p {
   margin-top: 4px;
 }
-.cta-hero-btn {
+/* 本文中のCTAはリード文にリンクが入ることがある（雛形がフォームへのリンクを含む）。
+   面の上では下線だけで十分なので、色は本文色のまま白に寄せる */
+.cta-lead a {
+  color: var(--white);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.cta-hero-btn,
+.cta-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-top: 18px;
   padding: 12px 24px;
   border-radius: 8px;
   background: var(--grad-gold);
-  color: var(--navy);
+  color: var(--navy) !important;
+  text-decoration: none;
   font-size: 14.5px;
   font-weight: 500;
   box-shadow: 0 8px 22px rgba(26, 40, 64, 0.3);
-  transition: filter 0.2s;
+  transition: filter 0.2s, transform 0.2s var(--ease);
+}
+.cta-hero-btn {
+  margin-top: 18px;
+}
+.cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+/* LINEはブランド色が決まっているので、ここだけゴールドに寄せない */
+.cta-btn-line {
+  background: #06c755;
+  color: var(--white) !important;
+  box-shadow: 0 8px 22px rgba(6, 199, 85, 0.28);
+}
+.cta-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
 }
 .cta-hero-arrow {
   font-size: 13px;
@@ -772,7 +838,7 @@ a.badge:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
 }
-.cta-hero:hover .cta-hero-bg {
+.cta-hero:hover .cta-bg {
   transform: scale(1.04);
 }
 .cta-hero:hover .cta-hero-btn {
@@ -781,6 +847,7 @@ a.badge:hover {
 .cta-hero:hover .cta-hero-arrow {
   transform: translateX(3px);
 }
+
 
 /* ── :::details title=〇〇（長い補足の折りたたみ）──
    :::faq が一問一答なのに対し、こちらは本文の流れを止めたくない長い補足を畳む。 */
@@ -858,67 +925,6 @@ a.badge:hover {
   font-size: 11px;
   color: var(--blue-mid);
   letter-spacing: 0.03em;
-}
-
-/* ── 無料相談CTA（軸3の固定CTA／記事末CTA共通）──
-   以前は緑（--c-tip）だったが、tip ブロックと色がかぶって「注意書き」に見えていた。
-   バッジ・見出し帯と同じゴールド系に寄せ、記事内で唯一の「申し込み色」にする。 */
-.cta-box {
-  margin: 40px 0;
-  padding: 24px 26px;
-  border: 1px solid var(--gold-soft);
-  border-left: 4px solid var(--gold);
-  border-radius: var(--radius);
-  background: var(--gold-pale);
-  box-shadow: var(--shadow-sm);
-}
-.cta-label {
-  margin: 0 0 9px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  /* --gold そのままだと gold-pale の上でコントラストが足りないので、
-     .badge / .h-tag と同じ濃いゴールドを使う */
-  color: #8a6d2f;
-}
-.cta-lead {
-  margin: 0 0 18px;
-  font-size: 15px;
-  line-height: 1.9;
-}
-.cta-lead > :last-child {
-  margin-bottom: 0;
-}
-.cta-lead p {
-  margin: 0 0 10px;
-}
-.cta-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.cta-btn {
-  display: inline-block;
-  padding: 12px 24px;
-  border-radius: 8px;
-  background: var(--grad-navy);
-  color: var(--white) !important;
-  text-decoration: none;
-  font-size: 14.5px;
-  font-weight: 500;
-  box-shadow: 0 6px 18px rgba(26, 40, 64, 0.18);
-  transition: transform 0.2s var(--ease), box-shadow 0.2s;
-}
-.cta-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(26, 40, 64, 0.26);
-}
-.cta-btn-line {
-  background: #06c755;
-  box-shadow: 0 6px 18px rgba(6, 199, 85, 0.25);
-}
-.cta-btn-line:hover {
-  box-shadow: 0 10px 24px rgba(6, 199, 85, 0.32);
 }
 
 /* ── 目次 ── */
@@ -1100,12 +1106,9 @@ a.badge:hover {
     height: 26px;
     font-size: 12px;
   }
-  .cta-box {
-    padding: 20px 18px;
-  }
   .cta-btn {
     flex: 1 1 100%;
-    text-align: center;
+    justify-content: center;
   }
   /* カラムは幅を割ると1行の字数が足りなくなるので1列に落とす。
      3列指定のときの詰めた余白も等倍に戻す。 */
@@ -1125,7 +1128,8 @@ a.badge:hover {
     font-size: 14.5px;
   }
   /* 幅が狭いと文字が写真側にはみ出すので、全面を暗くして1カラムに寄せる */
-  .cta-hero::after {
+  .cta-hero::after,
+  .cta-box::after {
     background: linear-gradient(
       165deg,
       rgba(26, 40, 64, 0.76) 0%,
@@ -1133,12 +1137,20 @@ a.badge:hover {
       rgba(26, 40, 64, 0.92) 100%
     );
   }
-  .cta-hero-inner {
+  .cta-hero-inner,
+  .cta-box-inner {
     max-width: 100%;
     min-height: 0;
     padding: 24px 20px 26px;
   }
-  .cta-hero-title {
+  .cta-box {
+    padding: 24px 20px 26px;
+  }
+  .cta-box .cta-box-inner {
+    padding: 0;
+  }
+  .cta-hero-title,
+  .cta-title {
     font-size: 19px;
   }
   .cta-hero-btn {

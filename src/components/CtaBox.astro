@@ -1,35 +1,51 @@
 ---
 /**
- * Anniv送客CTAブロック。
+ * 記事末に自動で入る相談CTA（`data-cta-label` を持たないので計測は `article_cta` に落ちる）。
  *
- * 体裁とリンク先は `.claude/agents/reference/content-axis.md` の雛形に合わせて固定する
- * （label="無料相談・お問い合わせ" / https://anniv.gift/contact）。label が判定キーで、color 指定は無視する。
- * 可変にしてよいのはリード文1行だけ。効能保証・煽りはNG（article-style-guide 8章）。
+ * 見た目は本文中の `:::hero` ・ 軸3の固定CTA（`:::box label="無料相談・お問い合わせ"`）と共通で、
+ * 写真の上にネイビーのグラデを重ねた1枚の面。マークアップとCSSクラスは
+ * `src/lib/markdown.ts` の CTA 用 `:::box` と揃えてあるので、**片方だけ変えない**
+ * （article.css の `.cta-hero, .cta-box` 系がまとめてスタイルを持っている）。
  *
- * 見た目は article.css の .cta-box 系が持つ（本文中の :::box 版と同じ見た目にするため、
- * スコープ付き <style> ではなくグローバルCSSに寄せてある）。
- * クリック計測は MediaLayout の委譲リスナーが data-cta を拾う。ここでリスナーを持つと二重発火する。
+ * 文言は「任せる」ではなく「相談してみる」寄りにする（style-guide 9章）。
+ * 可変にしてよいのはリード文1行だけ。効能保証・煽りはNG（style-guide 8章）。
+ * 写真は装飾なので alt="" にする（リンク名はボタンの文字が持つ）。
+ *
+ * クリック計測は MediaLayout の委譲リスナーが data-cta を拾う。
+ * ここでリスナーを持つと二重発火する。
  */
 interface Props {
   lead?: string;
 }
 
 const {
-  lead = '記念日の準備をまるごと任せたいなら、お問い合わせフォームから無料でご相談いただけます。予算や希望が固まっていない段階のご相談も受け付けています。',
+  lead = 'プレゼント選びからお店の予約、当日の演出まで、まとめてご相談いただけます。予算や希望が固まっていない段階のご相談も受け付けています。',
 } = Astro.props;
 ---
 
 <aside class="cta-box">
-  <p class="cta-label">無料相談・お問い合わせ</p>
-  <div class="cta-lead"><p>{lead}</p></div>
-  <div class="cta-actions">
-    <a href="https://anniv.gift/contact" class="cta-btn" data-cta="form">無料で相談する</a>
-    <a
-      href="https://lin.ee/U4deTzi"
-      class="cta-btn cta-btn-line"
-      target="_blank"
-      rel="noopener noreferrer"
-      data-cta="line">LINEで相談する</a
-    >
+  <img
+    class="cta-bg"
+    src="/assets/cta-hero.webp"
+    alt=""
+    width="1200"
+    height="400"
+    loading="lazy"
+    decoding="async"
+  />
+  <div class="cta-box-inner">
+    <p class="cta-label">無料相談・お問い合わせ</p>
+    <p class="cta-title">記念日の準備、まずは相談してみる</p>
+    <div class="cta-lead"><p>{lead}</p></div>
+    <div class="cta-actions">
+      <a href="https://anniv.gift/contact" class="cta-btn" data-cta="form">無料で相談する</a>
+      <a
+        href="https://lin.ee/U4deTzi"
+        class="cta-btn cta-btn-line"
+        target="_blank"
+        rel="noopener noreferrer"
+        data-cta="line">LINEで相談する</a
+      >
+    </div>
   </div>
 </aside>

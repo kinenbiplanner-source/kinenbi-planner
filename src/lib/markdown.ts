@@ -41,6 +41,17 @@ const CTA_LABEL = '無料相談・お問い合わせ';
 const CONTACT_URL = 'https://anniv.gift/contact';
 const LINE_URL = 'https://lin.ee/U4deTzi';
 
+/**
+ * 相談CTAの共通ビジュアルと文言。
+ * 記事に出る送客ブロック（本文中の `:::hero` ／ 軸3の固定CTA ／ 記事末の CtaBox.astro）は
+ * ここを共有して見た目と言い回しを揃える。**「任せる」ではなく「相談してみる」寄りにする**
+ * （丸投げを迫るより、まず相談という一歩の方が心理的な段差が低い。style-guide 9章）。
+ * 画像を差し替えるときは `public/assets/cta-hero.webp` を置き換える（3:1・主役は右寄り）。
+ */
+const CTA_IMAGE = '/assets/cta-hero.webp';
+const CTA_TITLE = '記念日の準備、まずは相談してみる';
+const CTA_BTN = '無料で相談する';
+
 const DEFAULT_BOX_COLOR = '#4a8ab5';
 /** style-guide は color を HEX 指定と定めている。style 属性に入れる値なので必ず検証する。 */
 const HEX = /^#[0-9a-fA-F]{6}$/;
@@ -153,9 +164,14 @@ md.use(container, 'box', {
       // content-axis.md の軸3固定CTAは、汎用ラベルボックスとして描くと
       // ボタンとクリック計測が失われるので専用のマークアップにする。
       if (label === CTA_LABEL) {
+        // 見た目は `:::hero`（と記事末の CtaBox.astro）と共通。写真は装飾なので alt=""。
         return (
           '<aside class="cta-box">\n' +
+          `<img class="cta-bg" src="${CTA_IMAGE}" alt="" width="1200" height="400"` +
+          ' loading="lazy" decoding="async">\n' +
+          '<div class="cta-box-inner">\n' +
           `<p class="cta-label">${esc(CTA_LABEL)}</p>\n` +
+          `<p class="cta-title">${esc(CTA_TITLE)}</p>\n` +
           '<div class="cta-lead">\n'
         );
       }
@@ -169,9 +185,9 @@ md.use(container, 'box', {
         if (parseBoxParams(t.info).label === CTA_LABEL) {
           return (
             '</div>\n<div class="cta-actions">\n' +
-            `<a href="${CONTACT_URL}" class="cta-btn" data-cta="form" data-cta-label="article_body">無料で相談する</a>\n` +
+            `<a href="${CONTACT_URL}" class="cta-btn" data-cta="form" data-cta-label="article_body">${CTA_BTN}</a>\n` +
             `<a href="${LINE_URL}" class="cta-btn cta-btn-line" target="_blank" rel="noopener noreferrer" data-cta="line" data-cta-label="article_body">LINEで相談する</a>\n` +
-            '</div>\n</aside>\n'
+            '</div>\n</div>\n</aside>\n'
           );
         }
         break;
@@ -247,10 +263,6 @@ md.use(container, 'banner', {
    文字は画像に焼き込まずHTMLで出す：モバイルで潰れない・コピーだけ後から差し替えられる・
    リンク文言がそのまま検索と計測に乗る。写真は装飾なので alt="" にする（リンク名は文字側が持つ）。
    1記事に1本まで（style-guide 9章）。 */
-const HERO_IMAGE = '/assets/cta-hero.webp';
-const HERO_LABEL = '無料相談・お問い合わせ';
-const HERO_TITLE = '記念日の準備、まずは相談してみる';
-const HERO_BTN = '無料で相談する';
 
 function parseHeroParams(info: string): {
   image: string;
@@ -262,10 +274,10 @@ function parseHeroParams(info: string): {
   const rest = info.trim().replace(/^hero\s*/, '');
   return {
     // 画像も href と同じ検証に通す（`javascript:` や別ドメインの読み込みを防ぐ）
-    image: safeHref(param(rest, 'image'), HERO_IMAGE),
-    label: param(rest, 'label') || HERO_LABEL,
-    title: param(rest, 'title') || HERO_TITLE,
-    btn: param(rest, 'btn') || HERO_BTN,
+    image: safeHref(param(rest, 'image'), CTA_IMAGE),
+    label: param(rest, 'label') || CTA_LABEL,
+    title: param(rest, 'title') || CTA_TITLE,
+    btn: param(rest, 'btn') || CTA_BTN,
     href: safeHref(param(rest, 'href'), CONTACT_URL),
   };
 }
@@ -274,7 +286,7 @@ md.use(container, 'hero', {
   render: (tokens: Token[], idx: number) => {
     if (tokens[idx].nesting !== 1) {
       // ボタン文言は開きマーカーの属性にあるので、閉じるときに遡って拾う（:::box のCTAと同じ手）。
-      let btn = HERO_BTN;
+      let btn = CTA_BTN;
       for (let i = idx - 1; i >= 0; i--) {
         if (tokens[i].type === 'container_hero_open') {
           btn = parseHeroParams(tokens[i].info).btn;
@@ -298,7 +310,7 @@ md.use(container, 'hero', {
       ' data-cta="' +
       kind +
       '" data-cta-label="article_hero">\n' +
-      `<img class="cta-hero-bg" src="${esc(image)}" alt="" width="1200" height="400"` +
+      `<img class="cta-bg" src="${esc(image)}" alt="" width="1200" height="400"` +
       ' loading="lazy" decoding="async">\n' +
       '<div class="cta-hero-inner">\n' +
       `<span class="cta-hero-eyebrow">${esc(label)}</span>\n` +

@@ -815,12 +815,6 @@ a.art-tag:hover {
   background: var(--gold-soft);
   color: var(--white);
 }
-.art-tag.is-funnel {
-  background: var(--blue-pale);
-  color: var(--blue-mid);
-  border-color: var(--border);
-}
-
 .art-title {
   font-family: var(--font-serif-jp);
   font-size: clamp(26px, 4vw, 40px);
@@ -977,9 +971,12 @@ a.art-tag:hover {
   background: var(--white);
   box-shadow: var(--shadow-sm);
   /* 高さの上限は .art-side 側が持つ。縮むことは許可しつつ、
-     画面が低いときに目次が数十pxまで潰れて壊れて見えないよう下限だけ置く
-     （min-height:auto のままだと flex 子は中身の高さより縮まない） */
-  min-height: 88px;
+     目次が数行まで潰れて「スクロールしないと1つも読めない」状態にならないよう
+     下限を置く（min-height:auto のままだと flex 子は中身の高さより縮まない）。
+     CTAカードを16:9＋余白詰めで約300pxに抑えてあるので、
+     画面高700pxでも目次に240px前後は残る。下限は「4〜5行は必ず見える」程度に留める
+     （大きくすると見出しの少ない記事で空白の目次カードになる） */
+  min-height: 120px;
   overflow-y: auto;
 }
 .art-toc-head {
@@ -1033,29 +1030,31 @@ a.art-tag:hover {
   display: block;
   width: 100%;
   /* height 属性（600）が presentational hint として効いてしまうので明示的に打ち消す。
-     aspect-ratio は縦横どちらかが auto のときしか働かない */
+     aspect-ratio は縦横どちらかが auto のときしか働かない。
+     **正方形で敷くとレール300px＝画像だけで300pxを食い、目次が潰れる**ので
+     16:9（約169px）に切って見せる。素材が正方形でも cover で中央が残る */
   height: auto;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 16 / 9;
   object-fit: cover;
 }
 .art-sidecta-body {
-  padding: 20px 20px 22px;
+  padding: 16px 18px 18px;
 }
 .art-sidecta-title {
   font-family: var(--font-serif-jp);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 500;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 .art-sidecta-text {
-  font-size: 12.5px;
-  line-height: 1.85;
+  font-size: 12px;
+  line-height: 1.8;
   color: rgba(255, 255, 255, 0.72);
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 .art-sidecta a {
   display: block;
-  padding: 11px 16px;
+  padding: 10px 14px;
   border-radius: 8px;
   background: var(--grad-gold);
   color: var(--navy);
