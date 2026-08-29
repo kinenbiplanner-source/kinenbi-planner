@@ -725,8 +725,9 @@ a.badge:hover {
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  min-height: 210px;
-  padding: 30px 32px;
+  /* 本文の流れを止めすぎない高さ。写真が見える最低限だけ確保する */
+  min-height: 170px;
+  padding: 24px 26px;
   /* 右に写真の見える余白を残す。文字が薄いグラデ側へ伸びると読みにくい */
   max-width: 66%;
 }
@@ -739,7 +740,7 @@ a.badge:hover {
    余白とz-indexが効いて、文字がグラデの下に潜らない。
    /admin の「全記事を再レンダリング」を押せば新しいHTMLに揃う。 */
 .cta-box {
-  padding: 30px 32px;
+  padding: 24px 26px;
 }
 .cta-box .cta-box-inner {
   padding: 0;
@@ -761,9 +762,9 @@ a.badge:hover {
 }
 .cta-hero-title,
 .cta-title {
-  margin-top: 10px;
+  margin-top: 8px;
   font-family: var(--font-serif-jp);
-  font-size: 23px;
+  font-size: 20px;
   font-weight: 500;
   line-height: 1.55;
   letter-spacing: 0.01em;
@@ -800,7 +801,7 @@ a.badge:hover {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 24px;
+  padding: 11px 20px;
   border-radius: 8px;
   background: var(--grad-gold);
   color: var(--navy) !important;
@@ -811,13 +812,13 @@ a.badge:hover {
   transition: filter 0.2s, transform 0.2s var(--ease);
 }
 .cta-hero-btn {
-  margin-top: 18px;
+  margin-top: 14px;
 }
 .cta-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 18px;
+  margin-top: 14px;
 }
 /* LINEはブランド色が決まっているので、ここだけゴールドに寄せない */
 .cta-btn-line {

@@ -1566,16 +1566,18 @@ const boot = JSON.stringify({
   const label = (sel: string, name: string) => (sel ? `${MARK}${name}${MARK}` : name);
   const body = (sel: string) => sel || MARK;
 
-  /** content-axis.md が定める軸3の固定CTA。文面ごと雛形として持つ。 */
+  /** content-axis.md が定める軸3の固定CTA。文面ごと雛形として持つ。
+      送信先は markdown.ts の FORM_URL（LPと同じ Tally）に揃える。 */
+  const FORM_URL = 'https://tally.so/r/lbVDPB';
   const CTA_BLOCK =
     ':::box label="無料相談・お問い合わせ"\n' +
-    '記念日の準備をまるごと任せたいなら、[お問い合わせフォーム](https://anniv.gift/contact)から' +
-    '無料でご相談いただけます。予算や希望が固まっていない段階のご相談も受け付けています。\n' +
+    `記念日の準備で迷っていることを、[相談フォーム](${FORM_URL})から無料でご相談いただけます。` +
+    '予算や希望が固まっていない段階のご相談も受け付けています。\n' +
     ':::';
 
-  const BANNER_LABEL = '記念日の準備をまるごと任せる';
+  const BANNER_LABEL = '記念日の準備をまずは相談してみる';
   const bannerBlock = (theme: string) => (sel: string) =>
-    `:::banner theme=${theme} label="${label(sel, BANNER_LABEL)}" href="https://anniv.gift/contact"\n` +
+    `:::banner theme=${theme} label="${label(sel, BANNER_LABEL)}" href="${FORM_URL}"\n` +
     `${body(sel)}\n:::`;
   const boxBlock = (color: string, name: string) => (sel: string) =>
     `:::box color=${color} label="${label(sel, name)}"\n${body(sel)}\n:::`;

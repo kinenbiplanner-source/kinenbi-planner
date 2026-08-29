@@ -38,7 +38,13 @@ export interface RenderResult {
 
 /** content-axis.md が定める軸3の固定CTA。このラベルの :::box だけ CTA として描く。 */
 const CTA_LABEL = '無料相談・お問い合わせ';
-const CONTACT_URL = 'https://anniv.gift/contact';
+/**
+ * 相談フォームの送信先。**LPと同じ Tally に揃えてある**（2026-08-29）。
+ * 以前は自前の `/contact` に送っていたが、あのページの送信は formsubmit.co 頼みで
+ * 実際には届いていなかった。窓口を2つ持つ意味も無いので、記事もLPもTallyの1本にする。
+ * 変えるときは `public/index.html` のCTAと必ず一緒に変えること。
+ */
+const FORM_URL = 'https://tally.so/r/lbVDPB';
 const LINE_URL = 'https://lin.ee/U4deTzi';
 
 /**
@@ -185,7 +191,8 @@ md.use(container, 'box', {
         if (parseBoxParams(t.info).label === CTA_LABEL) {
           return (
             '</div>\n<div class="cta-actions">\n' +
-            `<a href="${CONTACT_URL}" class="cta-btn" data-cta="form" data-cta-label="article_body">${CTA_BTN}</a>\n` +
+            // Tally は別ドメインなので、LPのCTAと同じく別タブで開く
+            `<a href="${FORM_URL}" class="cta-btn" target="_blank" rel="noopener noreferrer" data-cta="form" data-cta-label="article_body">${CTA_BTN}</a>\n` +
             `<a href="${LINE_URL}" class="cta-btn cta-btn-line" target="_blank" rel="noopener noreferrer" data-cta="line" data-cta-label="article_body">LINEで相談する</a>\n` +
             '</div>\n</div>\n</aside>\n'
           );
@@ -231,7 +238,7 @@ function parseBannerParams(info: string): { theme: string; label: string; href: 
     label: param(rest, 'label') || BANNER_DEFAULT_LABEL,
     // theme=line のときだけ既定URLをLINEにする。緑のLINEバナーが問い合わせフォームに
     // 飛ぶと見た目と遷移先が食い違うため（href を明示すればそちらが優先される）。
-    href: safeHref(param(rest, 'href'), theme === 'line' ? LINE_URL : CONTACT_URL),
+    href: safeHref(param(rest, 'href'), theme === 'line' ? LINE_URL : FORM_URL),
   };
 }
 
@@ -278,7 +285,7 @@ function parseHeroParams(info: string): {
     label: param(rest, 'label') || CTA_LABEL,
     title: param(rest, 'title') || CTA_TITLE,
     btn: param(rest, 'btn') || CTA_BTN,
-    href: safeHref(param(rest, 'href'), CONTACT_URL),
+    href: safeHref(param(rest, 'href'), FORM_URL),
   };
 }
 

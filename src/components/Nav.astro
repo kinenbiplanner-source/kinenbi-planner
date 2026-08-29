@@ -21,6 +21,17 @@ const { current } = Astro.props;
     <li><a href="/#services">サービス</a></li>
     <li><a href="/#pricing">料金</a></li>
     <li><a href="/media" aria-current={current === 'media' ? 'page' : undefined}>メディア</a></li>
-    <li><a href="/contact" class="nav-cta">無料相談</a></li>
+    {/* 送信先はLP・記事のCTAと同じ Tally に揃える（`/contact` の自前フォームは
+        formsubmit.co 頼みで届いていなかった）。計測は data-cta で他のCTAと同じ経路に乗せる。 */}
+    <li>
+      <a
+        href="https://tally.so/r/lbVDPB"
+        class="nav-cta"
+        target="_blank"
+        rel="noopener noreferrer"
+        data-cta="form"
+        data-cta-label="media_nav">無料相談</a
+      >
+    </li>
   </ul>
 </nav>
