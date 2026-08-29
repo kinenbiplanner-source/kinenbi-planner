@@ -9,7 +9,7 @@ Anniv（記念日のプレゼント選び・レストラン予約・サプライ
   - 「見る画面」は4つあって別物：`/admin/stats`（自前PV。記事ごとの相対比較とリライト判断）／ GA4（流入元・行動の詳細）／ **`/dashboard/measurement`（CV・導線クリック・流入元。自前とGA4を列を分けて並べる。中身は `計測ダッシュボード.html`）** ／ `/dashboard`（事業側の固定費と各サービスの入口。中身は `ダッシュボード.html`）
   - **計測は `/dashboard` から切り出した**（2026-08-28）。画面の大半を占めて固定費とサービスの入口が埋もれたため。`/dashboard` に残っているのは入口のバー1本だけで、データの出どころ（`/api/insights`・`/api/ga4`）は変えていない。`/admin` のヘッダーからも「計測」で飛べる
   - `/dashboard` のコスト欄にある「SNS運用（今月の実績）」は**別プロジェクト multi-SNS-manager（`C:\dev\multi-SNS-manager` / 本番 `anniv-tool.date`）のD1を読み取り専用で参照している**（`SNS_DB` バインディング → `src/lib/sns-cost.ts` → `/api/sns-cost`）。あちらの `cost_events` / `cost_settings` の列名に依存するので、壊れたら真っ先にそこを疑う（読めないときは金額を出さず「—」に落とす作り）
-- `astro.config.mjs` / `wrangler.jsonc` / `schema.sql` — ビルドとCloudflareの設定。**Astro 7 ＋ `@astrojs/cloudflare` で Cloudflare Workers にデプロイ**（root dir はリポジトリルート）
+- `astro.config.mjs` / `wrangler.jsonc` / `schema.sql` — ビルドとCloudflareの設定。**Astro 7 ＋ `@astrojs/cloudflare` で Cloudflare Workers にデプロイ**（root dir はリポジトリルート）。**デプロイは `npm run deploy` を手で叩く。git push では本番は変わらない**（Workers Builds を繋いでいない。詳細は `メディア方針/改良ロードマップ.md` の「本番への反映は push では起きない」）
 - **記事の実体は Cloudflare D1**（`articles` テーブル。スキーマは `schema.sql` が正）。画像は R2（`anniv-media`）
 - `.claude/agents/` — 記事制作サブエージェント定義（competitor-researcher / article-writer / article-reviewer）
   - `.claude/agents/reference/` — 記事制作の共有SSOT資料（article-style-guide.md / content-axis.md / interview-sheet.md / improvement-loop.md / 社内ナレッジ.md）
