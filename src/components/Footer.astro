@@ -2,7 +2,11 @@
 /**
  * メディア共通のフッター。マークアップは public/index.html（LP本体）の <footer> と同じ。
  * SNSアイコンはLPと同様にインラインSVG（アイコンフォント・外部SVGは使わない）。
- * LINEリンクのクリック計測は MediaLayout の委譲リスナーが拾う。
+ * LINE・お問い合わせのクリック計測は MediaLayout の委譲リスナーが拾う（どちらも label は media_footer）。
+ *
+ * 「お問い合わせ」の遷移先は `/contact` ではなく **LPと同じ Tally**（2026-08-29）。
+ * `/contact` の自前フォームは formsubmit.co 頼みで送信が届いていなかったため、
+ * サイト内から辿れる相談窓口をTallyの1本に寄せた。ページ自体は残っているがリンクはしていない。
  */
 ---
 
@@ -12,7 +16,13 @@
     <a href="/media">メディア</a>
     <a href="/tokutei">特定商取引法に基づく表記</a>
     <a href="/privacy">プライバシーポリシー</a>
-    <a href="/contact">お問い合わせ</a>
+    <a
+      href="https://tally.so/r/lbVDPB"
+      target="_blank"
+      rel="noopener noreferrer"
+      data-cta="form"
+      data-cta-label="media_footer">お問い合わせ</a
+    >
   </div>
   <div class="footer-social">
     <a href="https://lin.ee/U4deTzi" target="_blank" rel="noopener noreferrer" aria-label="LINE">
