@@ -197,6 +197,15 @@ a.badge:hover {
 .prose img {
   border-radius: var(--radius);
 }
+/* 表示幅を指定した画像（記法 `![alt](url){w=60}`）。
+   幅は markdown.ts が `--w` に入れる。指定が無い画像はこのクラスが付かず全幅のまま。
+   縮めた画像は左端に寄せると本文と揃わず落ち着かないので中央に置く。 */
+.prose img.is-resized {
+  display: block;
+  width: var(--w);
+  margin-left: auto;
+  margin-right: auto;
+}
 
 /* ── 見出し冒頭の【タグ】 ── */
 .h-tag {
@@ -1127,6 +1136,11 @@ a.badge:hover {
   }
   .cta-banner-label {
     font-size: 14.5px;
+  }
+  /* 狭い画面で本文カラム自体が細いので、そこから更に半分以下にすると
+     何の絵か分からなくなる。指定が小さいものだけ60%まで戻す */
+  .prose img.is-resized {
+    width: max(var(--w), 60%);
   }
   /* 幅が狭いと文字が写真側にはみ出すので、全面を暗くして1カラムに寄せる */
   .cta-hero::after,

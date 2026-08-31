@@ -361,6 +361,41 @@ md.renderer.rules.anniv_marker = (tokens: Token[], idx: number) => {
   return `<mark class="${cls}">${esc(token.content)}</mark>`;
 };
 
+/* ── 画像の表示幅：`![alt](/media/img/xxx){w=60}` ──
+   本文カラムに対する % を1つだけ受ける。指定が無ければ従来どおり全幅なので、
+   既存の記事は書き換えなくてそのまま。
+
+   markdown-it は `![alt](url)` を image トークンに、直後の `{w=60}` をただの
+   text トークンにする。ここで両者を突き合わせて、text 側からは記法を削り、
+   image 側に幅を持たせる。`style` に入れるのは検証済みの数値だけ（CSS変数）で、
+   実際の width は article.css が `--w` を読んで決める（`:::box` の `--box` と同じ作り。
+   こうしておくと、狭い画面で幅を上書きするのに !important が要らない）。 */
+const IMG_WIDTH_RE = /^\{w=(\d{1,3})\}/;
+/** 小さすぎると何の絵か分からず、100%超はカラムをはみ出す。範囲外は丸める。 */
+const IMG_WIDTH_MIN = 10;
+const IMG_WIDTH_MAX = 100;
+
+md.core.ruler.push('anniv_image_size', (state: any) => {
+  if (state.inlineMode) return;
+  for (const token of state.tokens as Token[]) {
+    if (token.type !== 'inline' || !token.children) continue;
+    const children = token.children;
+    for (let i = 0; i < children.length; i++) {
+      if (children[i].type !== 'image') continue;
+      const next = children[i + 1];
+      if (!next || next.type !== 'text') continue;
+      const m = next.content.match(IMG_WIDTH_RE);
+      if (!m) continue;
+      // 記法そのものは本文に出さない
+      next.content = next.content.slice(m[0].length);
+      const w = Math.min(IMG_WIDTH_MAX, Math.max(IMG_WIDTH_MIN, Number(m[1])));
+      if (w >= IMG_WIDTH_MAX) continue; // 100% は既定なのでクラスを足さない
+      children[i].attrJoin('class', 'is-resized');
+      children[i].attrSet('style', `--w:${w}%`);
+    }
+  }
+});
+
 /* ── 画像プレースホルダー：[画像：〇〇 | alt: 〇〇] ── */
 const IMG_PREFIX = '[画像：';
 md.inline.ruler.before('link', 'anniv_image_ph', (state: any, silent: boolean) => {

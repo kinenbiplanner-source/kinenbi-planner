@@ -470,6 +470,24 @@ const boot = JSON.stringify({
                     aria-label="画像をアップロードして挿入"
                     ><svg class="md-ic"><use href="#i-upload"></use></svg></button
                   >
+                  {/* 挿入済みの画像の表示幅を変える。対象はカーソルのある行の画像。 */}
+                  <span class="md-has-menu">
+                    <button
+                      class="md-btn"
+                      type="button"
+                      data-menu="menu-imgsize"
+                      aria-haspopup="true"
+                      aria-expanded="false"
+                      data-tip="画像の表示幅（画像の行にカーソルを置いて選ぶ）"
+                      aria-label="画像の表示幅"><span class="md-txt">幅 ▾</span></button
+                    >
+                    <div class="md-menu" id="menu-imgsize" hidden>
+                      <button type="button" data-cmd="imgw-100">100%（既定・全幅）</button>
+                      <button type="button" data-cmd="imgw-75">75%</button>
+                      <button type="button" data-cmd="imgw-50">50%</button>
+                      <button type="button" data-cmd="imgw-33">33%</button>
+                    </div>
+                  </span>
                 </div>
               </div>
 
@@ -1636,7 +1654,36 @@ const boot = JSON.stringify({
       uploadAt = { s: fBody.selectionStart, e: fBody.selectionEnd };
       bodyImgFile.click();
     },
+    'imgw-100': () => setImageWidth(100),
+    'imgw-75': () => setImageWidth(75),
+    'imgw-50': () => setImageWidth(50),
+    'imgw-33': () => setImageWidth(33),
   };
+
+  /**
+   * 挿入済みの画像に表示幅（`{w=NN}`）を付け外しする。
+   * 対象はカーソルのある行の画像で、行に複数あるときはカーソルに近い方。
+   * 100% は既定なので記法ごと消す（本文に意味のない指定を残さない）。
+   */
+  function setImageWidth(pct: number) {
+    const { start, end } = lineRange();
+    const line = fBody.value.slice(start, end);
+    // 画像記法＋（あれば）既存の幅指定。URLに空白は入らない前提で `)` まで取る
+    const re = /!\[[^\]]*\]\([^)\s]*\)(?:\{w=\d{1,3}\})?/g;
+    const caret = fBody.selectionStart - start;
+    let target: RegExpExecArray | null = null;
+    for (let m = re.exec(line); m; m = re.exec(line)) {
+      if (!target || Math.abs(m.index - caret) < Math.abs(target.index - caret)) target = m;
+    }
+    if (!target) {
+      show(msgError, '画像の行にカーソルを置いてから幅を選んでください');
+      return;
+    }
+    hide(msgError);
+    const base = target[0].replace(/\{w=\d{1,3}\}$/, '');
+    const from = start + target.index;
+    replaceRange(from, from + target[0].length, pct >= 100 ? base : `${base}{w=${pct}}`);
+  }
 
   /* ── ツールバーの配線 ── */
 
