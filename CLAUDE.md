@@ -11,20 +11,22 @@ Anniv（記念日のプレゼント選び・レストラン予約・サプライ
   - `/dashboard` のコスト欄にある「SNS運用（今月の実績）」は**別プロジェクト multi-SNS-manager（`C:\dev\multi-SNS-manager` / 本番 `anniv-tool.date`）のD1を読み取り専用で参照している**（`SNS_DB` バインディング → `src/lib/sns-cost.ts` → `/api/sns-cost`）。あちらの `cost_events` / `cost_settings` の列名に依存するので、壊れたら真っ先にそこを疑う（読めないときは金額を出さず「—」に落とす作り）
 - `astro.config.mjs` / `wrangler.jsonc` / `schema.sql` — ビルドとCloudflareの設定。**Astro 7 ＋ `@astrojs/cloudflare` で Cloudflare Workers にデプロイ**（root dir はリポジトリルート）。**デプロイは `npm run deploy` を手で叩く。git push では本番は変わらない**（Workers Builds を繋いでいない。詳細は `メディア方針/改良ロードマップ.md` の「本番への反映は push では起きない」）
 - **記事の実体は Cloudflare D1**（`articles` テーブル。スキーマは `schema.sql` が正）。画像は R2（`anniv-media`）
-- `.claude/agents/` — 記事制作サブエージェント定義（competitor-researcher / article-writer / article-reviewer）
+- `.claude/agents/` — 記事制作サブエージェント定義（competitor-researcher / article-writer / article-reviewer / article-naturalizer）
+  - `article-naturalizer` は最後（Step 5.5）に本文を1文ずつ読み返して「人間が書かない言い回し」だけを直す。**参照ファイルを持たない自己完結型**で、style-guide も content-axis も読まない（判定を「人間が書くか」の一点に絞るため）
   - `.claude/agents/reference/` — 記事制作の共有SSOT資料（article-style-guide.md / content-axis.md / interview-sheet.md / improvement-loop.md / 社内ナレッジ.md）
-- `.claude/skills/` — 記事制作オーケストレーター（anniv-write-article / anniv-rewrite-article）＋ 要約カード生成（anniv-card）。**すべて `anniv-` 始まり**——グローバル（爆速開発部）側に同名のスキルがあり、`/write-article` と打つとそちらが読まれてしまうため
-- `scripts/` — 運用スクリプト。`put-draft.ts`（書き上がった `article.md` を記事エディタの下書きとしてD1に入れる。anniv-write-article Step 6-6 から呼ぶ）
+- `.claude/skills/` — 記事制作オーケストレーター（anniv-write-article / anniv-rewrite-article）＋ 要約カード生成（anniv-card）＋ **SNS原稿の隔週バッチ生成（anniv-sns-batch）**。**すべて `anniv-` 始まり**——グローバル（爆速開発部）側に同名のスキルがあり、`/write-article` と打つとそちらが読まれてしまうため
+- `scripts/` — 運用スクリプト。`put-draft.ts`（書き上がった `article.md` を記事エディタの下書きとしてD1に入れる＋本文のローカル画像をR2に上げて `/media/img/<key>` に差し替える。anniv-write-article Step 6-4 から呼ぶ）
 - `.claude/scripts/card-renderer/` — 要約カードのレンダラー（`render.py`＋`template.html`＋`icons.json`＋`to_webp.mjs`）。**ブランドカラーは template.html の `:root`**（`src/styles/tokens.css` と同じネイビー×ゴールド。爆速開発部側の青りんご版とは別物なので混同しない）
 - `記事/` — 記事の作業フォルダ（下書き。`article.md`として保存。要約カードは `記事/[KW名]/images/*.webp`）
 - `素材/` — 記事本文に差し込むフリー写真素材（CC0のみ・62枚）。何がどれかは `素材/一覧.md`。使うときは管理画面から**R2にアップロードして** `/media/img/<key>` で参照する（ローカルパス参照は公開先で壊れる）
-- `記事管理/` — KWマスターDB.csv（記事の管理台帳）・アフィリ案件マスター.csv（ヘッダーのみの雛形。将来アフィリを始める時に使う）・リサーチマスター.md（リサーチ結果の鮮度付きキャッシュ、必要になったら生成）
-- `メディア方針/` — メディア戦略.md（コンセプト・差別化軸・着手順・KPIなどメディア運営方針のSSOT）・計測設計.md（GA4/Pixelのイベント定義のSSOT。**導線を足したら必ずここも更新する**）・**改良ロードマップ.md（これから何をするかの一覧。作業を始める前にまずここを見る）**・収益化メモ.md（**AdSenseは導入決定**。受け皿は実装済みで、審査と設定の手順もここ。アフィリは未定）・SNS戦略.md（Instagram／XのSSOT。役割分担・計測・コスト・広告）・**投稿台本.md（SNSの実行ぶん。12/24までのカレンダーと原稿。投稿する日はこれだけ開けばいい）**
+- `記事管理/` — KWマスターDB.csv（記事の管理台帳）・**SNSネタ台帳.csv（SNS投稿ネタのSSOT。`工程×状況` のマスで管理し、`posts.idea_key` でアプリ側と紐づく）**・アフィリ案件マスター.csv（ヘッダーのみの雛形。将来アフィリを始める時に使う）・リサーチマスター.md（リサーチ結果の鮮度付きキャッシュ、必要になったら生成）
+- `メディア方針/` — メディア戦略.md（コンセプト・差別化軸・着手順・KPIなどメディア運営方針のSSOT）・計測設計.md（GA4/Pixelのイベント定義のSSOT。**導線を足したら必ずここも更新する**）・**改良ロードマップ.md（これから何をするかの一覧。作業を始める前にまずここを見る）**・収益化メモ.md（**AdSenseは導入決定**。受け皿は実装済みで、審査と設定の手順もここ。アフィリは未定）・SNS戦略.md（Instagram／X／ThreadsのSSOT。役割分担・計測・コスト・広告）・**投稿台本.md（SNSの実行ぶん。12/24までのカレンダーと原稿。投稿する日はこれだけ開けばいい）**
 
 ## 記事制作システムについて
 
 爆速開発部メディア（別プロジェクト）で運用していた記事制作の仕組み（AIエージェント3体＋オーケストレーター2本）をAnniv向けに移植したもの。コンテンツ軸・自己言及ルール・DBパスなどはAnniv仕様に書き換え済み。運営方針の背景・意思決定理由は `メディア方針/メディア戦略.md` を参照。
 
+- **SNS原稿を作る：`/anniv-sns-batch`**（隔週13本＝X6・Threads6・予備1。JSONを出して `anniv-tool.date/posts/inbox` に貼る → 人が1本ずつ承認 → 週3の枠へ自動で予約）
 - 記事を新規で書く：`/anniv-write-article <KW>`（H3が2個以上あるH2には要約カードが自動で入る）
 - 既存記事をリライトする：`/anniv-rewrite-article <KW or ファイルパス>`
 - 要約カードを単発で作る：`/anniv-card`（H2＋H3の本文を貼る）
@@ -33,8 +35,8 @@ Anniv（記念日のプレゼント選び・レストラン予約・サプライ
   - **slug は未設定のままでも下書き保存できる**（＝一時保存）。公開のときだけ必須
   - **スラッグは公開後に変えない**。日付も入れない（URL変更＋301欠落で検索評価がリセットされた実害が爆速開発部にある）
   - 公開したら管理画面の「CSVエクスポート」で `記事管理/KWマスターDB.csv` を丸ごと上書きする（手でURLを転記しない）
-  - **要約カードを入れた記事は、本文を貼ったあと管理画面の「画像をアップロード」で `images/card_XX.webp` を上げ、`![alt](/media/img/<key>)` に差し替える**（ローカルパスのままだと公開先で壊れる。公開前チェックが×で拾う）
-  - 詳細な手順は `.claude/skills/anniv-write-article/SKILL.md` の Step 6-6／6-7
+  - **要約カードの画像は下書き投入と同時にR2へ上がり、本文も `![alt](/media/img/<key>)` に差し替わる**（`scripts/put-draft.ts`）。手で上げ直す必要はない。手で本文を貼った場合だけ、管理画面の「画像をアップロード」で差し替える（ローカルパスのままだと公開先で壊れる。公開前チェックが×で拾う）
+  - 詳細な手順は `.claude/skills/anniv-write-article/SKILL.md` の Step 6-4／6-6
 - ルール変更：文体・骨格・SEOなど全軸共通のルールは `.claude/agents/reference/article-style-guide.md` を編集。コンテンツ軸（テーマ・リサーチ観点・文体の寄せ）は `.claude/agents/reference/content-axis.md` を編集
 
 **元の爆速開発部フローから未移植・簡略化した部分**（必要になったら元プロジェクト `C:\Users\sansh\OneDrive\爆速開発部\_config` を参照して移植する）：
@@ -44,7 +46,11 @@ Anniv（記念日のプレゼント選び・レストラン予約・サプライ
 ## 記事制作システムの運用メモ（実態に合わせた調整）
 
 - **軸3（記念日代行・サプライズ代行サービス）の自己言及は実績控えめ**：Annivはまだ実績が少ない立ち上げ期のため、「手がけてきた」「多数の実績」のような実績の量・年数を暗示する表現は禁止（style-guide 2章）。実績が積み上がったら見直す。
-- **一次知見の集め方は「取材」ではなく「自問自答」**：実際にプレゼント選定・演出をプロデュースしているのはユーザー自身（小規模運営）なので、anniv-write-article Step 3.5は外部の担当者に送る取材シートではなく、その場でユーザーに質問してチャットで直接回答してもらう形にしてある（`.claude/agents/reference/interview-sheet.md`）。
+- **記事を書く前のユーザー取材は必須**（2026-08-31にルール化）。新規は anniv-write-article Step 3.5、リライトは anniv-rewrite-article Step 1.5 で**必ず停止して質問し、回答をもらってから書く**。軸・ファネルによる例外は無く、**「今回は一般論で書けるから聞かない」という判断をこちら側でしてはいけない**（任意にすると聞かなくなり、どの記事にも本人の見解が入らなくなるため）。スキップできるのはユーザーが明示的にそう言ったときだけ。仕様は `.claude/agents/reference/interview-sheet.md`
+  - 集め方は外部への「取材」ではなく**その場での自問自答**：実際にプレゼント選定・演出をプロデュースしているのはユーザー自身（小規模運営）なので、チャットで直接答えてもらう
+  - 聞くのは事実だけでなく**運営者の意見・判断**（(d)分類）。相場・選び方のような一般論のテーマこそ、ここでしか読めない見解が差別化になる
+  - 回答は**要約せず原文のまま** writer に渡す。公開前チェックリストと reviewer が「回答が本文に入っているか」を見る
+  - 得た回答は `.claude/agents/reference/社内ナレッジ.md` に蓄積し、次回以降は同じことを聞かない
 - **記事の公開先は `anniv.gift/media/` のサブディレクトリ**（サブドメインは不採用。根拠はメディア戦略.md 8章）。実装済み。記事はD1に置き、`/media/<slug>` でオンデマンドレンダリングする（公開ボタンから最長60秒で反映＝エッジキャッシュの `s-maxage=60`）。
 - **記事の着手順は軸1→軸2→軸3**：軸3（受注直結）はKWがニッチで検索ボリュームが小さいため、軸1（検索ボリュームのある集客記事）で入口を作ってから内部リンクで軸3・無料相談に橋渡しする王道パターンにしている（メディア戦略.md 3章・7章）。
 - **SEOはSNS運用と並行するチャネルの一つ**：CVへの主力は将来的にSNS（Instagram/X、有料広告含む）と想定しており、このリポジトリのSEO記事制作システムはその一部という位置づけ（メディア戦略.md 4章）。SNS運用自体はスコープ外。
