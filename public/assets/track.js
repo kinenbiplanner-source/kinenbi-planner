@@ -179,7 +179,7 @@
    * `thanks.html` のように **head の中で完了イベントを撃つ**ページがあるので、
    * track.js より先に呼ばれても取りこぼさないようにする。ページ側はこう書く：
    *
-   *   (window.annivQueue = window.annivQueue || []).push(['form_complete', 'tally_form']);
+   *   (window.annivQueue = window.annivQueue || []).push(['form_complete', 'apply_form']);
    *
    * ここに来た時点で溜まっているぶんを流し、以降は push した瞬間に送る配列に差し替える。
    */

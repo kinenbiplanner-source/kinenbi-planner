@@ -16,6 +16,7 @@ export const prerender = false;
 
 import MediaLayout from '../../layouts/MediaLayout.astro';
 import ArticleCard from '../../components/ArticleCard.astro';
+import AdSlot from '../../components/AdSlot.astro';
 import { AXES, type AxisSlug } from '../../lib/axis';
 import { listPublished, countPublished, listPopular, db, PAGE_SIZE } from '../../lib/db';
 
@@ -123,7 +124,7 @@ const breadcrumbLd = {
 };
 ---
 
-<MediaLayout title={title} description={description} current="media">
+<MediaLayout title={title} description={description} current="media" ads>
   <Fragment slot="head">
     <script type="application/ld+json" is:inline set:html={JSON.stringify(blogLd)} />
     <script type="application/ld+json" is:inline set:html={JSON.stringify(breadcrumbLd)} />
@@ -209,7 +210,7 @@ const breadcrumbLd = {
                 <aside class="m-inline-cta">
                   <p>{RAIL_CTA[axis.slug]}</p>
                   <a
-                    href="https://tally.so/r/lbVDPB" target="_blank" rel="noopener noreferrer"
+                    href="/apply"
                     data-cta="form"
                     data-cta-label={`media_rail_${axis.slug}`}
                   >
@@ -315,10 +316,13 @@ const breadcrumbLd = {
           <p class="m-side-cta-text">
             プレゼント選びからお店の予約、当日の演出まで。関係性と予算に合わせてお手伝いします。
           </p>
-          <a href="https://tally.so/r/lbVDPB" target="_blank" rel="noopener noreferrer" data-cta="form" data-cta-label="media_side"
+          <a href="/apply" data-cta="form" data-cta-label="media_side"
             >無料で相談する</a
           >
         </section>
+
+        {/* 広告は相談CTAカードより下。CTAを押し下げない（収益化メモ.md 3章）。 */}
+        <AdSlot name="listSide" variant="card" />
 
         {/*
           「CATEGORY」と「FEED（更新を受け取る）」のカードはここに置かない。
@@ -338,16 +342,11 @@ const breadcrumbLd = {
         </p>
       </div>
       <div class="list-cta-actions">
-        <a href="https://tally.so/r/lbVDPB" target="_blank" rel="noopener noreferrer" class="cta-btn" data-cta="form" data-cta-label="media_list">無料で相談する</a>
-        <a
-          href="https://lin.ee/U4deTzi"
-          class="cta-btn cta-btn-line"
-          target="_blank"
-          rel="noopener noreferrer"
-          data-cta="line"
-          data-cta-label="media_list">LINEで相談する</a
-        >
+        <a href="/apply" class="cta-btn" data-cta="form" data-cta-label="media_list">無料で相談する</a>
       </div>
     </aside>
+
+    {/* ページ最下部の広告。ここも一覧末尾のCTAより下に置く。 */}
+    <AdSlot name="listBottom" />
   </div>
 </MediaLayout>

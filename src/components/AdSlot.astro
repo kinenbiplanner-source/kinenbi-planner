@@ -6,10 +6,21 @@
  * **未設定のあいだは `<ins>` も `<script>` も出力しない**ので、
  * 審査前・審査中にこのコンポーネントを置いたままにしておいて構わない。
  *
- * CLS対策：広告は読み込みが終わるまで高さが決まらない。何もしないと本文が
- * 後からガクッと下がる（記事ページは他に外部スクリプトが無く軽いぶん、
- * ここが一番大きく効く）。枠側で `min-height` を先に確保して場所を取る。
- * 高さは `media.css` の `.ad-inline` / `.ad-side` で持つ。
+ * ## CLS対策（この枠の一番の仕事）
+ *
+ * `<ins>` の高さを決めるのは adsbygoogle.js で、広告が届く前に走る。
+ * 何も予約していないと、そこで本文がガクッと下がる。記事ページは他に重い
+ * 外部スクリプトが無いぶん、Core Web Vitals にはここが一番大きく効く。
+ *
+ * **サイドの2枠は固定サイズにしてある**（`card`＝300×250 / `side`＝160×600）。
+ * レスポンシブ枠は幅から高さを計算するので、300px のカラムに置くと 300×600 まで伸び、
+ * 追従サイドバー（`.m-aside` / `.art-ad-slot`）が画面より高くなって
+ * 下半分が見えないまま固定される＝ビューアブルにならない。
+ *
+ * 流れの中に置く `inline` だけはレスポンシブのまま（モバイルの充填率が違う）。
+ * 実測で **375px 幅→375px 高 / 760px 幅→280px 高** になるので、
+ * `media.css` の `.ad-inline` はブレークポイントで予約する高さを変えている。
+ * サイズの前提を変えたら必ずあちらも直すこと。
  *
  * 「広告」ラベルは景表法・AdSenseポリシー双方の観点で必ず出す。
  * 記事本文と地続きに見える広告は、ポリシー違反（誤クリック誘発）の指摘対象になる。
@@ -22,8 +33,13 @@ import { ADSENSE_CLIENT, AD_SLOTS, type AdSlotName } from '../lib/ads';
 interface Props {
   /** どの枠か。`ads.ts` の AD_SLOTS のキー。 */
   name: AdSlotName;
-  /** 本文の流れの中（横長）か、サイドの縦長か。 */
-  variant?: 'inline' | 'side';
+  /**
+   * 枠の形。
+   * `inline` … 本文・一覧の流れの中（横長・レスポンシブ）
+   * `card`   … 300px のサイドバーに置く固定 300×250（メディアトップ）
+   * `side`   … 記事ページ左の固定 160×600（1440px 以上でだけ出る）
+   */
+  variant?: 'inline' | 'card' | 'side';
 }
 
 const { name, variant = 'inline' } = Astro.props;
@@ -31,22 +47,35 @@ const { name, variant = 'inline' } = Astro.props;
 const slotId = AD_SLOTS[name];
 const show = ADSENSE_CLIENT !== '' && slotId !== '';
 
-// 縦長の枠に auto を渡すと横長を出そうとして潰れるので、向きは枠ごとに固定する。
-const format = variant === 'side' ? 'vertical' : 'auto';
+/** 固定サイズの枠。AdSense側の広告ユニットも同じサイズで作ること。 */
+const FIXED: Partial<Record<NonNullable<Props['variant']>, string>> = {
+  card: 'display:inline-block;width:300px;height:250px',
+  side: 'display:inline-block;width:160px;height:600px',
+};
+const fixedStyle = FIXED[variant];
 ---
 
 {
   show && (
     <div class={`ad ad-${variant}`}>
       <span class="ad-label">広告</span>
-      <ins
-        class="adsbygoogle"
-        style="display:block"
-        data-ad-client={ADSENSE_CLIENT}
-        data-ad-slot={slotId}
-        data-ad-format={format}
-        data-full-width-responsive={variant === 'inline' ? 'true' : 'false'}
-      />
+      {fixedStyle ? (
+        <ins
+          class="adsbygoogle"
+          style={fixedStyle}
+          data-ad-client={ADSENSE_CLIENT}
+          data-ad-slot={slotId}
+        />
+      ) : (
+        <ins
+          class="adsbygoogle"
+          style="display:block"
+          data-ad-client={ADSENSE_CLIENT}
+          data-ad-slot={slotId}
+          data-ad-format="auto"
+          data-full-width-responsive="true"
+        />
+      )}
       <script is:inline>
         (window.adsbygoogle = window.adsbygoogle || []).push({});
       </script>

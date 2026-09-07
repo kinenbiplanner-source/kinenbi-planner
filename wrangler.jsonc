@@ -9,6 +9,12 @@
   // 管理画面への迂回経路になる。
   "workers_dev": false,
 
+  // ダッシュボードや `wrangler secret put` で入れた変数を deploy で消さないため。
+  // 受注フローの秘密（RESEND_API_KEY / LINE_CHANNEL_SECRET / LINE_CHANNEL_ACCESS_TOKEN /
+  // TURNSTILE_SECRET_KEY など）はこのファイルに書かず secret で入れるので、
+  // これが無いと `npm run deploy` のたびに未設定へ戻ってフォームとWebhookが止まる。
+  "keep_vars": true,
+
   "observability": { "enabled": true },
 
   // 本番ドメイン。Custom Domain にすると Cloudflare がDNSレコードと証明書を自動管理する。

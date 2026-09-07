@@ -713,11 +713,6 @@
   color: var(--navy) !important;
   box-shadow: 0 6px 18px rgba(196, 163, 90, 0.28);
 }
-.list-cta .cta-btn-line {
-  background: #06c755;
-  color: var(--white) !important;
-}
-
 /* ────────────────────────────────────────────────
  * 記事ページ（.art-*）
  *
@@ -752,7 +747,9 @@
    無いぶん、ここを外すと Core Web Vitals に一番大きく効く。 */
 .ad {
   display: block;
-  margin: 0 auto;
+  /* 固定サイズの <ins>（inline-block）を枠の中央に置く。1120px 以下で
+     サイドバーが2カラムに落ちると、セル幅が 300px より広くなるため。 */
+  text-align: center;
 }
 .ad-label {
   display: block;
@@ -762,18 +759,44 @@
   text-align: center;
   margin-bottom: 6px;
 }
-/* 本文の流れの中（記事末尾）。300×250〜336×280 と、モバイルの
-   レスポンシブ枠が収まる高さを見込んで確保する。 */
+/* 本文・一覧の流れの中（記事末尾／メディアトップ最下部）。
+   ここだけレスポンシブ枠なので、高さが画面幅で変わる。実測は
+   375px 幅 → 375px 高、760px 幅 → 280px 高。ラベル(21px)を足して予約する。
+   **少し多めに取る**：余ると余白が出るだけだが、足りないとレイアウトがずれる。 */
 .ad-inline {
   margin: 48px auto 8px;
-  min-height: 280px;
+  min-height: 400px;
 }
-/* 左サイドの縦長（160×600）。列の幅は .art-grid 側で 160px 固定。 */
+@media (min-width: 768px) {
+  .ad-inline {
+    min-height: 310px;
+  }
+}
+/* メディアトップの右サイドバー。固定 300×250 ＋ ラベル。相談CTAカードの下に並ぶので、
+   .m-aside の flex gap（20px）に任せて自前の margin は持たせない。
+   **ここで margin:auto を使わないこと。** flex の交差軸に auto マージンがあると
+   stretch が効かなくなり、枠がラベルの幅（20px 程度）まで縮む。 */
+.ad-card {
+  min-height: 271px;
+}
+/* 記事ページ左の縦長。固定 160×600 ＋ ラベル。列の幅は .art-grid 側で 160px 固定。 */
 .ad-side {
-  min-height: 600px;
+  min-height: 621px;
 }
-.ad .adsbygoogle {
+.ad-inline .adsbygoogle {
   width: 100%;
+}
+/* 固定サイズの枠の <ins> は inline-block なので、そのままだと行のベースライン下に
+   5px ほど余白が付いて予約した高さを超える。上揃えにして消す。 */
+.ad .adsbygoogle {
+  vertical-align: top;
+}
+/* 広告が返らなかったとき。AdSense は <ins> に data-ad-status="unfilled" を付けて
+   display:none にするので、そのままだと「広告」ラベルだけが空白の上に取り残される。
+   ラベルは隠すが、**予約した高さは残す**（ここで畳むとレイアウトが動いてCLSになる）。
+   visibility にしているのも同じ理由で、display:none だと行が詰まって動く。 */
+.ad:has(ins[data-ad-status='unfilled']) .ad-label {
+  visibility: hidden;
 }
 
 .art-crumb {
@@ -1105,10 +1128,10 @@ a.art-tag:hover {
 .art-bar-form {
   background: var(--grad-navy);
   color: var(--white);
-}
-.art-bar-line {
-  background: #06c755;
-  color: var(--white);
+  /* ボタンが1本になったので、その分だけタップ領域を広く取る
+     （2026-09-07 に「LINEで相談」の併記をやめた。行き先が同じで割る意味がなかった） */
+  padding-block: 14px;
+  font-size: 14.5px;
 }
 
 /* ── トップへ戻る ── */

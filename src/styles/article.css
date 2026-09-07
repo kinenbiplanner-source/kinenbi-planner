@@ -656,7 +656,7 @@ a.badge:hover {
   color: var(--white);
 }
 
-/* theme=line：LINEはブランド色が決まっているので .cta-btn-line と同じ緑を使う */
+/* theme=line：LINEはブランド色が決まっているので緑に寄せる */
 .cta-banner-line {
   background: color-mix(in srgb, #06c755 5%, var(--white));
   border: 1px solid color-mix(in srgb, #06c755 28%, var(--white));
@@ -828,12 +828,6 @@ a.badge:hover {
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 14px;
-}
-/* LINEはブランド色が決まっているので、ここだけゴールドに寄せない */
-.cta-btn-line {
-  background: #06c755;
-  color: var(--white) !important;
-  box-shadow: 0 8px 22px rgba(6, 199, 85, 0.28);
 }
 .cta-btn:hover {
   transform: translateY(-1px);

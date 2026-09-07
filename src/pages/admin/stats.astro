@@ -24,6 +24,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 import {
   countKeywordsGrouped,
   jstYmd,
+  latestPvReport,
   listForAdmin,
   pvDailyTotals,
   pvFirstYmd,
@@ -31,6 +32,7 @@ import {
   pvTotals,
 } from '../../lib/db';
 import { AXES, axisShort } from '../../lib/axis';
+import { renderArticle } from '../../lib/markdown';
 import {
   CHART_RANGES,
   DROP_RATIO,
@@ -43,6 +45,7 @@ import {
   deltaPct,
   fillSeries,
   isoToYmd,
+  parsePvSnapshot,
   perfFlag,
   pivotByArticle,
   seriesOver,
@@ -68,14 +71,32 @@ const prevYmds = ymdRange(shiftYmd(today, -WINDOW_DAYS), WINDOW_DAYS);
 const windowSince = prevYmds[0]!;
 
 // どれも独立したクエリなので同時に投げる。
-const [articles, dailyRows, windowRows, totals, kwRows, firstYmd] = await Promise.all([
+const [articles, dailyRows, windowRows, totals, kwRows, firstYmd, latestReport] = await Promise.all([
   listForAdmin(),
   pvDailyTotals(chartYmds[0]!),
   pvSince(windowSince),
   pvTotals(),
   countKeywordsGrouped(),
   pvFirstYmd(),
+  latestPvReport(),
 ]);
+
+// ── 週次レポート（/anniv-update-pv が D1 の pv_reports に入れる）──
+// 本文は Markdown なので記事と同じレンダラーで HTML にする。
+// 断面（記事別の GA4 / GSC）は記事別テーブルの右に足す。ここの数字だけは「その回の断面」で、
+// 上の自前PVのようにページを開くたびに動くものではない（理由は src/lib/stats.ts の PvSnapshot）。
+const report = latestReport
+  ? {
+      ymd: latestReport.ymd,
+      // 1行目の「# 週次レポート YYYY-MM-DD」はカードのヘッダが担うので落とす（記事レンダラーは H1 を見出しとして描くため）
+      html: renderArticle(latestReport.report_md.replace(/^#\s[^\n]*\n+/, '')).html,
+      snapshot: parsePvSnapshot(latestReport.snapshot_json),
+    }
+  : null;
+const snapBySlug = new Map((report?.snapshot.rows ?? []).map((r) => [r.slug, r]));
+/** 断面の列を出すか。レポートはあるが GA4 / GSC を取れていない回は列そのものを出さない。 */
+const showGa4 = report?.snapshot.ga4 ?? false;
+const showGsc = report?.snapshot.gsc ?? false;
 
 // 計測できている日数。窓（28日）に満たないうちは、
 // 古い記事が「PVが無い＝伸び悩み」に見えてしまうのでリライト判定を出さない。
@@ -177,6 +198,9 @@ const num = (n: number) => n.toLocaleString('ja-JP');
 /** 前期比の表示。前期が0なら比率を出さない（stats.ts の deltaPct と対）。 */
 const deltaText = (d: number | null) => (d === null ? '—' : `${d > 0 ? '+' : ''}${d}%`);
 const deltaClass = (d: number | null) => (d === null ? 'is-flat' : d > 0 ? 'is-up' : d < 0 ? 'is-down' : 'is-flat');
+/** 断面の1マス。null（その回に取れていない・記事が新しい）は「—」。 */
+const snapCell = (v: number | null | undefined, digits = 0) =>
+  v === null || v === undefined ? '—' : digits ? v.toFixed(digits) : num(v);
 ---
 
 <AdminLayout title="メディア分析" current="stats">
@@ -229,6 +253,34 @@ const deltaClass = (d: number | null) => (d === null ? 'is-flat' : d > 0 ? 'is-u
         優先度1が {num(todoP1)}件
         <a class="stat-link" href="/admin/keywords?status=todo&priority=1">見る</a>
       </span>
+    </div>
+  </div>
+
+  {/* ── 週次レポート ── */}
+  <div class="admin-card">
+    <div class="admin-card-head">
+      週次レポート
+      {
+        report ? (
+          <span class="admin-hint">
+            {report.ymd} 時点。<code>/anniv-update-pv</code> が毎週書き換える（同じものが 記事管理/PVレポート/ にも残る）
+          </span>
+        ) : (
+          <span class="admin-hint">まだ無い</span>
+        )
+      }
+    </div>
+    <div class="admin-card-body">
+      {
+        report ? (
+          <div class="stat-report" set:html={report.html} />
+        ) : (
+          <p class="admin-empty">
+            週次レポートはまだ入っていません。ローカルで <code>/anniv-update-pv</code> を回すと、
+            数字の読みとリライトの判定がここに出ます。
+          </p>
+        )
+      }
     </div>
   </div>
 
@@ -338,6 +390,24 @@ const deltaClass = (d: number | null) => (d === null ? 'is-flat' : d > 0 ? 'is-u
                 <th>推移</th>
                 <th class="col-num">累計</th>
                 <th class="col-num">公開から</th>
+                {showGa4 && (
+                  <th class="col-num stat-snap-col" title={`GA4 の直近${WINDOW_DAYS}日PV（${report!.ymd} 時点の断面）`}>
+                    GA4
+                  </th>
+                )}
+                {showGsc && (
+                  <>
+                    <th class="col-num stat-snap-col" title={`Search Console のクリック（${report!.ymd} 時点の断面）`}>
+                      GSCクリック
+                    </th>
+                    <th class="col-num stat-snap-col" title={`Search Console の表示回数（${report!.ymd} 時点の断面）`}>
+                      表示
+                    </th>
+                    <th class="col-num stat-snap-col" title={`Search Console の平均順位（${report!.ymd} 時点の断面）`}>
+                      順位
+                    </th>
+                  </>
+                )}
                 <th />
               </tr>
             </thead>
@@ -373,6 +443,14 @@ const deltaClass = (d: number | null) => (d === null ? 'is-flat' : d > 0 ? 'is-u
                   </td>
                   <td class={`cell-num${p.total === 0 ? ' is-zero' : ''}`}>{num(p.total)}</td>
                   <td class="cell-num cell-date">{p.ageDays === null ? '—' : `${num(p.ageDays)}日`}</td>
+                  {showGa4 && <td class="cell-num stat-snap-col">{snapCell(snapBySlug.get(p.slug)?.ga4Pv)}</td>}
+                  {showGsc && (
+                    <>
+                      <td class="cell-num stat-snap-col">{snapCell(snapBySlug.get(p.slug)?.gscClicks)}</td>
+                      <td class="cell-num stat-snap-col">{snapCell(snapBySlug.get(p.slug)?.gscImpr)}</td>
+                      <td class="cell-num stat-snap-col">{snapCell(snapBySlug.get(p.slug)?.gscPos, 1)}</td>
+                    </>
+                  )}
                   <td>
                     <div class="row-actions">
                       <a class="btn btn-sm" href={`/admin/${p.id}/edit`}>
@@ -399,6 +477,17 @@ const deltaClass = (d: number | null) => (d === null ? 'is-flat' : d > 0 ? 'is-u
       <span><span class="stat-flag stat-flag-drop">下降</span>直近{WINDOW_DAYS}日が前{WINDOW_DAYS}日の{Math.round(DROP_RATIO * 100)}%未満（前期に十分なPVがあったものだけ）</span>
       <span><span class="stat-flag stat-flag-stale">伸び悩み</span>公開から{STALE_AFTER_DAYS}日以上たって直近{WINDOW_DAYS}日が{STALE_PV_UNDER}PV未満</span>
       <span class="admin-hint">しきい値は立ち上げ期の暫定値（src/lib/stats.ts）。実データが溜まったら見直す。</span>
+      {
+        (showGa4 || showGsc) && (
+          <span class="admin-hint">
+            GA4・GSC の列は {report!.ymd} 時点の断面（週次レポートと同じ回に取得
+            {showGsc && report!.snapshot.gscRange
+              ? `。GSC は ${report!.snapshot.gscRange.start}〜${report!.snapshot.gscRange.end}`
+              : ''}
+            ）。自前PVとは必ずズレるので突き合わせない。
+          </span>
+        )
+      }
     </div>
   </div>
 
@@ -733,5 +822,73 @@ const deltaClass = (d: number | null) => (d === null ? 'is-flat' : d > 0 ? 'is-u
     .stat-cols {
       grid-template-columns: 1fr;
     }
+  }
+  /* ── 週次レポート（Markdown をそのまま描く。記事用CSSはここに無いので最低限だけ）──
+     set:html で流し込んだ子要素には Astro のスコープ用クラスが付かないので、子孫は :global() で当てる。 */
+  .stat-report {
+    max-width: 880px;
+    font-size: 13.5px;
+    line-height: 1.85;
+  }
+  .stat-report :global(h1) {
+    display: none; /* 見出しはカードのヘッダが担う */
+  }
+  .stat-report :global(h2) {
+    margin: 18px 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--navy);
+  }
+  .stat-report :global(h2:first-child) {
+    margin-top: 0;
+  }
+  .stat-report :global(h3) {
+    margin: 14px 0 6px;
+    font-size: 13.5px;
+    font-weight: 700;
+  }
+  .stat-report :global(p) {
+    margin: 0 0 10px;
+  }
+  .stat-report :global(ul),
+  .stat-report :global(ol) {
+    margin: 0 0 10px;
+    padding-left: 1.4em;
+  }
+  .stat-report :global(li) {
+    margin: 2px 0;
+  }
+  .stat-report :global(table) {
+    width: 100%;
+    margin: 6px 0 12px;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+  .stat-report :global(th),
+  .stat-report :global(td) {
+    padding: 5px 8px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    vertical-align: top;
+  }
+  .stat-report :global(th) {
+    background: var(--blue-pale);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .stat-report :global(code) {
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: var(--blue-pale);
+    font-size: 12px;
+  }
+  .stat-report :global(strong) {
+    color: var(--navy);
+  }
+  /* 断面の列は自前PVと別物なので、薄く見せる */
+  .stat-snap-col {
+    color: var(--text-light);
   }
 </style>

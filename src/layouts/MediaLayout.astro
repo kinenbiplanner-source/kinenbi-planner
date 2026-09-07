@@ -13,6 +13,7 @@
 import BaseHead from '../components/BaseHead.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
+import { ADSENSE_CLIENT, adsEnabled } from '../lib/ads';
 
 import '../styles/tokens.css';
 import '../styles/base.css';
@@ -36,6 +37,13 @@ interface Props {
    * 計測スクリプトはこのファイルに集約する方針なので、記事ページ側ではなくここに置く。
    */
   pvSlug?: string;
+  /**
+   * AdSense の adsbygoogle.js を読むか。**広告枠（AdSlot）を置いたページだけ true**。
+   * 枠の無いページで読むと、外部スクリプトが1本増えるだけで何の得もない。
+   * 今 true なのは記事ページ（MediaArticle）とメディアトップ（pages/media/index）の2つ。
+   * `src/lib/ads.ts` が未設定のあいだは true でも読み込まない。
+   */
+  ads?: boolean;
 }
 
 const {
@@ -47,6 +55,7 @@ const {
   showProgress = false,
   noindex = false,
   pvSlug,
+  ads = false,
 } = Astro.props;
 ---
 
@@ -61,6 +70,16 @@ const {
       noindex={noindex}
     />
     <slot name="head" />
+    {
+      ads && adsEnabled && (
+        <script
+          is:inline
+          async
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
+          crossorigin="anonymous"
+        />
+      )
+    }
   </head>
   <body>
     {showProgress && <div class="scroll-progress" id="scroll-progress"></div>}

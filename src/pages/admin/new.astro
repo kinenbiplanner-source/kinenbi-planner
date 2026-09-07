@@ -1585,8 +1585,8 @@ const boot = JSON.stringify({
   const body = (sel: string) => sel || MARK;
 
   /** content-axis.md が定める軸3の固定CTA。文面ごと雛形として持つ。
-      送信先は markdown.ts の FORM_URL（LPと同じ Tally）に揃える。 */
-  const FORM_URL = 'https://tally.so/r/lbVDPB';
+      送信先は markdown.ts の FORM_URL（LP・記事のCTAと同じ自前の /apply）に揃える。 */
+  const FORM_URL = '/apply';
   const CTA_BLOCK =
     ':::box label="無料相談・お問い合わせ"\n' +
     `記念日の準備で迷っていることを、[相談フォーム](${FORM_URL})から無料でご相談いただけます。` +

@@ -1,0 +1,261 @@
+---
+/**
+ * 申し込みの回答集計（/admin/cases/insights）。
+ *
+ * 「どの予算帯が多いか」「パートナーの興味は何が多いか」「何日前に相談が来るか」を見る画面。
+ * **検索KWより実需に近いデータ**なので、記事のテーマ選び（/admin/keywords）と
+ * プレゼントの仕入れ・レストランの押さえ方の両方に効く。
+ *
+ * 集計は D1 から1クエリで全件引いて JS で畳む（src/lib/cases.ts の countBy 系）。
+ * 件数が三桁までは、項目ごとにクエリを分けるより速くて足し引きも楽。
+ *
+ * **母数の扱いに注意して読む。**
+ *   - 申込フォーム固有の設問（予算・交際期間など）は kind='apply' しか答えていない。
+ *     無料相談を混ぜると全部の割合が小さく出るので、母数は「その設問に答えた件数」にしてある
+ *   - 興味は複数選択なので合計は 100% を超える。母数は「1つ以上選んだ人の数」
+ */
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import {
+  listAnswers,
+  countBy,
+  countAgeBuckets,
+  countInterests,
+  countLeadTime,
+  type AnswerRow,
+  type Bucket,
+} from '../../../lib/cases';
+import {
+  ANNIVERSARY_OPTIONS,
+  BUDGET_OPTIONS,
+  DELEGATION_OPTIONS,
+  PAST_STYLE_OPTIONS,
+  RELATIONSHIP_OPTIONS,
+} from '../../../lib/intake';
+
+export const prerender = false;
+
+// ── 期間（GETのクエリ。URLで共有できるようにフォームで持つ）──
+const PERIODS = [
+  { value: '', label: '全期間' },
+  { value: '90', label: '直近90日' },
+  { value: '30', label: '直近30日' },
+] as const;
+const rawPeriod = Astro.url.searchParams.get('days') ?? '';
+const period = PERIODS.some((p) => p.value === rawPeriod) ? rawPeriod : '';
+const sinceIso = period ? new Date(Date.now() - Number(period) * 86_400_000).toISOString() : undefined;
+
+const rows: AnswerRow[] = await listAnswers(sinceIso);
+const applies = rows.filter((r) => r.kind === 'apply');
+const consults = rows.filter((r) => r.kind === 'consult');
+
+const col = (pick: (r: AnswerRow) => string) => applies.map(pick);
+
+// 「その他：◯◯」は自由記述が混ざって散らばるので、集計上は「その他」に畳む。
+// 中身は下の自由記述セクションで読む。
+const normAnniversary = (v: string) => (v.startsWith('その他') ? 'その他' : v);
+
+const sections: Array<{ title: string; note: string; rows: Bucket[]; unit?: string }> = [
+  {
+    title: '予算',
+    note: '価格の置き方と、提案の落としどころを決める材料',
+    rows: countBy(col((r) => r.budget), BUDGET_OPTIONS),
+  },
+  {
+    title: '記念日の種類',
+    note: '記事のテーマ配分に効く',
+    rows: countBy(col((r) => normAnniversary(r.anniversary)), ANNIVERSARY_OPTIONS),
+  },
+  {
+    title: '交際期間',
+    note: '関係の段階で刺さる提案が変わる',
+    rows: countBy(col((r) => r.relationship), RELATIONSHIP_OPTIONS),
+  },
+  {
+    title: 'お任せ度',
+    note: '100%が多いなら丸ごと任せたい層。提案の粒度を決める',
+    rows: countBy(
+      col((r) => DELEGATION_OPTIONS.find((d) => d.value === r.delegation)?.label ?? ''),
+      DELEGATION_OPTIONS.map((d) => d.label),
+    ),
+  },
+  {
+    title: 'これまでの過ごし方',
+    note: '「特になし」が多いなら、体験そのものの提案が効く',
+    rows: countBy(col((r) => r.past_style), PAST_STYLE_OPTIONS),
+  },
+  {
+    title: '申し込み種別',
+    note: 'スピード対応の比率。オプション料金の妥当性を見る',
+    rows: countBy(col((r) => (r.express ? 'スピード対応' : '通常')), ['通常', 'スピード対応']),
+  },
+  {
+    title: '記念日までの日数（申込時点）',
+    note: '仕入れとレストラン予約のリードタイムを決める',
+    rows: countLeadTime(applies),
+  },
+  {
+    title: 'ご本人の年齢',
+    note: '',
+    rows: countAgeBuckets(col((r) => r.age)),
+  },
+  {
+    title: 'パートナーの年齢',
+    note: '',
+    rows: countAgeBuckets(col((r) => r.partner_age)),
+  },
+  {
+    title: '流入元',
+    note: 'どのチャネルが申し込みまで繋がっているか。GA4ではなく申込1件ごとの実測',
+    rows: countBy(rows.map((r) => r.source)),
+  },
+];
+
+const interests = countInterests(applies);
+
+// 自由記述。**ここが一番読む価値がある**（選択肢に無い言葉が出てくる）。
+const freeText = rows
+  .map((r) => ({
+    id: r.id,
+    kind: r.kind,
+    text: (r.kind === 'consult' ? r.message : r.wishes).trim(),
+    created_at: r.created_at,
+  }))
+  .filter((r) => r.text);
+
+const JST = new Intl.DateTimeFormat('ja-JP', {
+  timeZone: 'Asia/Tokyo',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+const fmtDate = (iso: string): string => {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '—' : JST.format(d);
+};
+
+const csvHref = `/api/cases.csv${period ? `?days=${period}` : ''}`;
+---
+
+<AdminLayout title="回答の集計" current="cases">
+  <div class="admin-bar">
+    <h1 class="admin-title">
+      回答の集計<span class="admin-hint">
+        （申込 {applies.length}件 / 無料相談 {consults.length}件）</span
+      >
+    </h1>
+    <a class="btn" href="/admin/cases">案件一覧へ</a>
+    <a class="btn" href={csvHref}>CSVエクスポート</a>
+  </div>
+
+  <form class="admin-card ins-filter" method="get">
+    <span class="field-label">期間</span>
+    {
+      PERIODS.map((p) => (
+        <label class="ins-radio">
+          <input type="radio" name="days" value={p.value} checked={p.value === period} />
+          <span>{p.label}</span>
+        </label>
+      ))
+    }
+    <button class="btn btn-sm" type="submit">切り替える</button>
+  </form>
+
+  {
+    rows.length === 0 ? (
+      <div class="admin-card">
+        <p class="admin-empty">
+          この期間の申し込みがまだありません。1件でも入ると、ここに回答の分布が出ます。
+        </p>
+      </div>
+    ) : (
+      <>
+        {/* 選択式の設問。定義順に並べるので「誰も選んでいない選択肢」も行として残る */}
+        <div class="ins-grid">
+          {sections.map((s) => (
+            <div class="admin-card ins-card">
+              <div class="admin-card-head">
+                <strong>{s.title}</strong>
+                {s.note && <span class="admin-hint">{s.note}</span>}
+              </div>
+              <div class="admin-card-body">
+                {s.rows.every((r) => r.count === 0) ? (
+                  <p class="admin-empty">まだ回答がありません</p>
+                ) : (
+                  <ul class="ins-bars">
+                    {s.rows.map((r) => (
+                      <li class={r.count === 0 ? 'is-zero' : ''}>
+                        <span class="ins-label">{r.value}</span>
+                        <span class="ins-track">
+                          <span class="ins-fill" style={`width:${r.pct}%`} />
+                        </span>
+                        <span class="ins-num">
+                          {r.count}
+                          <span class="ins-pct">{r.pct}%</span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* 興味は複数選択。プレゼント選定に直接効くので単独で大きく出す */}
+        <div class="admin-card">
+          <div class="admin-card-head">
+            <strong>パートナーの興味・好きなもの</strong>
+            <span class="admin-hint">
+              複数選択なので合計は100%を超える（母数 {interests.respondents}件）。
+              プレゼントの仕入れ判断と、記事のテーマ選びに使う
+            </span>
+          </div>
+          <div class="admin-card-body">
+            {interests.items.length === 0 ? (
+              <p class="admin-empty">まだ回答がありません</p>
+            ) : (
+              <ul class="ins-chips">
+                {interests.items.map((r) => (
+                  <li>
+                    <span class="ins-chip-name">{r.value}</span>
+                    <span class="ins-chip-num">{r.count}</span>
+                    <span class="ins-chip-pct">{r.pct}%</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+
+        {/* 自由記述。集計できないが、選択肢に無い言葉が出るのでいちばん読む価値がある */}
+        <div class="admin-card">
+          <div class="admin-card-head">
+            <strong>自由記述</strong>
+            <span class="admin-hint">
+              「希望・こだわり」と無料相談の本文（{freeText.length}件）。
+              数えられないが、選択肢に無い言葉が出てくるのはここ
+            </span>
+          </div>
+          <div class="admin-card-body">
+            {freeText.length === 0 ? (
+              <p class="admin-empty">まだ自由記述の回答がありません</p>
+            ) : (
+              <ul class="ins-quotes">
+                {freeText.map((q) => (
+                  <li>
+                    <div class="ins-quote-meta">
+                      <a href={`/admin/cases/${q.id}`}>#{q.id}</a>
+                      <span>{q.kind === 'consult' ? '無料相談' : '申込'}</span>
+                      <span>{fmtDate(q.created_at)}</span>
+                    </div>
+                    <p class="ins-quote-text">{q.text}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </>
+    )
+  }
+</AdminLayout>

@@ -93,8 +93,16 @@ function readToken(request: Request): string | null {
  * **こちらは文字列を受けて行を作る**ぶん `/api/pv` より危ないので、
  * 受け口側でイベント名・流入元を許可リストに閉じ、ラベルを正規化してある
  * （src/pages/api/ev.ts の冒頭コメント）。ここを開ける以上、あの正規化は外さないこと。
+ *
+ * `/api/apply` は申込・無料相談フォームの受け口。顧客が送るものなので認証は掛けられない。
+ * 代わりにハニーポット・Turnstile・同一IPのレート制限で守っている（src/pages/api/apply.ts）。
+ * `/api/survey` は友だち追加後のアンケートの受け口。案件の特定は受付番号かメールで行い、
+ * **Turnstile は掛けず**にハニーポットと同一IPのレート制限で受ける（LINE のトークから開く画面なので
+ * ウィジェットを挟むと離脱する。新しい行は作れず、できるのは自分の案件の更新だけ）。
+ * `/api/line/webhook` は LINE のサーバから素で飛んでくる通知。防御線は `X-Line-Signature` の
+ * HMAC 検証だけで、ここが唯一の関門になる（src/lib/line-api.ts の verifyLineSignature）。
  */
-const PUBLIC_API = new Set(['/api/pv', '/api/ev']);
+const PUBLIC_API = new Set(['/api/pv', '/api/ev', '/api/apply', '/api/survey', '/api/line/webhook']);
 
 function isProtected(pathname: string): { protectedPath: boolean; api: boolean } {
   const path = pathname.replace(/\.html$/i, '').replace(/\/+$/, '') || '/';

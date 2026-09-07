@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>ig-carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* === Anniv ブランドカラー（card-renderer/template.html・src/styles/tokens.css と同じ値） === */
+  :root {
+    --navy:        #1a2840;
+    --navy-soft:   #243550;
+    --gold:        #c4a35a;
+    --gold-soft:   #ddc488;
+    --gold-pale:   #fdf8ef;
+    --text:        #2d3748;
+    --muted:       #5a6577;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: #fff;
+    font-family: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", -apple-system, "Segoe UI", sans-serif;
+    color: var(--navy);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* =====================================================================
+     設計の芯：ブランドの背景画像（bg/light.png・bg/dark.png）が「枠」。
+     ロゴ・金の飾り・紺の曲線は背景に焼き込まれているので、こちらは
+     文字と写真セルを「背景の空いている場所」に置くだけにする。
+       light: 左下が紺の曲線 → 文字は x120–980 / y200–900 に収める
+       dark : 上下の角に金リボン → 文字は x130–950 / y230–1130 に収める
+     写真は全面に敷かず、金の輪で切り抜いた円セルとして置く（表紙のみ）。
+     ===================================================================== */
+  .slide {
+    width: 1080px; height: 1350px;
+    position: relative; overflow: hidden;
+    background-size: cover; background-position: center;
+  }
+  .slide.light { background-image: url("__BG_LIGHT__"); color: var(--navy); }
+  .slide.dark  { background-image: url("__BG_DARK__");  color: #fff; }
+
+  /* 本文の箱。背景の安全域に合わせて light / dark で位置が違う */
+  .content { position: absolute; display: flex; flex-direction: column; gap: 24px; }
+  .light .content { left: 120px; right: 100px; top: 200px; bottom: 450px; }
+  .dark  .content { left: 130px; right: 130px; top: 230px; bottom: 220px; }
+
+  /* キッカー行：左に小見出し、右にページ番号 */
+  .kicker-row { display: flex; justify-content: space-between; align-items: baseline; min-height: 44px; }
+  .kicker {
+    font-family: "Noto Serif JP", serif;
+    font-size: 29px; line-height: 44px;
+    color: var(--gold); letter-spacing: 0.16em; font-weight: 600;
+  }
+  .dark .kicker { color: var(--gold-soft); }
+  .page { font-size: 25px; letter-spacing: 0.12em; font-variant-numeric: tabular-nums; opacity: 0.65; }
+
+  h1 {
+    font-family: "Noto Serif JP", serif;
+    font-weight: 600; font-size: 54px; line-height: 1.38; letter-spacing: 0.02em;
+  }
+  .rule { width: 64px; height: 3px; background: var(--gold); border-radius: 2px; }
+  .grow { flex: 1; }
+
+  .lead, .para { font-size: 34px; line-height: 1.74; color: var(--text); font-weight: 400; }
+  .dark .lead, .dark .para { color: rgba(255,255,255,0.92); }
+  .para strong, .lead strong, .item strong {
+    font-weight: 700; color: var(--navy);
+    background: linear-gradient(transparent 62%, rgba(221,196,136,0.6) 62%);
+  }
+  .dark .para strong { color: #fff; background: linear-gradient(transparent 62%, rgba(196,163,90,0.45) 62%); }
+  .paras { display: flex; flex-direction: column; gap: 22px; }
+
+  .items { display: flex; flex-direction: column; gap: 22px; }
+  .item { display: flex; gap: 22px; align-items: flex-start; font-size: 36px; line-height: 1.55; font-weight: 500; color: var(--navy); }
+  .dark .item { color: #fff; }
+  .item .num {
+    flex: none; width: 56px; height: 56px; border-radius: 50%;
+    background: var(--navy); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-family: "Noto Serif JP", serif; font-size: 27px;
+    box-shadow: 0 10px 20px -12px rgba(26,40,64,0.6);
+  }
+  .dark .item .num { background: var(--gold); color: var(--navy); }
+  .note { font-size: 29px; line-height: 1.66; color: var(--muted); border-left: 3px solid var(--gold-soft); padding-left: 20px; }
+  .dark .note { color: rgba(255,255,255,0.75); }
+
+  /* --- 予算表 --- */
+  .table { border-top: 2px solid var(--navy); border-bottom: 2px solid var(--navy); }
+  .dark .table { border-color: var(--gold-soft); }
+  .row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 17px 8px; border-bottom: 1px solid rgba(26,40,64,0.18);
+    font-size: 34px; color: var(--text);
+  }
+  .dark .row { color: rgba(255,255,255,0.92); border-color: rgba(255,255,255,0.18); }
+  .row:last-child { border-bottom: 0; }
+  .row .amt { font-family: "Noto Serif JP", serif; font-weight: 600; font-variant-numeric: tabular-nums; font-size: 38px; color: var(--navy); }
+  .dark .row .amt { color: var(--gold-soft); }
+  .row.total { background: var(--gold-pale); font-weight: 700; color: var(--navy); margin: 0 -8px; padding-left: 16px; padding-right: 16px; }
+  .dark .row.total { background: rgba(196,163,90,0.16); color: #fff; }
+
+  /* --- 表紙：紺地の中央に写真の円セル、その下にタイトル --- */
+  .cover .cell {
+    position: absolute; left: 50%; top: 226px; width: 520px; height: 520px;
+    margin-left: -260px; border-radius: 50%; overflow: hidden;
+    box-shadow: 0 0 0 3px var(--gold), 0 0 0 14px rgba(196,163,90,0.14), 0 40px 70px -30px rgba(0,0,0,0.7);
+  }
+  .cover .cell img { width: 100%; height: 100%; object-fit: cover; display: block; filter: saturate(1.05) contrast(1.04); }
+  .cover .text {
+    position: absolute; left: 130px; right: 130px; top: 806px;
+    display: flex; flex-direction: column; gap: 16px; color: #fff;
+  }
+  .cover .eyebrow { font-family: "Noto Serif JP", serif; font-size: 29px; letter-spacing: 0.16em; color: var(--gold-soft); font-weight: 600; }
+  .cover h1 { font-size: 72px; line-height: 1.26; color: #fff; }
+  .cover .sub { font-size: 34px; opacity: 0.92; font-weight: 400; margin-top: 4px; }
+
+  /* --- 締め --- */
+  .ctabox {
+    border: 2px solid var(--gold-soft); border-radius: 22px;
+    padding: 34px 40px; display: flex; flex-direction: column; gap: 12px;
+    font-size: 32px; line-height: 1.6; text-align: center;
+    background: rgba(255,255,255,0.05);
+  }
+  .ctabox .strong { font-family: "Noto Serif JP", serif; font-size: 38px; font-weight: 600; color: var(--gold-soft); }
+</style>
+</head>
+<body>
+__SLIDES__
+</body>
+</html>

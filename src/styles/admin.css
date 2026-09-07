@@ -1113,3 +1113,786 @@ input.md-menu-filter {
   color: var(--text-light);
   font-family: 'Noto Sans JP', system-ui, sans-serif;
 }
+
+/* ════════════════════════════════════════════════
+ * 案件（/admin/cases と /admin/cases/[id]）
+ *
+ * 2画面で同じクラスを使うのでページ側の <style> ではなくここに置く。
+ * 接頭辞は case-（案件）と line-（LINE）。記事側のクラスとは混ぜない。
+ * ════════════════════════════════════════════════ */
+
+/* 日付・数値の入力。上の input[type='text'] の並びに無い type は素のままなので、
+   案件画面で使う分だけ同じ見た目に揃える（記事編集では使っていない）。 */
+input[type='date'],
+input[type='number'],
+input[type='email'],
+input[type='tel'] {
+  width: 100%;
+  padding: 8px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--admin-radius-sm);
+  background: var(--white);
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--text);
+}
+input[type='date']:focus,
+input[type='number']:focus,
+input[type='email']:focus,
+input[type='tel']:focus {
+  outline: 2px solid var(--blue-mid);
+  outline-offset: -1px;
+  border-color: var(--blue-mid);
+}
+
+/* ── 状態バッジ（.status の色違い）──
+   工程が進むほど色が温かくなるようにしている：受付＝紺 → やり取り＝青 →
+   提案・請求＝金 → 入金・手配＝緑 → 終わり＝灰、失注だけ赤系。
+   一目で「まだ入金前か」が分かることだけが目的なので、隣り合う工程は同色でよい。 */
+.status-new {
+  background: #e5ecf7;
+  color: var(--navy);
+}
+.status-contacted,
+.status-hearing {
+  background: #e3f0fa;
+  color: #2c6c93;
+}
+.status-proposed,
+.status-invoiced {
+  background: var(--gold-pale);
+  color: #8a6d2f;
+}
+.status-paid,
+.status-arranging {
+  background: #e6f4ec;
+  color: var(--admin-ok);
+}
+.status-delivered,
+.status-followed {
+  background: #eef1f5;
+  color: var(--text-light);
+}
+.status-lost {
+  background: #fdf1ef;
+  color: var(--admin-danger);
+}
+
+/* 種別（申込／無料相談）。状態バッジより弱く見せる */
+.case-kind {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.case-kind-apply {
+  background: #e5ecf7;
+  color: var(--navy);
+}
+.case-kind-consult {
+  background: var(--gold-pale);
+  color: #8a6d2f;
+}
+
+/* 記念日までの残り。近いほど強い色にする（一覧でも詳細でも同じ規則） */
+.case-days {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  background: #eef1f5;
+  color: var(--text-light);
+}
+.case-days.is-soon {
+  background: var(--gold-pale);
+  color: #8a6d2f;
+}
+.case-days.is-urgent {
+  background: #fdf1ef;
+  color: var(--admin-danger);
+}
+.case-days.is-past {
+  background: #eef1f5;
+  color: var(--text-light);
+}
+/* スピード対応は納期が短い＝見落とすと事故るので、残り日数と同じ強さで出す */
+.case-express {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  background: #fdf1ef;
+  color: var(--admin-danger);
+}
+
+/* ── LINE の紐づけ状態 ── */
+.line-linked {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  /* LINE のブランド緑 #06C755 の薄い版。緑そのままだと管理画面で浮く */
+  background: #e6f8ed;
+  color: #0b7a3f;
+}
+.line-none {
+  display: inline-block;
+  font-size: 11.5px;
+  color: var(--text-light);
+}
+.line-blocked {
+  color: var(--admin-danger);
+  font-weight: 700;
+}
+
+/* ── 一覧：ステータス別の件数チップ ── */
+.case-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 18px;
+}
+.case-count {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--white);
+  font-size: 12px;
+  color: var(--text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.case-count:hover {
+  background: var(--blue-pale);
+}
+.case-count[aria-current='page'] {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: var(--white);
+}
+.case-count-num {
+  font-family: var(--admin-mono);
+  font-size: 14px;
+  font-weight: 700;
+}
+/* 0件の状態は薄くする。押せるままにしておくのは、空を確かめたい場面があるため */
+.case-count.is-zero {
+  color: var(--text-light);
+  opacity: 0.7;
+}
+
+/* ── 一覧：記念日が近い帯 ── */
+.case-upcoming {
+  border-color: var(--gold-soft);
+}
+.case-upcoming-list {
+  list-style: none;
+}
+.case-upcoming-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 18px;
+  border-bottom: 1px solid #eef4f9;
+  font-size: 13px;
+}
+.case-upcoming-list li:last-child {
+  border-bottom: 0;
+}
+.case-upcoming-name {
+  font-weight: 500;
+  color: var(--navy);
+}
+
+/* ── 一覧：表 ── */
+.case-code,
+.case-code-link {
+  font-family: var(--admin-mono);
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+  color: var(--navy);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.case-code-link:hover {
+  text-decoration: underline;
+}
+.case-name a {
+  color: var(--navy);
+  font-weight: 500;
+  text-decoration: none;
+}
+.case-name a:hover {
+  text-decoration: underline;
+}
+/* メールや記念日の種類のような従属情報。行を増やさず1段下に小さく出す */
+.case-sub {
+  display: block;
+  font-size: 11px;
+  color: var(--text-light);
+  margin-top: 2px;
+  word-break: break-all;
+}
+/* 記念日の列。日付・残り日数・特急が1行に収まる幅を確保しておく */
+.case-date {
+  min-width: 150px;
+}
+.case-date-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.case-budget,
+.case-payment {
+  white-space: nowrap;
+  font-size: 12.5px;
+}
+.case-source {
+  font-family: var(--admin-mono);
+  font-size: 11.5px;
+  color: var(--text-light);
+  white-space: nowrap;
+}
+.case-line {
+  white-space: nowrap;
+}
+
+/* ── 一覧：LINE 友だちの表と手動紐づけ ── */
+.line-table .line-user-name {
+  font-weight: 500;
+  color: var(--navy);
+}
+.line-link-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.line-link-row select {
+  width: auto;
+  min-width: 220px;
+}
+.line-more {
+  padding: 10px 14px 14px;
+}
+/* カードの中に置く空表示。ページ全体の空（.admin-empty）ほど間を取らない */
+.case-empty-sm {
+  padding: 22px 18px;
+}
+
+/* ── 一覧：絞り込み ── */
+.case-filter-body {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.case-filter-body .field {
+  margin-bottom: 0;
+}
+.case-filter-body select {
+  width: auto;
+  min-width: 150px;
+}
+.case-filter-body .field-q {
+  flex: 1;
+  min-width: 220px;
+}
+.case-filter-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── 詳細：ヘッダ ── */
+.case-head {
+  gap: 12px;
+}
+/* 受付番号は顧客とのやり取りで読み上げる identifier なので、大きく等幅で出す */
+.case-head-code {
+  font-family: var(--admin-mono);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--navy);
+}
+.case-head-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--navy);
+}
+.case-head-meta {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-light);
+  white-space: nowrap;
+}
+.case-status-select {
+  width: auto;
+  min-width: 150px;
+  font-weight: 700;
+}
+
+/* ── 詳細：2カラム（左＝読む／右＝書く）── */
+.case-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+/* グリッドの中では隣接カードの上マージンは要らない（gap で取っている） */
+.case-grid > .admin-card + .admin-card {
+  margin-top: 0;
+}
+/* 同じカードの中で区切りたい2つ目の本文（顧客情報の折りたたみ） */
+.case-body-sub {
+  border-top: 1px solid var(--border);
+}
+
+/* ── 詳細：定義リスト（申込内容）── */
+.case-dl > div {
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr);
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid #eef4f9;
+}
+.case-dl > div:last-child {
+  border-bottom: 0;
+}
+.case-dl dt {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-light);
+}
+.case-dl dd {
+  font-size: 13px;
+  color: var(--text);
+  min-width: 0;
+  word-break: break-word;
+}
+.case-dl dd a {
+  color: var(--blue-mid);
+}
+/* 自由記述は改行がそのまま意味を持つ（箇条書きで書かれることが多い） */
+.case-pre {
+  white-space: pre-wrap;
+}
+
+/* 興味は数が多いので、行に流し込むチップにする */
+.case-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.case-chip {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--blue-pale);
+  border: 1px solid var(--border);
+  font-size: 11.5px;
+  color: var(--navy);
+  white-space: nowrap;
+}
+
+/* ── 詳細：折りたたみと生データ ── */
+.case-details {
+  margin-top: 14px;
+}
+.case-details > summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--navy);
+  padding: 6px 0;
+}
+.case-details > summary:hover {
+  color: var(--blue-mid);
+}
+.case-raw {
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--admin-radius-sm);
+  background: var(--blue-pale);
+  font-family: var(--admin-mono);
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 340px;
+  overflow: auto;
+}
+
+.case-form-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.case-reply-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── 詳細：LINE ── */
+.line-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: var(--text-light);
+}
+.line-meta strong {
+  color: var(--text);
+}
+.line-meta .btn {
+  margin-left: auto;
+}
+/* やり取りの控え。全会話を再現する場所ではないので高さは抑えて中でスクロールさせる */
+.line-thread {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+.line-bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 78%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+.line-bubble-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.line-bubble-time {
+  font-family: var(--admin-mono);
+  font-size: 10.5px;
+  color: var(--text-light);
+}
+/* 受信は左・灰、送信は右・LINE 緑。どちらが話したかを色と位置の両方で出す */
+.line-bubble.is-in {
+  align-self: flex-start;
+  background: #eef1f5;
+  border-bottom-left-radius: 3px;
+}
+.line-bubble.is-out {
+  align-self: flex-end;
+  background: #e6f8ed;
+  border-bottom-right-radius: 3px;
+}
+.line-bubble.is-out .line-bubble-time {
+  text-align: right;
+}
+
+/* ── 詳細：履歴 ── */
+.case-log {
+  list-style: none;
+  margin-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.case-log-item {
+  display: grid;
+  grid-template-columns: 82px 118px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 9px 0;
+  border-bottom: 1px solid #eef4f9;
+  font-size: 12.5px;
+}
+.case-log-item:last-child {
+  border-bottom: 0;
+}
+.case-log-kind {
+  display: inline-block;
+  padding: 2px 0;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  background: #eef1f5;
+  color: var(--text-light);
+}
+.case-log-kind.is-created {
+  background: #e5ecf7;
+  color: var(--navy);
+}
+.case-log-kind.is-status {
+  background: #e3f0fa;
+  color: #2c6c93;
+}
+.case-log-kind.is-mail {
+  background: var(--gold-pale);
+  color: #8a6d2f;
+}
+.case-log-kind.is-line_out,
+.case-log-kind.is-line_in {
+  background: #e6f8ed;
+  color: #0b7a3f;
+}
+.case-log-time {
+  font-family: var(--admin-mono);
+  font-size: 11.5px;
+  color: var(--text-light);
+}
+.case-log-body {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ── 詳細：案件が無いとき ── */
+.case-notfound-actions {
+  padding: 0 18px 26px;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  /* スマホでも案件を開く前提。左右2列は縦に積む */
+  .case-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .case-dl > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+  .case-log-item {
+    grid-template-columns: 82px minmax(0, 1fr);
+  }
+  /* 3列目（本文）が2列目に落ちるので、日時は種別の隣に置いたままにする */
+  .case-log-body {
+    grid-column: 1 / -1;
+  }
+  .case-head-meta {
+    margin-left: 0;
+  }
+  .line-bubble {
+    max-width: 92%;
+  }
+}
+
+/*
+ * 未紐づけのLINE友だちに出す「たぶんこの案件」のヒント。
+ * 顧客に受付番号を送らせない代わりに、ここで人が表示名を見て確定する
+ * （src/lib/cases.ts の rankLinkCandidates）。判断材料なので、
+ * 操作行のすぐ下に置いて視線が飛ばないようにする。
+ */
+.line-cand-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-light);
+}
+.line-cand-hint strong {
+  font-weight: 700;
+  color: var(--navy);
+}
+.line-cand-hint.is-none {
+  color: #b7791f;
+}
+
+/* ────────────────────────────────────────────────
+ * 回答の集計（/admin/cases/insights）
+ *
+ * 数字そのものより「どこが山か」を一目で見るための画面なので、
+ * 横棒の長さで形を掴ませ、件数と割合は右端に小さく添える。
+ */
+.ins-filter {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+}
+.ins-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.ins-radio input { margin: 0; }
+
+/* 設問カードは2列。狭い画面では1列に落とす */
+.ins-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+@media (max-width: 900px) {
+  .ins-grid { grid-template-columns: 1fr; }
+}
+.ins-card { margin-bottom: 0; }
+
+.ins-bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.ins-bars li {
+  display: grid;
+  grid-template-columns: 8.5em 1fr 4.5em;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+/* 0件の選択肢も残す（誰も選んでいないこと自体が情報）が、薄くして山を邪魔しない */
+.ins-bars li.is-zero { opacity: 0.42; }
+.ins-label {
+  color: var(--text);
+  line-height: 1.5;
+  word-break: break-word;
+}
+.ins-track {
+  height: 9px;
+  border-radius: 999px;
+  background: var(--blue-pale);
+  overflow: hidden;
+}
+.ins-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--grad-navy);
+  min-width: 2px;
+}
+.ins-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--navy);
+}
+.ins-pct {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-light);
+}
+
+/* 興味は項目が多いのでチップで敷き詰める */
+.ins-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ins-chips li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--white);
+  font-size: 12.5px;
+}
+.ins-chip-name { color: var(--text); }
+.ins-chip-num {
+  font-weight: 700;
+  color: var(--navy);
+  font-variant-numeric: tabular-nums;
+}
+.ins-chip-pct { font-size: 11px; color: var(--text-light); }
+
+/* 自由記述は読ませたいので、改行を保ったまま引用の見た目にする */
+.ins-quotes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.ins-quotes li {
+  border-left: 3px solid var(--gold-soft);
+  padding: 2px 0 2px 14px;
+}
+.ins-quote-meta {
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--text-light);
+  margin-bottom: 4px;
+}
+.ins-quote-meta a { color: var(--blue-mid); text-decoration: none; }
+.ins-quote-meta a:hover { text-decoration: underline; }
+.ins-quote-text {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.85;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+/*
+ * アンケート（/survey）の回答有無。
+ * 入口のフォームは3項目しか聞かないので、**未回答＝提案に必要な情報が無い**。
+ * 一覧で真っ先に気づけるよう、未回答だけ色を付ける（回答済みは静かに）。
+ */
+.survey-done {
+  font-size: 11px;
+  color: var(--text-light);
+}
+.survey-todo {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #b7791f;
+  background: var(--gold-pale);
+  border: 1px solid var(--gold-soft);
+  border-radius: 999px;
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+
+/*
+ * 案件詳細の「アンケート未回答」帯。
+ * 入口では3つしか聞かないので、下に並ぶ記念日・予算が空でも
+ * 「無記入」ではなく「まだ聞けていない」ことがある。それを先に知らせる。
+ */
+.survey-warn {
+  background: var(--gold-pale);
+  border-bottom: 1px solid var(--gold-soft);
+  font-size: 12.5px;
+  line-height: 1.85;
+  color: var(--text);
+}
+.survey-warn strong { color: #b7791f; }
+.survey-warn code {
+  font-family: var(--admin-mono);
+  font-size: 11.5px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  word-break: break-all;
+}

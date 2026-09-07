@@ -22,7 +22,7 @@ import MediaLayout from './MediaLayout.astro';
 import ArticleCard from '../components/ArticleCard.astro';
 import CtaBox from '../components/CtaBox.astro';
 import AdSlot from '../components/AdSlot.astro';
-import { ADSENSE_CLIENT, adsEnabled } from '../lib/ads';
+import { adsEnabled } from '../lib/ads';
 import { db, type ArticleRow, type ArticleCard as ArticleCardData } from '../lib/db';
 import type { TocItem } from '../lib/markdown';
 import { axisName } from '../lib/axis';
@@ -143,29 +143,18 @@ const breadcrumbLd = {
   current="media"
   showProgress
   pvSlug={article.slug}
+  ads
 >
   <Fragment slot="head">
     <script type="application/ld+json" is:inline set:html={JSON.stringify(articleLd)} />
     <script type="application/ld+json" is:inline set:html={JSON.stringify(breadcrumbLd)} />
-    {/* AdSense は記事ページにだけ読み込む（一覧・カテゴリには枠を置いていないため）。
-        設定が空のあいだは読まない＝記事ページの外部スクリプトは計測タグだけのまま。 */}
-    {
-      adsEnabled && (
-        <script
-          is:inline
-          async
-          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
-          crossorigin="anonymous"
-        />
-      )
-    }
   </Fragment>
 
   <div class="shell shell-art">
     <div class="art-grid">
       {/* 左の広告枠。AdSense が未設定でも、後から入れたときに本文幅が動かないよう場所だけ取る。 */}
       <aside class="art-ad" aria-hidden={adsEnabled ? undefined : 'true'}>
-        <div class="art-ad-slot"><AdSlot name="side" variant="side" /></div>
+        <div class="art-ad-slot"><AdSlot name="articleSide" variant="side" /></div>
       </aside>
 
       <article class="art-main">
@@ -216,7 +205,7 @@ const breadcrumbLd = {
         {!hasInlineCta && <CtaBox />}
 
         {/* 記事末尾の広告。CTAより下に置く（CTAを押し下げると送客が減るため）。 */}
-        <AdSlot name="bottom" />
+        <AdSlot name="articleBottom" />
 
         {/* 記事の評価。送信先は持たず GA4 のイベントだけ飛ばす（計測設計.md 参照）。 */}
         <section class="art-fb" id="art-fb">
@@ -301,9 +290,7 @@ const breadcrumbLd = {
               プレゼント選び・お店の予約・当日の演出まで。迷っている段階でも相談できます。
             </p>
             <a
-              href="https://tally.so/r/lbVDPB"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/apply"
               data-cta="form"
               data-cta-label="article_side">無料で相談する</a
             >
@@ -313,23 +300,19 @@ const breadcrumbLd = {
     </div>
   </div>
 
-  {/* モバイル下部の固定バー。デスクトップは右サイドのCTAが常に見えているので出さない。 */}
+  {/*
+    モバイル下部の固定バー。デスクトップは右サイドのCTAが常に見えているので出さない。
+
+    以前は「無料で相談する」と「LINEで相談」を並べていたが、どちらを押しても
+    最終的な窓口はLINEなので、幅の狭いバーで2つに割る意味がなかった。1本にして
+    タップ領域を広く取る（LINE直行は /apply の中に置いてある）。
+  */}
   <div class="art-bar" id="art-bar">
     <a
       class="art-bar-form"
-      href="https://tally.so/r/lbVDPB"
-      target="_blank"
-      rel="noopener noreferrer"
+      href="/apply"
       data-cta="form"
       data-cta-label="article_mobilebar">無料で相談する</a
-    >
-    <a
-      class="art-bar-line"
-      href="https://lin.ee/U4deTzi"
-      target="_blank"
-      rel="noopener noreferrer"
-      data-cta="line"
-      data-cta-label="article_mobilebar">LINEで相談</a
     >
   </div>
 

@@ -1,0 +1,1005 @@
+---
+/**
+ * 詳しいアンケート（/survey）。**申込フォームの2段目。**
+ *
+ * `/apply` では連絡先3つしか聞かない。記念日・予算・パートナーの好みはここで聞く。
+ * 導線は「友だち追加のあと、LINEのトークからこのURLを案内する」。
+ * つまり**ここに来る人とは既に連絡が取れている**ので、
+ *
+ *   - 必須は3つ（記念日・日付・予算）だけ。残りは空でも送れる
+ *   - Turnstile は付けない（bot が来る入口ではないし、回答の途中で詰まる方が損）
+ *   - 送信しても遷移しない。ページ内で完了表示に切り替えて LINE に戻す
+ *
+ * にしてある。足りないところは LINE のトークで人が聞けばいい（`受注フロー.md` 2章）。
+ *
+ * 設問・選択肢は **src/lib/intake.ts が SSOT**（このページに対応するのは `parseSurvey`）。
+ * 選択肢の文字列をこのファイルに書き写さないこと（画面には出るのに保存で弾かれる、が起きる）。
+ *
+ * ## どの申し込みへの回答かを特定する2通り
+ *
+ *   1. `?c=XXXX-XXXX` … 受付番号。LINE から案内するときはこの形で送る。メール欄は出さない
+ *   2. `?c=` なし    … 先頭に「お申し込み時のメールアドレス」を必須で置いて、それで引く
+ *
+ * どちらもサーバ（/api/survey）が実際の案件を引き当てる。ここは入力を集めるだけ。
+ */
+export const prerender = false;
+
+import {
+  INTEREST_GROUPS,
+  RELATIONSHIP_OPTIONS,
+  ANNIVERSARY_OPTIONS,
+  BUDGET_OPTIONS,
+  EXPRESS_OPTIONS,
+  DELEGATION_OPTIONS,
+  PAST_STYLE_OPTIONS,
+} from '../lib/intake';
+import { lineAddUrl } from '../lib/config';
+
+/** 受付番号。形式が合わないものは無視する（画面に任意の文字列を出させない）。 */
+const rawCode = Astro.url.searchParams.get('c') ?? '';
+const code = /^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(rawCode) ? rawCode : '';
+
+const lineUrl = lineAddUrl();
+
+/**
+ * JS が動かない環境の完了表示。
+ *
+ * `/api/survey` は素の form ポストを受けると `/survey?c=…&done=1` へ 303 で返す。
+ * ここを読まないと**保存は通っているのに空のフォームが再表示される**ので、
+ * 利用者は失敗したと思って送り直す（そして2回目は必須3つ以外が空で来る）。
+ */
+const done = Astro.url.searchParams.get('done') === '1';
+
+/**
+ * 「その他」を選んだときだけ自由記述を出す判定。parseSurvey が `anniversary === 'その他'`
+ * を見て `anniversary_other` を必須にしているので、その1点だけサーバと同じ文字列で照合する。
+ * 選択肢そのものは ANNIVERSARY_OPTIONS から描くので、ここで一覧を書き写してはいない。
+ */
+const ANNIVERSARY_OTHER = 'その他';
+
+/**
+ * JS へ渡す値。define:vars はテンプレートリテラルと併用できないので JSON を埋めて読ませる
+ * （apply.astro の apply-boot と同じやり方）。
+ */
+const boot = JSON.stringify({ line: lineUrl }).replace(/</g, '\\u003c');
+
+// 受付番号が URL に載り、画面には回答が入る。共有キャッシュに残さない（/thanks と同じ）。
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+---
+
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+
+  <!-- Google tag (gtag.js) -->
+  <script is:inline async src="https://www.googletagmanager.com/gtag/js?id=G-77X1XS59RB"></script>
+  <script is:inline>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-77X1XS59RB');
+  </script>
+
+  <!-- Meta Pixel Code -->
+  <script is:inline>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '1686039682668276');
+  fbq('track', 'PageView');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=1686039682668276&ev=PageView&noscript=1"
+  /></noscript>
+  <!-- End Meta Pixel Code -->
+
+  <title>アンケート | Anniv</title>
+  <link rel="icon" href="/favicon.png" type="image/png" />
+  <link rel="apple-touch-icon" href="/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet" />
+
+  <style is:inline>
+    :root {
+      --white: #ffffff;
+      --ivory: #fafaf8;
+      --blue-pale: #f0f7fc;
+      --blue-light: #d6eaf8;
+      --blue-pastel: #a8c8e0;
+      --blue-mid: #4a8ab5;
+      --navy: #1a2840;
+      --navy-soft: #243550;
+      --text: #2d3748;
+      --text-light: #64748b;
+      --border: #d1e8f5;
+      --gold: #c4a35a;
+      --gold-soft: #ddc488;
+      --gold-pale: #fdf8ef;
+      --radius: 12px;
+      --danger: #c0392b;
+      --line-green: #06C755;
+      --line-green-dark: #05a847;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    /* 完了表示の出しわけを hidden 属性1つでやるので、flex 等に負けないよう強く消す */
+    [hidden] { display: none !important; }
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-weight: 400;
+      color: var(--text);
+      background: var(--white);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── NAV ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 60px;
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--navy);
+      letter-spacing: 0.05em;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .nav-logo img { height: 64px; width: auto; }
+
+    /* ── MAIN ── */
+    main {
+      flex: 1;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 64px 24px 100px;
+      position: relative;
+      overflow: hidden;
+    }
+    .main-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 70% 30%, rgba(168,200,224,0.18) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 20% 80%, rgba(196,163,90,0.08) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    .container { position: relative; max-width: 640px; width: 100%; }
+
+    /* ── HEADING ── */
+    .page-label {
+      display: inline-block;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      color: var(--blue-mid);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 500;
+      color: var(--navy);
+      letter-spacing: 0.02em;
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+    .lead {
+      font-size: 14px;
+      color: var(--text-light);
+      line-height: 1.9;
+      margin-bottom: 20px;
+    }
+    .lead strong { font-weight: 700; color: var(--navy); }
+
+    /* 受付番号の紐づけを見せる一文。目立たせず、しかし取り違えに気づける程度に出す */
+    .code-note {
+      font-size: 12px;
+      color: var(--text-light);
+      line-height: 1.8;
+      background: var(--gold-pale);
+      border: 1px solid var(--gold-soft);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 28px;
+    }
+    .code-note b {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Courier New', monospace;
+      font-weight: 700;
+      color: var(--navy);
+      letter-spacing: 0.06em;
+    }
+
+    /* ── BANNER（通信エラーなどページ全体に関わるもの） ── */
+    .banner {
+      background: #fdf0ee;
+      border: 1px solid #e8bbb3;
+      border-radius: 10px;
+      padding: 16px 18px;
+      font-size: 13px;
+      line-height: 1.9;
+      color: var(--danger);
+      margin-bottom: 24px;
+    }
+    .banner:empty { display: none; }
+    .banner a { color: var(--danger); font-weight: 700; }
+
+    /* ── BLOCK ── */
+    .block {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px 32px 28px;
+      box-shadow: 0 4px 24px rgba(26,40,64,0.06);
+      margin-bottom: 20px;
+    }
+    .block-head {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .block-no {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--gold);
+      letter-spacing: 0.06em;
+      line-height: 1;
+    }
+    .block-head h2 {
+      font-size: 17px;
+      font-weight: 500;
+      color: var(--navy);
+      letter-spacing: 0.03em;
+    }
+    .block-note {
+      font-size: 12px;
+      color: var(--text-light);
+      line-height: 1.8;
+      margin: -12px 0 22px;
+    }
+
+    /* ── FIELD ── */
+    .field { margin-bottom: 24px; }
+    .field:last-child { margin-bottom: 0; }
+
+    label, legend {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--navy);
+      margin-bottom: 8px;
+      letter-spacing: 0.02em;
+    }
+    .req, .opt-mark {
+      font-size: 11px;
+      font-weight: 400;
+      margin-left: 6px;
+      letter-spacing: 0;
+      padding: 2px 7px;
+      border-radius: 4px;
+      vertical-align: 1px;
+    }
+    .req { color: var(--white); background: var(--blue-mid); }
+    .opt-mark { color: var(--text-light); background: var(--blue-pale); }
+
+    .hint {
+      font-size: 12px;
+      color: var(--text-light);
+      line-height: 1.8;
+      margin: -2px 0 10px;
+    }
+
+    input[type="text"],
+    input[type="tel"],
+    input[type="email"],
+    input[type="date"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 16px; /* iOS はここが 16px 未満だとフォーカスで勝手にズームする */
+      color: var(--text);
+      background: var(--white);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+      appearance: none;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--blue-pastel);
+      box-shadow: 0 0 0 3px rgba(168,200,224,0.25);
+    }
+    input.invalid, select.invalid, textarea.invalid { border-color: #e0a0a0; }
+    textarea { resize: vertical; min-height: 120px; line-height: 1.8; }
+    select {
+      background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%234a8ab5' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+      background-size: 12px 8px;
+      padding-right: 40px;
+    }
+
+    fieldset { border: 0; }
+
+    /* ラジオは行で並べる。1行 44px 以上でタップしやすくする */
+    .opts { display: flex; flex-direction: column; gap: 8px; }
+    .opt {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 44px;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 0;
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .opt:hover { border-color: var(--blue-pastel); background: var(--blue-pale); }
+    .opt input { width: 18px; height: 18px; accent-color: var(--navy); flex: none; margin: 0; }
+    .opt input:checked + span { font-weight: 700; color: var(--navy); }
+
+    /* チェックボックスはチップ。ネイティブの四角は隠して span を見た目にする */
+    .chip-group { margin-bottom: 18px; }
+    .chip-group:last-of-type { margin-bottom: 8px; }
+    .chip-head {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--blue-mid);
+      letter-spacing: 0.06em;
+      margin-bottom: 10px;
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip { position: relative; display: inline-flex; margin: 0; }
+    .chip input {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+      pointer-events: none;
+    }
+    .chip span {
+      display: inline-flex;
+      align-items: center;
+      min-height: 40px;
+      padding: 0 15px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--text);
+      background: var(--white);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .chip span:hover { border-color: var(--blue-pastel); background: var(--blue-pale); }
+    .chip input:checked + span {
+      background: var(--navy);
+      border-color: var(--navy);
+      color: var(--white);
+      font-weight: 500;
+    }
+    .chip input:focus-visible + span { box-shadow: 0 0 0 3px rgba(168,200,224,0.45); }
+
+    /* エラー文。空のときは消す（aria-live を DOM に残したまま隠せる） */
+    .err {
+      display: block;
+      margin-top: 6px;
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--danger);
+    }
+    .err:empty { display: none; }
+
+    /* ハニーポット。人間には見えない・触れない・読み上げない */
+    .hp { position: absolute; left: -9999px; top: 0; width: 1px; height: 1px; overflow: hidden; }
+
+    /* ── SUBMIT ── */
+    .submit-area { margin-top: 28px; }
+    .submit-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 18px 32px;
+      background: var(--navy);
+      color: var(--white);
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 16px;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 16px rgba(26,40,64,0.18);
+    }
+    .submit-btn:hover { background: var(--navy-soft); transform: translateY(-2px); }
+    .submit-btn:active { transform: translateY(0); }
+    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    /* ── 完了表示（遷移せずここに切り替える） ── */
+    .done {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 4px 24px rgba(26,40,64,0.06);
+      padding: 44px 32px 40px;
+      text-align: center;
+    }
+    .done .check-icon {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 28px;
+      border-radius: 50%;
+      background: var(--blue-pale);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--blue-pastel);
+    }
+    .done .check-icon svg {
+      width: 36px;
+      height: 36px;
+      stroke: var(--navy);
+      stroke-width: 2.5;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .done h2 {
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--navy);
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+    .done p {
+      font-size: 14px;
+      color: var(--text-light);
+      line-height: 1.9;
+      margin-bottom: 28px;
+    }
+    .line-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      background: var(--line-green);
+      color: var(--white);
+      font-size: 16px;
+      font-weight: 700;
+      text-decoration: none;
+      padding: 18px 32px;
+      border-radius: 10px;
+      letter-spacing: 0.03em;
+      transition: background 0.2s, transform 0.1s;
+      box-shadow: 0 4px 12px rgba(6,199,85,0.25);
+    }
+    .line-btn:hover { background: var(--line-green-dark); transform: translateY(-1px); }
+    .line-btn:active { transform: translateY(0); }
+    .line-btn svg { width: 22px; height: 22px; fill: var(--white); flex: none; }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 28px;
+      font-size: 13px;
+      color: var(--text-light);
+      text-decoration: none;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 2px;
+    }
+    .back-link:hover { color: var(--navy); border-color: var(--navy); }
+
+    /* ── FOOTER ── */
+    footer {
+      padding: 32px 24px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-light);
+      border-top: 1px solid var(--border);
+      background: var(--white);
+    }
+    footer a { color: var(--text-light); text-decoration: none; margin: 0 8px; }
+    footer a:hover { color: var(--navy); }
+
+    /* ── MOBILE（375px でも崩さない） ── */
+    @media (max-width: 640px) {
+      nav { padding: 16px 20px; }
+      .nav-logo img { height: 48px; }
+      main { padding: 40px 16px 72px; }
+      h1 { font-size: 22px; }
+      .block { padding: 24px 18px 22px; border-radius: 10px; }
+      .block-head { margin-bottom: 20px; }
+      .chips { gap: 7px; }
+      .chip span { padding: 0 13px; font-size: 12.5px; }
+      .submit-btn { font-size: 15px; padding: 17px 24px; }
+      .done { padding: 32px 20px 28px; }
+      .done h2 { font-size: 19px; }
+      .line-btn { font-size: 15px; padding: 16px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <script id="survey-boot" type="application/json" is:inline set:html={boot} />
+
+  <nav>
+    <a href="/" class="nav-logo"><img src="/assets/logo_trans.png" alt="" />Anniv</a>
+  </nav>
+
+  <main>
+    <div class="main-bg"></div>
+    <div class="container">
+
+      {/* JS 無しで送った人は `?done=1` を付けて戻ってくるので、その場合は本文ごと隠す */}
+      <div id="surveyMain" hidden={done}>
+
+        <div class="page-label">Survey</div>
+        <h1>ご希望をお聞かせください</h1>
+        <p class="lead">
+          いただいた内容をもとに、担当がプランをご提案します。<br />
+          <strong>分かる範囲で大丈夫です。</strong>空欄のままでも送信できます。
+        </p>
+
+        {code && (
+          <p class="code-note">
+            受付番号 <b>{code}</b> のご回答として送信されます。
+          </p>
+        )}
+
+        <div class="banner" id="formBanner" role="alert"></div>
+
+        {/*
+          送信は JS が横取りして fetch で投げる（完了しても遷移させたくない。
+          そのまま LINE に戻ってもらうため）。
+
+          それでも method/action を書いておくのは、**JS が動かない環境で GET に落ちると
+          回答が URL に載ってしまう**ため。POST にしておけば少なくとも本文に入る。
+        */}
+        <form id="surveyForm" method="post" action="/api/survey">
+          <input type="hidden" name="code" value={code} />
+
+          <div class="hp" aria-hidden="true">
+            <label for="f-website">ウェブサイト（入力しないでください）</label>
+            <input type="text" id="f-website" name="website" tabindex="-1" autocomplete="off" />
+          </div>
+
+          {!code && (
+            <section class="block">
+              <div class="block-head"><h2>お申し込みの確認</h2></div>
+              <div class="field">
+                <label for="f-email">お申し込み時のメールアドレス<span class="req">必須</span></label>
+                <p class="hint">どのお申し込みか確認するために使います。</p>
+                <input type="email" id="f-email" name="email" placeholder="example@email.com" autocomplete="email" required />
+                <p class="err" data-err="email" aria-live="polite"></p>
+              </div>
+            </section>
+          )}
+
+          <!-- 01 記念日について -->
+          <section class="block">
+            <div class="block-head"><span class="block-no">01</span><h2>記念日について</h2></div>
+
+            <div class="field">
+              <label for="f-anniversary">記念日の内容<span class="req">必須</span></label>
+              <select id="f-anniversary" name="anniversary" required>
+                <option value="">選択してください</option>
+                {ANNIVERSARY_OPTIONS.map((o) => (
+                  <option value={o} data-other={o === ANNIVERSARY_OTHER ? '1' : null}>{o}</option>
+                ))}
+              </select>
+              <p class="err" data-err="anniversary" aria-live="polite"></p>
+            </div>
+
+            <div class="field" id="annOtherWrap" hidden>
+              <label for="f-anniversary-other">記念日の内容（自由記述）<span class="req">必須</span></label>
+              <input type="text" id="f-anniversary-other" name="anniversary_other" placeholder="例：付き合って100日" autocomplete="off" />
+              <p class="err" data-err="anniversary_other" aria-live="polite"></p>
+            </div>
+
+            <div class="field">
+              <label for="f-anniversary-date">記念日の日付<span class="req">必須</span></label>
+              <input type="date" id="f-anniversary-date" name="anniversary_date" required />
+              <p class="err" data-err="anniversary_date" aria-live="polite"></p>
+            </div>
+
+            <div class="field">
+              <label for="f-budget">ご予算<span class="req">必須</span></label>
+              <p class="hint">プレゼント・お食事・演出をすべて含めた総額の目安です。</p>
+              <select id="f-budget" name="budget" required>
+                <option value="">選択してください</option>
+                {BUDGET_OPTIONS.map((o) => <option value={o}>{o}</option>)}
+              </select>
+              <p class="err" data-err="budget" aria-live="polite"></p>
+            </div>
+
+            <fieldset class="field">
+              <legend>お申し込み種別<span class="opt-mark">任意</span></legend>
+              <p class="hint">選ばなければ通常のスケジュールで進めます。</p>
+              <div class="opts">
+                {EXPRESS_OPTIONS.map((o, i) => (
+                  <label class="opt">
+                    <input type="radio" name="express" value={o.value} id={`f-express-${i}`} />
+                    <span>{o.label}</span>
+                  </label>
+                ))}
+              </div>
+              <p class="err" data-err="express" aria-live="polite"></p>
+            </fieldset>
+
+            <fieldset class="field">
+              <legend>お任せ度合い<span class="opt-mark">任意</span></legend>
+              <p class="hint">どこまで担当に委ねたいかの目安です。あとから変更できます。</p>
+              <div class="opts">
+                {DELEGATION_OPTIONS.map((o, i) => (
+                  <label class="opt">
+                    <input type="radio" name="delegation" value={o.value} id={`f-delegation-${i}`} />
+                    <span>{o.label}</span>
+                  </label>
+                ))}
+              </div>
+              <p class="err" data-err="delegation" aria-live="polite"></p>
+            </fieldset>
+          </section>
+
+          <!-- 02 パートナーの好み -->
+          <section class="block">
+            <div class="block-head"><span class="block-no">02</span><h2>パートナーの好み</h2></div>
+
+            <fieldset class="field">
+              <legend>興味・好きなもの<span class="opt-mark">任意</span></legend>
+              <p class="hint">当てはまるものをすべて選んでください。ここが具体的なほど提案が当たります。</p>
+              {INTEREST_GROUPS.map((g) => (
+                <div class="chip-group">
+                  <h3 class="chip-head">{g.label}</h3>
+                  <div class="chips">
+                    {g.items.map((item) => (
+                      <label class="chip">
+                        <input type="checkbox" name="interests" value={item} />
+                        <span>{item}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <p class="err" data-err="interests" aria-live="polite"></p>
+            </fieldset>
+
+            <div class="field">
+              <label for="f-interests-other">その他（一覧に無いもの）<span class="opt-mark">任意</span></label>
+              <input type="text" id="f-interests-other" name="interests_other" placeholder="例：御朱印集め、レトロ喫茶" autocomplete="off" />
+              <p class="err" data-err="interests_other" aria-live="polite"></p>
+            </div>
+
+            <fieldset class="field">
+              <legend>これまでの記念日の過ごし方<span class="opt-mark">任意</span></legend>
+              <div class="opts">
+                {PAST_STYLE_OPTIONS.map((o, i) => (
+                  <label class="opt">
+                    <input type="radio" name="past_style" value={o} id={`f-past-style-${i}`} />
+                    <span>{o}</span>
+                  </label>
+                ))}
+              </div>
+              <p class="err" data-err="past_style" aria-live="polite"></p>
+            </fieldset>
+
+            <div class="field">
+              <label for="f-wishes">ご要望・気をつけてほしいこと<span class="opt-mark">任意</span></label>
+              <p class="hint">避けたいもの、アレルギー、サプライズのしかけたい内容など、何でも書いてください。</p>
+              <textarea id="f-wishes" name="wishes" placeholder="例：甘いものが苦手です。当日は仕事終わりの19時以降で考えています。"></textarea>
+              <p class="err" data-err="wishes" aria-live="polite"></p>
+            </div>
+          </section>
+
+          {/*
+            03 はお二人のことと電話番号。**全部まとめて任意**。
+            年齢・交際期間はプレゼント選びの精度に効くが、無くても LINE で聞けるので
+            ここで手を止めさせない（必須は 01 の3つだけ、が2段目の設計）。
+          */}
+          <section class="block">
+            <div class="block-head"><span class="block-no">03</span><h2>お二人について・ご連絡先</h2></div>
+            <p class="block-note">このブロックはすべて任意です。分かるものだけで大丈夫です。</p>
+
+            <div class="field">
+              <label for="f-age">ご年齢<span class="opt-mark">任意</span></label>
+              <input type="text" id="f-age" name="age" placeholder="28" inputmode="numeric" autocomplete="off" />
+              <p class="err" data-err="age" aria-live="polite"></p>
+            </div>
+
+            <div class="field">
+              <label for="f-partner-age">パートナーのご年齢<span class="opt-mark">任意</span></label>
+              <input type="text" id="f-partner-age" name="partner_age" placeholder="27" inputmode="numeric" autocomplete="off" />
+              <p class="err" data-err="partner_age" aria-live="polite"></p>
+            </div>
+
+            <fieldset class="field">
+              <legend>交際期間<span class="opt-mark">任意</span></legend>
+              <div class="opts">
+                {RELATIONSHIP_OPTIONS.map((o, i) => (
+                  <label class="opt">
+                    <input type="radio" name="relationship" value={o} id={`f-relationship-${i}`} />
+                    <span>{o}</span>
+                  </label>
+                ))}
+              </div>
+              <p class="err" data-err="relationship" aria-live="polite"></p>
+            </fieldset>
+
+            <div class="field">
+              <label for="f-phone">電話番号<span class="opt-mark">任意</span></label>
+              <p class="hint">レストランの予約でお店から確認が入る場合に使います。</p>
+              <input type="tel" id="f-phone" name="phone" placeholder="09012345678" autocomplete="tel" />
+              <p class="err" data-err="phone" aria-live="polite"></p>
+            </div>
+          </section>
+
+          <div class="submit-area">
+            <button type="submit" class="submit-btn" id="submitBtn">
+              <span id="btnLabel">この内容で送信する</span>
+            </button>
+          </div>
+        </form>
+
+      </div>
+
+      {/*
+        送信が通ったらここに切り替える。遷移させないのは LINE に戻ってもらうため。
+        JS 無しで送った人は 303 で `?done=1` が付いて戻ってくるので、その場合は最初から出す。
+      */}
+      <div class="done" id="doneCard" hidden={!done}>
+        <div class="check-icon">
+          <svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"></polyline></svg>
+        </div>
+        <h2>ありがとうございます</h2>
+        <p>担当がLINEでご連絡します。<br />追加で伺いたいことがあれば、そのままトークでお尋ねします。</p>
+        <a href={lineUrl} class="line-btn" data-ev="line_add_click" data-ev-label="survey_done">
+          <svg viewBox="0 0 24 24"><path d="M19.365 9.863c.349 0 .63.285.631.631 0 .345-.282.63-.631.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.282.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
+          LINEを開く
+        </a>
+      </div>
+
+      <a href="/" class="back-link">トップページに戻る</a>
+
+    </div>
+  </main>
+
+  <footer>
+    <div>
+      <a href="/media">メディア</a>　｜　<a href="/tokutei">特定商取引法に基づく表記</a>　｜　<a href="/privacy">プライバシーポリシー</a>
+    </div>
+    <div style="margin-top: 10px;">© 2026 Anniv</div>
+  </footer>
+
+  <script is:inline>
+    (function () {
+      'use strict';
+
+      var bootEl = document.getElementById('survey-boot');
+      var boot = { line: 'https://lin.ee/U4deTzi' };
+      try { boot = JSON.parse(bootEl.textContent) || boot; } catch (e) { /* 既定値で続ける */ }
+
+      var form = document.getElementById('surveyForm');
+      var main = document.getElementById('surveyMain');
+      var done = document.getElementById('doneCard');
+      var banner = document.getElementById('formBanner');
+      var submitBtn = document.getElementById('submitBtn');
+      var btnLabel = document.getElementById('btnLabel');
+
+      var LINE_LINK = '<a href="' + boot.line + '" data-ev="line_add_click" data-ev-label="survey_error">LINE</a>';
+
+      /* ── 「その他」を選んだときだけ自由記述を出す ── */
+      var annSel = document.getElementById('f-anniversary');
+      var annOtherWrap = document.getElementById('annOtherWrap');
+      var annOther = document.getElementById('f-anniversary-other');
+      function syncAnnOther() {
+        var picked = annSel.options[annSel.selectedIndex];
+        var on = !!(picked && picked.getAttribute('data-other'));
+        annOtherWrap.hidden = !on;
+        // 隠したまま required を残すとブラウザが送信を止められなくなる（見えない欄にフォーカスできない）
+        annOther.required = on;
+        if (!on) annOther.value = '';
+      }
+      annSel.addEventListener('change', syncAnnOther);
+      syncAnnOther();
+
+      /* ── エラー表示 ── */
+      function clearErrors() {
+        banner.innerHTML = '';
+        var list = form.querySelectorAll('.err');
+        for (var i = 0; i < list.length; i++) list[i].textContent = '';
+        var marked = form.querySelectorAll('.invalid');
+        for (var j = 0; j < marked.length; j++) marked[j].classList.remove('invalid');
+      }
+
+      function fieldFor(name) {
+        return form.querySelector('[name="' + name + '"]');
+      }
+
+      /** 該当欄の下にエラー文を出す。置き場所が無い項目は上部バナーに落とす。 */
+      function showFieldError(name, message) {
+        var slot = form.querySelector('.err[data-err="' + name + '"]');
+        if (!slot) {
+          banner.textContent = message;
+          return null;
+        }
+        slot.textContent = message;
+        var input = fieldFor(name);
+        if (input && input.type !== 'radio' && input.type !== 'checkbox') input.classList.add('invalid');
+        return slot;
+      }
+
+      function scrollToFirst(el) {
+        if (!el) return;
+        try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { el.scrollIntoView(); }
+      }
+
+      function showBanner(html) {
+        banner.innerHTML = html;
+        scrollToFirst(banner);
+      }
+
+      /*
+        計測。**新しいイベント名は作らない**（計測設計.md 3章）。
+        入口フォームと同じ form_complete / form_error を、label だけ survey_form で分ける。
+      */
+      function trackDone() {
+        if (typeof gtag === 'function') {
+          gtag('event', 'form_complete', { event_category: 'conversion', event_label: 'survey_form' });
+        }
+        if (typeof window.annivTrack === 'function') {
+          window.annivTrack('form_complete', 'survey_form');
+        }
+      }
+      function trackError() {
+        if (typeof gtag === 'function') {
+          gtag('event', 'form_error', { event_category: 'error', event_label: 'survey_form' });
+        }
+        if (typeof window.annivTrack === 'function') {
+          window.annivTrack('form_error', 'survey_form');
+        }
+      }
+
+      var NETWORK_MSG = '送信できませんでした。時間をおいてお試しください。お急ぎの場合は ' + LINE_LINK + ' からお知らせください。';
+
+      /*
+        案件が引き当てられなかったときの文言。
+        メール欄が出ているかどうかで、確認してもらう対象が違う（受付番号で来た人に
+        「メールアドレスをご確認ください」と言っても直しようがない）。
+      */
+      var emailField = document.getElementById('f-email');
+      var NOT_FOUND_MSG =
+        'お申し込みが見つかりませんでした。' +
+        (emailField ? 'メールアドレスをご確認ください。' : '受付番号（URL）をご確認ください。') +
+        '分からない場合は ' + LINE_LINK + ' でお知らせください。';
+
+      /** 見つからなかったときの表示。メール欄があるときだけ欄の下にも出す。 */
+      function showNotFound() {
+        if (emailField) showFieldError('email', 'このメールアドレスのお申し込みが見つかりませんでした');
+        showBanner(NOT_FOUND_MSG);
+      }
+
+      function setSending(on) {
+        submitBtn.disabled = on;
+        btnLabel.textContent = on ? '送信中…' : 'この内容で送信する';
+      }
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        clearErrors();
+
+        var fd = new FormData(form);
+        var payload = {};
+        fd.forEach(function (v, k) {
+          if (k === 'interests') return; // 複数値なので下でまとめて配列にする
+          payload[k] = v;
+        });
+        payload.interests = fd.getAll('interests');
+
+        setSending(true);
+
+        fetch('/api/survey', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(payload),
+        })
+          .then(function (res) {
+            // ここでは判断だけして、表示は次の then にまとめる（後始末を1箇所にする）。
+            if (res.status === 429) return { failed: '送信が集中しています。少し時間をおいてお試しください。' };
+            if (res.status === 404) return { notFound: true };
+            if (res.status >= 500) return { failed: NETWORK_MSG };
+            return res.json().then(
+              function (json) { return { data: json }; },
+              function () { return { failed: NETWORK_MSG }; },
+            );
+          })
+          .then(function (r) {
+            if (r.notFound) {
+              trackError();
+              setSending(false);
+              showNotFound();
+              return;
+            }
+            if (r.failed) {
+              trackError();
+              setSending(false);
+              showBanner(r.failed);
+              return;
+            }
+
+            var data = r.data || {};
+
+            if (data.ok) {
+              trackDone();
+              // 遷移しない。ページ内を完了表示に切り替えて、そのまま LINE に戻ってもらう。
+              main.hidden = true;
+              done.hidden = false;
+              try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (err) { window.scrollTo(0, 0); }
+              return;
+            }
+
+            trackError();
+            setSending(false);
+
+            if (data.error === 'not_found') {
+              showNotFound();
+              return;
+            }
+
+            if (data.errors && typeof data.errors === 'object') {
+              var first = null;
+              for (var key in data.errors) {
+                if (!Object.prototype.hasOwnProperty.call(data.errors, key)) continue;
+                var slot = showFieldError(key, String(data.errors[key]));
+                if (!first && slot) first = slot;
+              }
+              scrollToFirst(first || banner);
+              return;
+            }
+
+            showBanner(NETWORK_MSG);
+          })
+          .catch(function () {
+            trackError();
+            setSending(false);
+            showBanner(NETWORK_MSG);
+          });
+      });
+    })();
+  </script>
+
+  <script is:inline src="/assets/track.js" defer></script>
+</body>
+</html>

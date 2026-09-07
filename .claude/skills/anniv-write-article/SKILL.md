@@ -320,8 +320,9 @@ node --experimental-strip-types scripts/put-draft.ts "記事/[KW名]/article.md"
 
 公開したら **KWマスターDB.csv を最新化する**：
 
-- 管理画面の「CSVエクスポート」（`/api/export.csv`）を押すと、D1の全記事が `記事管理/KWマスターDB.csv` と同じ9列で落ちてくる
+- 管理画面の「CSVエクスポート」（`/api/export.csv`）を押すと、D1の全記事が `記事管理/KWマスターDB.csv` と同じ列（従来9列＋PV列）で落ちてくる
 - そのファイルで `記事管理/KWマスターDB.csv` を**上書きする**（手でURLを転記しない）
+- ローカルで `/anniv-update-pv` を回しても同じCSVが同じ列で書き出される（週1のPV更新のついでに最新化されるので、どちらでもよい）
 - これで Step 0-B が参照する内部リンク用URLレジストリが常に最新になる
 
 ローカルの `記事/[KW名]/article.md` は消さずに残す（リライト時の元原稿になる）。

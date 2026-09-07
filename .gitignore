@@ -29,3 +29,7 @@ seed.local.sql
 
 # キーワード投入SQL（生成物）
 keywords.seed.sql
+
+# Python のバイトコードキャッシュ（card-renderer / ig-renderer）
+__pycache__/
+*.pyc

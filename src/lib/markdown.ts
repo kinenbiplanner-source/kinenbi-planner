@@ -39,12 +39,15 @@ export interface RenderResult {
 /** content-axis.md が定める軸3の固定CTA。このラベルの :::box だけ CTA として描く。 */
 const CTA_LABEL = '無料相談・お問い合わせ';
 /**
- * 相談フォームの送信先。**LPと同じ Tally に揃えてある**（2026-08-29）。
- * 以前は自前の `/contact` に送っていたが、あのページの送信は formsubmit.co 頼みで
- * 実際には届いていなかった。窓口を2つ持つ意味も無いので、記事もLPもTallyの1本にする。
+ * 相談フォームの送信先。**LPと同じ自前の `/apply` に揃えてある**（仕組みは `受注フロー.md`）。
+ * 窓口を2つ持つ意味は無いので、記事もLPもここ1本にする。
  * 変えるときは `public/index.html` のCTAと必ず一緒に変えること。
+ *
+ * **LINEのボタンは併記しない。** どちらを押しても最終的な窓口はLINEなので、
+ * 並べても選択肢が増えるだけだった。LINE直行は `/apply` の中に1つ置いてある。
+ * `LINE_URL` は `:::banner theme=line` から明示的に指定されたときだけ使う。
  */
-const FORM_URL = 'https://tally.so/r/lbVDPB';
+const FORM_URL = '/apply';
 const LINE_URL = 'https://lin.ee/U4deTzi';
 
 /**
@@ -191,9 +194,10 @@ md.use(container, 'box', {
         if (parseBoxParams(t.info).label === CTA_LABEL) {
           return (
             '</div>\n<div class="cta-actions">\n' +
-            // Tally は別ドメインなので、LPのCTAと同じく別タブで開く
-            `<a href="${FORM_URL}" class="cta-btn" target="_blank" rel="noopener noreferrer" data-cta="form" data-cta-label="article_body">${CTA_BTN}</a>\n` +
-            `<a href="${LINE_URL}" class="cta-btn cta-btn-line" target="_blank" rel="noopener noreferrer" data-cta="line" data-cta-label="article_body">LINEで相談する</a>\n` +
+            // 別タブでは開かない（同一サイト内）。LINEのボタンは併記しない——
+            // どちらを押しても行き先はLINEなので、2つ並べても選択肢が増えるだけ。
+            // フォームを飛ばしたい人向けのLINE導線は /apply の中に置いてある。
+            `<a href="${FORM_URL}" class="cta-btn" data-cta="form" data-cta-label="article_body">${CTA_BTN}</a>\n` +
             '</div>\n</div>\n</aside>\n'
           );
         }
@@ -251,7 +255,9 @@ md.use(container, 'banner', {
     // 計測設計.md 3章：MediaLayout.astro の委譲リスナーが data-cta / data-cta-label を見て発火する。
     // 種類は theme（見た目）ではなく遷移先で決める。
     const kind = LINE_HREF.test(href) ? 'line' : 'form';
-    const external = /^https:\/\//i.test(href) && !href.includes('anniv.gift');
+    // LINE は別ドメインだが、別タブで開くと OS のアプリ橋渡しに失敗する端末があるので除く。
+    const external =
+      /^https:\/\//i.test(href) && !href.includes('anniv.gift') && !LINE_HREF.test(href);
     const target = external ? ' target="_blank" rel="noopener noreferrer"' : '';
     return (
       `<a class="cta-banner cta-banner-${theme}" href="${esc(href)}"${target}` +
@@ -310,7 +316,9 @@ md.use(container, 'hero', {
     const { image, label, title, href } = parseHeroParams(tokens[idx].info);
     // 計測設計.md 3章：種類は見た目ではなく遷移先で決める（event_label は article_hero）。
     const kind = LINE_HREF.test(href) ? 'line' : 'form';
-    const external = /^https:\/\//i.test(href) && !href.includes('anniv.gift');
+    // LINE は別ドメインだが、別タブで開くと OS のアプリ橋渡しに失敗する端末があるので除く。
+    const external =
+      /^https:\/\//i.test(href) && !href.includes('anniv.gift') && !LINE_HREF.test(href);
     const target = external ? ' target="_blank" rel="noopener noreferrer"' : '';
     return (
       `<a class="cta-hero" href="${esc(href)}"${target}` +

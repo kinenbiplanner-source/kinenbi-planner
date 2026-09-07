@@ -32,7 +32,7 @@
   <!-- End Meta Pixel Code -->
 
   <meta name="robots" content="noindex,nofollow">
-  <title>お問い合わせ | Anniv</title>
+  <title>無料相談・お問い合わせ | Anniv</title>
   <link rel="icon" href="/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="/favicon.png">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -50,6 +50,10 @@
       --border: #d1e8f5;
       --radius: 12px;
       --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      /* 受付番号カード用。LP・tokens.css と同じ金色 */
+      --gold: #c4a35a;
+      --gold-soft: #ddc488;
+      --gold-pale: #fdf8ef;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -164,6 +168,8 @@
     }
     input[type="text"],
     input[type="email"],
+    input[type="date"],
+    select,
     textarea {
       width: 100%;
       padding: 14px 16px;
@@ -179,6 +185,8 @@
     }
     input[type="text"]:focus,
     input[type="email"]:focus,
+    input[type="date"]:focus,
+    select:focus,
     textarea:focus {
       border-color: var(--blue-pastel);
       box-shadow: 0 0 0 3px rgba(168,200,224,0.25);
@@ -187,6 +195,20 @@
       resize: vertical;
       min-height: 140px;
       line-height: 1.7;
+    }
+    select {
+      background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%234a8ab5' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+      background-size: 12px 8px;
+      padding-right: 40px;
+    }
+    label .optional {
+      color: var(--text-light);
+      font-size: 11px;
+      font-weight: 400;
+      margin-left: 6px;
+      letter-spacing: 0;
     }
 
     .submit-btn {
@@ -243,8 +265,31 @@
       margin-top: 6px;
       display: none;
     }
-    input.error, textarea.error {
+    input.error, textarea.error, select.error {
       border-color: #e0a0a0;
+    }
+
+    /* ページ全体に関わるエラー（通信断・レート制限）。空のときは消える */
+    .form-banner {
+      background: #fdf0ee;
+      border: 1px solid #e8bbb3;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 13px;
+      line-height: 1.9;
+      color: #c0392b;
+      margin-bottom: 20px;
+    }
+    .form-banner:empty { display: none; }
+
+    /* ハニーポット。人間には見えない・触れない・読み上げない */
+    .hp {
+      position: absolute;
+      left: -9999px;
+      top: 0;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
     }
 
     /* SUCCESS STATE */
@@ -286,8 +331,88 @@
       font-size: 14px;
       color: var(--text-light);
       line-height: 1.9;
-      margin-bottom: 36px;
+      margin-bottom: 28px;
     }
+
+    /* 受付番号。LINE のトークに貼ってもらう番号なので、読み間違えない大きさで出す */
+    .code-card {
+      background: var(--gold-pale, #fdf8ef);
+      border: 1px solid var(--gold-soft, #ddc488);
+      border-radius: var(--radius);
+      padding: 22px 20px;
+      margin-bottom: 24px;
+    }
+    .code-label {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      color: var(--text-light);
+      margin-bottom: 8px;
+    }
+    /* 手で打ち写す番号なので等幅にする（0とO、1とIを見間違えないため。
+       ブランドの Cormorant はオールドスタイル数字で桁がガタつくので使わない） */
+    .code-value {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Courier New', monospace;
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--navy);
+      line-height: 1.3;
+      word-break: break-all;
+    }
+    .code-copy {
+      margin-top: 14px;
+      background: var(--white, #fff);
+      border: 1px solid var(--gold-soft, #ddc488);
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-family: inherit;
+      font-size: 13px;
+      color: var(--navy, #1a2840);
+      cursor: pointer;
+      min-height: 40px;
+    }
+    .code-copy:hover { border-color: var(--gold, #c4a35a); }
+    .code-desc {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.9;
+      margin-bottom: 18px;
+      text-align: left;
+    }
+    /* アプリ内ブラウザ向けの案内。JSが検知したときだけ出す（既定は hidden） */
+    .inapp-note {
+      margin-top: 16px;
+      padding: 14px 16px;
+      background: var(--gold-pale, #fdf8ef);
+      border: 1px solid var(--gold-soft, #ddc488);
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.9;
+      color: var(--text);
+      text-align: left;
+    }
+    .inapp-note strong { font-weight: 700; color: var(--navy, #1a2840); }
+    .line-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      background: #06C755;
+      color: var(--white);
+      font-size: 15px;
+      font-weight: 700;
+      text-decoration: none;
+      padding: 17px 28px;
+      border-radius: 10px;
+      letter-spacing: 0.03em;
+      transition: background 0.2s, transform 0.1s;
+      box-shadow: 0 4px 12px rgba(6,199,85,0.25);
+    }
+    .line-btn:hover { background: #05a847; transform: translateY(-1px); }
+    .line-btn:active { transform: translateY(0); }
+    .line-btn svg { width: 22px; height: 22px; fill: var(--white); flex: none; }
 
     .back-link {
       display: inline-block;
@@ -339,15 +464,32 @@
     <div class="container">
 
       <div class="page-label">Contact</div>
-      <h1>お問い合わせ</h1>
+      <h1>無料相談・お問い合わせ</h1>
       <p class="lead">
-        ご質問・ご不明点などお気軽にどうぞ。<br>
-        通常1〜2営業日以内にご返信いたします。
+        ご質問・ご相談などお気軽にどうぞ。<br>
+        通常1〜2営業日以内にご返信いたします。ご相談だけでも料金は発生しません。
       </p>
+
+      <div class="form-banner" id="formBanner" role="alert"></div>
 
       <!-- FORM -->
       <div class="form-card" id="formCard">
+        <!--
+          送信先は自前の /api/apply（kind=consult）。申込フォームと同じ受け口。
+          静的HTMLなので Turnstile のサイトキーは埋められない。bot はハニーポットと
+          サーバ側のレート制限で受ける。
+        -->
         <form id="contactForm" novalidate>
+          <input type="hidden" name="kind" value="consult">
+          <input type="hidden" name="_source" id="fSource" value="">
+          <input type="hidden" name="_medium" id="fMedium" value="">
+          <input type="hidden" name="_campaign" id="fCampaign" value="">
+
+          <div class="hp" aria-hidden="true">
+            <label for="website">ウェブサイト（入力しないでください）</label>
+            <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+          </div>
+
           <div class="form-group">
             <label for="name">お名前<span class="required">必須</span></label>
             <input type="text" id="name" name="name" placeholder="山田 太郎" autocomplete="name">
@@ -359,9 +501,28 @@
             <div class="error-msg" id="emailError">有効なメールアドレスを入力してください</div>
           </div>
           <div class="form-group">
-            <label for="message">お問い合わせ内容<span class="required">必須</span></label>
-            <textarea id="message" name="message" placeholder="ご質問内容をご記入ください"></textarea>
-            <div class="error-msg" id="messageError">お問い合わせ内容を入力してください</div>
+            <label for="anniversary">記念日の内容<span class="optional">任意</span></label>
+            <!-- 選択肢は src/lib/intake.ts の ANNIVERSARY_OPTIONS と同じ5つ。
+                 ここは静的HTMLで定数を読めないため手で持っている。あちらを増やしたらここも直す。 -->
+            <select id="anniversary" name="anniversary">
+              <option value="">選択してください</option>
+              <option value="誕生日">誕生日</option>
+              <option value="交際記念日">交際記念日</option>
+              <option value="結婚記念日">結婚記念日</option>
+              <option value="プロポーズ">プロポーズ</option>
+              <option value="その他">その他</option>
+            </select>
+            <div class="error-msg" id="anniversaryError"></div>
+          </div>
+          <div class="form-group">
+            <label for="anniversary_date">記念日の日付<span class="optional">任意</span></label>
+            <input type="date" id="anniversary_date" name="anniversary_date">
+            <div class="error-msg" id="anniversary_dateError"></div>
+          </div>
+          <div class="form-group">
+            <label for="message">ご相談内容<span class="required">必須</span></label>
+            <textarea id="message" name="message" placeholder="ご相談・ご質問の内容をご記入ください"></textarea>
+            <div class="error-msg" id="messageError">ご相談内容を入力してください</div>
           </div>
           <button type="submit" class="submit-btn" id="submitBtn">
             <span id="btnLabel">送信する</span>
@@ -380,11 +541,40 @@
         <div class="check-icon">
           <svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"></polyline></svg>
         </div>
-        <div class="success-title">お問い合わせを受け付けました</div>
+        <div class="success-title">ご相談を受け付けました</div>
         <p class="success-desc">
           ご連絡いただきありがとうございます。<br>
           内容を確認のうえ、1〜2営業日以内にご返信いたします。
         </p>
+
+        <div class="code-card">
+          <div class="code-label">受付番号</div>
+          <div class="code-value" id="codeValue"></div>
+          <button type="button" class="code-copy" id="codeCopy">受付番号をコピー</button>
+        </div>
+
+        <p class="code-desc">
+          <strong>LINE公式アカウントを追加するだけで大丈夫です。</strong>番号を送る必要はありません。<br>
+          こちらでご相談内容と照合してご連絡します。番号は控えとしてお使いください。
+        </p>
+
+        <!--
+          target="_blank" は付けない。LINE のリンクは OS がアプリへ橋渡しする
+          ユニバーサルリンクで、新しいタブを開かせると橋渡しに失敗する端末がある。
+          スマホからの利用が主なので、同じコンテキストで遷移させる。
+        -->
+        <a href="https://lin.ee/U4deTzi" class="line-btn" id="lineBtn"
+           data-ev="line_add_click" data-ev-label="contact_form">
+          <svg viewBox="0 0 24 24"><path d="M19.365 9.863c.349 0 .63.285.631.631 0 .345-.282.63-.631.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.282.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
+          LINEで友だち追加する
+        </a>
+
+        <p class="inapp-note" id="inappNote" hidden>
+          いまアプリ内のブラウザで開いています。ボタンで LINE が開かないときは、
+          画面右上または右下の「⋯」から<strong>「ブラウザで開く」</strong>を選んでから、
+          もう一度お試しください。
+        </p>
+
         <a href="/" class="back-link">トップページに戻る</a>
       </div>
 
@@ -405,87 +595,228 @@
     const submitBtn = document.getElementById('submitBtn');
     const btnLabel = document.getElementById('btnLabel');
     const btnArrow = document.getElementById('btnArrow');
+    const banner = document.getElementById('formBanner');
 
+    // 送信する欄。サーバ（parseIntake）が返すエラーキーと同じ名前で id を振ってある。
+    const FIELDS = ['name', 'email', 'anniversary', 'anniversary_date', 'message'];
+
+    // 流入元。track.js が sessionStorage に置いた値を hidden に移す。
+    try {
+      const attr = JSON.parse(sessionStorage.getItem('anniv_attr') || 'null');
+      if (attr && typeof attr === 'object') {
+        document.getElementById('fSource').value = attr.source || '';
+        document.getElementById('fMedium').value = attr.medium || '';
+        document.getElementById('fCampaign').value = attr.campaign || '';
+      }
+    } catch (e) { /* 読めなくても送信は続ける（サーバ側で direct 扱いになる） */ }
+
+    function clearErrors() {
+      banner.textContent = '';
+      FIELDS.forEach(function (n) {
+        const input = document.getElementById(n);
+        const slot = document.getElementById(n + 'Error');
+        if (input) input.classList.remove('error');
+        if (slot) slot.style.display = 'none';
+      });
+    }
+
+    function showFieldError(name, message) {
+      const input = document.getElementById(name);
+      const slot = document.getElementById(name + 'Error');
+      if (!slot) {
+        banner.textContent = message;
+        return;
+      }
+      if (message) slot.textContent = message;
+      slot.style.display = 'block';
+      if (input) input.classList.add('error');
+    }
+
+    function trackError() {
+      if (typeof gtag === 'function') {
+        gtag('event', 'form_error', { event_category: 'error', event_label: 'contact_form' });
+      }
+      (window.annivQueue = window.annivQueue || []).push(['form_error', 'contact_form']);
+    }
+
+    function setSending(on) {
+      submitBtn.disabled = on;
+      btnLabel.textContent = on ? '送信中...' : '送信する';
+      btnArrow.style.display = on ? 'none' : '';
+    }
+
+    /** 送れなかったときの後始末。上部にメッセージを出してボタンを戻す。 */
+    function fail(message) {
+      trackError();
+      setSending(false);
+      banner.textContent = message;
+      try { banner.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { /* 無視 */ }
+    }
+
+    // 必須3項目だけ画面側で見る。最終判定はサーバ。
     function validate() {
       let valid = true;
       const name = document.getElementById('name');
       const email = document.getElementById('email');
       const message = document.getElementById('message');
 
-      [name, email, message].forEach(el => {
-        el.classList.remove('error');
-        el.nextElementSibling.style.display = 'none';
-      });
-
-      if (!name.value.trim()) {
-        name.classList.add('error');
-        document.getElementById('nameError').style.display = 'block';
-        valid = false;
-      }
+      if (!name.value.trim()) { showFieldError('name', ''); valid = false; }
       if (!email.value.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
-        email.classList.add('error');
-        document.getElementById('emailError').style.display = 'block';
+        showFieldError('email', '');
         valid = false;
       }
-      if (!message.value.trim()) {
-        message.classList.add('error');
-        document.getElementById('messageError').style.display = 'block';
-        valid = false;
-      }
+      if (!message.value.trim()) { showFieldError('message', ''); valid = false; }
       return valid;
+    }
+
+    /*
+      受付番号を LINE に持っていくための補助。送信が通った後に呼ぶ。
+
+      スマホでは LINE ボタンを押すとアプリへ切り替わり、この画面には戻ってこない。
+      番号を控えないまま行くと、トークで何を送ればいいか分からなくなるので、
+      **ボタンを押した瞬間に同期でコピーしておく**（clipboard API は非同期で、
+      遷移が先に始まると書き込みが間に合わないことがある）。preventDefault はしない。
+    */
+    function copyCode(code) {
+      var ok = false;
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = code;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.top = '0';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        ta.setSelectionRange(0, code.length); // iOS は select() だけだと選択されない
+        ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch (err) { ok = false; }
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(code);
+          ok = true;
+        }
+      } catch (err) { /* 画面に番号は出ているので手で写せる */ }
+      return ok;
+    }
+
+    function setupLineHandoff(code) {
+      var btn = document.getElementById('codeCopy');
+      if (btn) {
+        if (!code) {
+          btn.hidden = true;
+        } else {
+          btn.addEventListener('click', function () {
+            btn.textContent = copyCode(code) ? 'コピーしました' : '手動でコピーしてください';
+            setTimeout(function () { btn.textContent = '受付番号をコピー'; }, 2000);
+          });
+        }
+      }
+
+      var line = document.getElementById('lineBtn');
+      if (line && code) {
+        line.addEventListener('click', function () { copyCode(code); });
+      }
+
+      /*
+        Instagram・X などのアプリ内ブラウザは LINE のユニバーサルリンクを握りつぶすことがある。
+        Anniv の流入はSNS中心なので、当たったときに詰まないよう開き直す案内を出す。
+        LINE 自身のブラウザからは確実に開くので除外する。
+      */
+      var note = document.getElementById('inappNote');
+      if (note) {
+        var ua = navigator.userAgent || '';
+        if (!/\bLine\//i.test(ua) && /Instagram|FBAN|FBAV|FB_IAB|Twitter|TikTok|Snapchat/i.test(ua)) {
+          note.hidden = false;
+        }
+      }
     }
 
     form.addEventListener('submit', async function(e) {
       e.preventDefault();
+      clearErrors();
       if (!validate()) return;
 
-      submitBtn.disabled = true;
-      btnLabel.textContent = '送信中...';
-      btnArrow.style.display = 'none';
+      setSending(true);
 
+      const payload = {};
+      new FormData(form).forEach(function (v, k) { payload[k] = v; });
+
+      let res;
       try {
-        const res = await fetch('https://formsubmit.co/ajax/kinenbi.planner@gmail.com', {
+        res = await fetch('/api/apply', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
           },
-          body: JSON.stringify({
-            name: document.getElementById('name').value,
-            email: document.getElementById('email').value,
-            message: document.getElementById('message').value,
-            _subject: 'Anniv お問い合わせ',
-            _template: 'table'
-          })
+          body: JSON.stringify(payload)
         });
-        const data = await res.json();
-        if (data.success === 'true' || data.success === true) {
-          if (typeof gtag === 'function') {
-            gtag('event', 'form_complete', { event_category: 'conversion', event_label: 'contact_form' });
-          }
-          if (typeof fbq === 'function') {
-            fbq('track', 'CompleteRegistration');
-          }
-          // 自前計測。**メディア発の成果はこのラベルで数える**（計測設計.md 5章）。
-          (window.annivQueue = window.annivQueue || []).push(['form_complete', 'contact_form']);
-          formCard.style.display = 'none';
-          successState.classList.add('show');
-          document.querySelector('.lead').style.display = 'none';
-          document.querySelector('h1').style.display = 'none';
-          document.querySelector('.page-label').style.display = 'none';
-        } else {
-          throw new Error('Failed');
-        }
       } catch {
-        if (typeof gtag === 'function') {
-          gtag('event', 'form_error', { event_category: 'error', event_label: 'contact_form' });
-        }
-        (window.annivQueue = window.annivQueue || []).push(['form_error', 'contact_form']);
-        submitBtn.disabled = false;
-        btnLabel.textContent = '送信する';
-        btnArrow.style.display = '';
-        alert('送信に失敗しました。しばらくしてから再度お試しください。');
+        fail('送信できませんでした。時間をおいて再度お試しください。');
+        return;
       }
+
+      if (res.status === 429) {
+        fail('送信が集中しています。少し時間をおいてお試しください。');
+        return;
+      }
+      if (res.status >= 500) {
+        fail('送信できませんでした。時間をおいて再度お試しください。');
+        return;
+      }
+
+      let data = null;
+      try { data = await res.json(); } catch { data = null; }
+
+      if (!data || !data.ok) {
+        // このページは静的HTMLでサイトキーを埋められないため Turnstile の widget を持たない。
+        // TURNSTILE_SECRET_KEY が設定されるとトークン無しの送信は必ず弾かれるので、
+        // そのときは LINE に逃がす（恒久的な失敗なので「時間をおいて」は誤案内になる）。
+        if (data && data.error === 'turnstile') {
+          fail('このフォームからは送信できませんでした。お手数ですが LINE公式アカウントから直接ご相談ください。');
+          return;
+        }
+        if (data && data.errors && typeof data.errors === 'object') {
+          trackError();
+          setSending(false);
+          Object.keys(data.errors).forEach(function (key) {
+            showFieldError(key, String(data.errors[key]));
+          });
+          return;
+        }
+        fail('送信できませんでした。時間をおいて再度お試しください。');
+        return;
+      }
+
+      if (typeof gtag === 'function') {
+        gtag('event', 'form_complete', { event_category: 'conversion', event_label: 'contact_form' });
+      }
+      if (typeof fbq === 'function') {
+        fbq('track', 'CompleteRegistration');
+      }
+      // 自前計測。**メディア発の成果はこのラベルで数える**（計測設計.md 5章）。
+      (window.annivQueue = window.annivQueue || []).push(['form_complete', 'contact_form']);
+
+      // 受付番号を出す。LINE のトークにこれを送ってもらうと案件と紐づく。
+      // 番号が返ってこなかったときは、空の枠を見せずに番号まわりごと畳む。
+      if (data.code) {
+        document.getElementById('codeValue').textContent = data.code;
+      } else {
+        document.querySelector('.code-card').style.display = 'none';
+        document.querySelector('.code-desc').textContent =
+          'LINE公式アカウントを追加していただくと、担当から直接ご連絡できます。';
+      }
+
+      setupLineHandoff(data.code || '');
+
+      formCard.style.display = 'none';
+      successState.classList.add('show');
+      banner.textContent = '';
+      document.querySelector('.lead').style.display = 'none';
+      document.querySelector('h1').style.display = 'none';
+      document.querySelector('.page-label').style.display = 'none';
     });
   </script>
 

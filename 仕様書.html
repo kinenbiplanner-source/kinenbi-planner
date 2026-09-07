@@ -52,8 +52,8 @@
 <div class="container">
 
   <h1>Anniv 要件定義仕様書</h1>
-  <div class="meta">作成日：2026-04-27　　バージョン：v0.7　　運用人数：2名（AI組織：ダッフィーズ）　　最終更新：2026-05-28</div>
-  <div class="meta" style="margin-top:4px; margin-bottom:0;">更新履歴：v0.1 初版 → v0.2 ツール確定・キーワードチェックボックス追加 → v0.3 法的必須事項追加・運用ルール追記 → v0.4 ツール変更（Typeform→Tally・Zapier→Make） → v0.5 法務部（スティッチ）追加・ロードマップ再構築 → v0.6 サービス名確定（Anniv） → v0.7 方針更新：LP=HTML/CSS+Vercel・料金=見積もり制・決済=Stripe Invoicing・顧客対応=LINE中心・住所=バーチャルオフィス</div>
+  <div class="meta">作成日：2026-04-27　　バージョン：v0.8　　運用人数：1名（運営者）　　最終更新：2026-09-07</div>
+  <div class="meta" style="margin-top:4px; margin-bottom:0;">更新履歴：v0.1 初版 → v0.2 ツール確定・キーワードチェックボックス追加 → v0.3 法的必須事項追加・運用ルール追記 → v0.4 ツール変更（Typeform→Tally・Zapier→Make） → v0.5 法務部追加・ロードマップ再構築 → v0.6 サービス名確定（Anniv） → v0.7 方針更新：LP=HTML/CSS+Vercel・料金=見積もり制・決済=Stripe Invoicing・顧客対応=LINE中心・住所=バーチャルオフィス → v0.8 受注フロー自前化・Cloudflare へ全面移行（2026-09-07）</div>
 
   <!-- 1. サービス概要 -->
   <h2>1. サービス概要</h2>
@@ -95,40 +95,45 @@
 
   <!-- 3. ユーザーフロー -->
   <h2>3. ユーザーフロー（カスタマージャーニー）</h2>
-  <p style="margin-bottom:12px;">顧客対応は <strong>LINE公式アカウント</strong> 中心。メールは受付確認のみ。</p>
+  <p style="margin-bottom:12px;">顧客対応は <strong>LINE公式アカウント</strong> 中心。メールは受付確認のみ。<strong>入口では3つしか聞かず、詳しいアンケートは友だち追加のあとに回す</strong>（設問が多いと答え切る前に離脱するため）。</p>
 
   <div class="flow-box">
-    <div class="flow-step"><span class="num">STEP 1</span>SNS / 知人経由でLPを知る</div>
+    <div class="flow-step"><span class="num">STEP 1</span>SNS / 記事 / 知人経由でLPを知る</div>
     <div class="arrow">→</div>
     <div class="flow-step"><span class="num">STEP 2</span>LPで予算目安・サービス例を確認</div>
     <div class="arrow">→</div>
-    <div class="flow-step"><span class="num">STEP 3</span>「申し込む」ボタン → Tally フォームに直接遷移</div>
+    <div class="flow-step"><span class="num">STEP 3</span>「無料で相談する」ボタン → <code>/apply</code>（同一サイト内）</div>
     <div class="arrow">→</div>
-    <div class="flow-step"><span class="num">STEP 4</span>フォーム回答（約3分・約12設問）</div>
+    <div class="flow-step"><span class="num">STEP 4</span>申込フォーム回答（お名前・メール・LINEのお名前の3問・約30秒）</div>
   </div>
   <div class="flow-box">
-    <div class="flow-step"><span class="num">STEP 5</span>サンクスページで LINE 友だち追加</div>
+    <div class="flow-step"><span class="num">STEP 5</span><code>/thanks</code> で受付番号を表示＋受付確認メール（Resend）が届く</div>
     <div class="arrow">→</div>
-    <div class="flow-step"><span class="num">STEP 6</span>Make自動返信メール届く（受付確認＋LINE追加案内）</div>
+    <div class="flow-step"><span class="num">STEP 6</span>サンクスページから LINE 友だち追加</div>
     <div class="arrow">→</div>
-    <div class="flow-step"><span class="num">STEP 7</span>12時間以内にプランナーからLINEで連絡（応答テンプレB-2）</div>
+    <div class="flow-step"><span class="num">STEP 7</span>LINEに自動でアンケート案内（<code>/survey</code>）が届く</div>
+    <div class="arrow">→</div>
+    <div class="flow-step"><span class="num">STEP 8</span>アンケート回答（必須は記念日の種類・日付・予算の3つ）</div>
   </div>
   <div class="flow-box">
-    <div class="flow-step"><span class="num">STEP 8</span>LINE上で追加ヒアリング（応答テンプレC-1）</div>
+    <div class="flow-step"><span class="num">STEP 9</span>12時間以内に運営者からLINEで連絡（定型文 first-contact）</div>
     <div class="arrow">→</div>
-    <div class="flow-step"><span class="num">STEP 9</span>プラン提案＋見積もり額の提示（応答テンプレD-1）</div>
+    <div class="flow-step"><span class="num">STEP 10</span>LINE上で追加ヒアリング（定型文 hearing）</div>
     <div class="arrow">→</div>
-    <div class="flow-step"><span class="num">STEP 10</span>顧客が承認 → Stripe Invoice URLをLINEで送付</div>
+    <div class="flow-step"><span class="num">STEP 11</span>プラン提案＋見積もり額の提示（定型文 proposal）</div>
     <div class="arrow">→</div>
-    <div class="flow-step"><span class="num">STEP 11</span>顧客がリンクから決済 → 自動で領収書メール</div>
+    <div class="flow-step"><span class="num">STEP 12</span>顧客が承認 → Stripe Invoice URLをLINEで送付（定型文 invoice）</div>
   </div>
   <div class="flow-box">
-    <div class="flow-step"><span class="num">STEP 12</span>プランニング・プレゼント手配・レストラン予約</div>
+    <div class="flow-step"><span class="num">STEP 13</span>顧客がリンクから決済 → 自動で領収書メール</div>
     <div class="arrow">→</div>
-    <div class="flow-step"><span class="num">STEP 13</span>演出指示書をLINEで納品</div>
+    <div class="flow-step"><span class="num">STEP 14</span>プランニング・プレゼント手配・レストラン予約</div>
     <div class="arrow">→</div>
-    <div class="flow-step"><span class="num">STEP 14</span>記念日翌日にフォローLINE（応答テンプレH-2）</div>
+    <div class="flow-step"><span class="num">STEP 15</span>演出指示書をLINEで納品（定型文 delivery）</div>
+    <div class="arrow">→</div>
+    <div class="flow-step"><span class="num">STEP 16</span>記念日翌日にフォローLINE（定型文 follow）</div>
   </div>
+  <div class="note">申し込みと LINE の紐づけは <code>/admin/cases</code> で行う（申込時刻と友だち追加の時刻を突き合わせて候補を出し、最後は人が確認して確定する）。定型文は <code>src/lib/templates.ts</code>。詳細は <code>受注フロー.md</code>。</div>
 
   <!-- 4. 納品物 -->
   <h2>4. 納品物（ユーザーが受け取るもの）</h2>
@@ -141,21 +146,22 @@
 
   <!-- 5. アンケートフォーム要件 -->
   <h2>5. アンケートフォーム要件</h2>
-  <p>回答時間：約3分以内。できる限り選択式・単語入力で完結させる設計。ツール：<strong>Tally</strong>（確定）</p>
+  <p>回答時間：約3分以内。できる限り選択式・単語入力で完結させる設計。ツール：<strong>自前（<code>/survey</code>）</strong>（確定）。LINE の友だち追加後に自動で案内が飛ぶ。</p>
+  <div class="note">設問の正は <code>src/lib/intake.ts</code>。ここは参考。必須は「記念日の種類・日付・予算」の3つだけで、残りは分かる範囲で答えてもらい、足りないところは LINE のトークで聞く。</div>
   <table>
     <tr><th>設問項目</th><th>回答形式</th><th>備考</th></tr>
-    <tr><td>氏名</td><td>テキスト</td><td></td></tr>
     <tr><td>年齢</td><td>選択または数値入力</td><td></td></tr>
     <tr><td>パートナーの年齢</td><td>選択または数値入力</td><td></td></tr>
     <tr><td>交際期間</td><td>選択（〜3ヶ月 / 〜1年 / 〜3年 / 3年以上）</td><td></td></tr>
-    <tr><td>記念日の種類</td><td>選択（誕生日 / 交際記念日 / その他）</td><td></td></tr>
+    <tr><td>記念日の種類</td><td>選択（誕生日 / 交際記念日 / 結婚記念日 / プロポーズ / その他）</td><td></td></tr>
     <tr><td>記念日の日付</td><td>日付入力</td><td></td></tr>
     <tr><td>申し込み種別</td><td>選択（通常 / 特急）</td><td></td></tr>
-    <tr><td>配送先住所</td><td>テキスト</td><td></td></tr>
-    <tr><td>パートナーのアレルギー</td><td>選択＋テキスト（なし / あり→記入）</td><td></td></tr>
     <tr><td>パートナーの興味・好きなもの</td><td>チェックボックス（複数選択可）※下記キーワード一覧参照</td><td>カテゴリ別に50項目程度を並べる</td></tr>
-    <tr><td>これまでの記念日の過ごし方</td><td>選択（外食 / 家でまったり / 特になし / その他）</td><td></td></tr>
-    <tr><td>希望・こだわり（任意）</td><td>テキスト（自由記述、短文）</td><td></td></tr>
+    <tr><td>ご予算</td><td>選択（〜1万円 / 1〜2万円 / 2〜3万円 / 3〜5万円 / 5〜10万円 / 10万円以上 / 未定・相談したい）</td><td>必須</td></tr>
+      <tr><td>ご希望のお任せ度合い</td><td>選択（100％ おまかせ / 70％ 提案をもとに決めたい / 30％ 必要なところだけ）</td><td>任意</td></tr>
+      <tr><td>これまでの記念日の過ごし方</td><td>選択（外食 / 家でまったり / 特になし / その他）</td><td></td></tr>
+    <tr><td>電話番号（任意）</td><td>テキスト</td><td>手配で連絡が要るときのみ使う</td></tr>
+      <tr><td>希望・こだわり（任意）</td><td>テキスト（自由記述、短文）</td><td></td></tr>
   </table>
 
   <h3>パートナーの興味・好きなもの キーワード一覧（チェックボックス）</h3>
@@ -239,16 +245,19 @@
     </div>
   </div>
 
-  <div class="note">Tallyのチェックボックス設問でカテゴリ別に表示。「その他（自由記述）」も追加する。</div>
+  <div class="note"><code>/survey</code> のチェックボックス設問でカテゴリ別に表示。「その他（自由記述）」欄も置く。項目の実体は <code>src/lib/intake.ts</code> の <code>INTEREST_GROUPS</code>。</div>
 
   <!-- 6. メール・通知フロー -->
   <h2>6. メール・通知フロー</h2>
   <table>
     <tr><th>タイミング</th><th>送信者</th><th>内容</th></tr>
-    <tr><td>予算・メアド入力直後</td><td>システム（Make自動）</td><td>アンケートフォーム（TallyのURL）を送付</td></tr>
-    <tr><td>アンケート回答直後</td><td>システム（Tally自動返信）</td><td>「受け付けました。当日中に担当者よりご連絡します」の旨</td></tr>
-    <tr><td>当日中</td><td>担当者（人力）</td><td>詳細確認・プランの方向性共有・決済案内</td></tr>
+    <tr><td>申込フォーム（<code>/apply</code>）送信直後</td><td>システム（Worker → Resend）</td><td>顧客へ受付確認メール。受付番号・LINE友だち追加の案内・アンケート（<code>/survey</code>）のリンク</td></tr>
+    <tr><td>申込フォーム送信直後</td><td>システム（Worker）</td><td>運営者へ新規受付の通知（メール＋LINE push）</td></tr>
+    <tr><td>LINE友だち追加の直後</td><td>システム（LINE Messaging API の Webhook）</td><td>顧客へ「アンケートにご協力ください」＋ <code>/survey</code> のURLを自動送信。あわせて申し込みとの紐づけ候補を運営者へ通知</td></tr>
+    <tr><td>アンケート回答直後</td><td>システム（Worker）</td><td>案件に回答を反映（<code>survey_at</code> が立つ）＋運営者へ通知</td></tr>
+    <tr><td>受付から12時間以内</td><td>運営者（人力）</td><td>LINEで初回連絡。以降のヒアリング・プラン提案・決済案内・納品もLINE上で行う</td></tr>
   </table>
+  <div class="note">メール送信に失敗しても受付自体は失敗させない（案件は先に D1 に入り、履歴に失敗が残る）。通知が来なかった日は <code>/admin/cases</code> を直接見る。</div>
 
   <!-- 7. 決済 -->
   <h2>7. 決済</h2>
@@ -264,19 +273,21 @@
   <!-- 8. 運用フロー（バックオフィス） -->
   <h2>8. 運用フロー（バックオフィス）</h2>
   <table>
-    <tr><th>工程</th><th>担当AI社員</th><th>内容</th></tr>
-    <tr><td>顧客情報の受領・管理</td><td>クッキー・アン（CS部）</td><td>Tallyの回答をNotionに転記・整理</td></tr>
-    <tr><td>プランニング</td><td>ステラ・ルー（企画部）＋AI</td><td>プレゼント選定・演出シナリオ作成</td></tr>
-    <tr><td>プレゼント発注</td><td>オル・メル（オペレーション部）</td><td>ブランドに直接発注・ラッピング依頼</td></tr>
-    <tr><td>配送手配</td><td>オル・メル（オペレーション部）</td><td>ブランドからユーザー指定住所へ直送手配</td></tr>
-    <tr><td>レストラン予約</td><td>オル・メル（オペレーション部）</td><td>ユーザー希望に合わせて予約代行</td></tr>
-    <tr><td>指示書・資料作成</td><td>ジェラトーニ（クリエイティブ部）＋ステラ・ルー</td><td>演出指示書・予約情報を見やすくまとめてユーザーへ共有</td></tr>
-    <tr><td>SNS・広報</td><td>シェリーメイ（マーケティング部）</td><td>コンテンツ制作・投稿・HP集客</td></tr>
-    <tr><td>LP制作・デザイン</td><td>ジェラトーニ（クリエイティブ部）</td><td>HTML/CSS+VercelでのLP構築・ビジュアルデザイン・モバイル対応</td></tr>
-    <tr><td>システム管理</td><td>リーナ・ベル（テクノロジー部）</td><td>Tally・Make・Stripe・LINE公式アカウント・Notion DBの管理</td></tr>
-    <tr><td>顧客対応（LINE）</td><td>クッキー・アン（CS部）</td><td>応答テンプレ.htmlを使ってLINE上でヒアリング・プラン提案・決済案内・納品まで担当</td></tr>
-    <tr><td>法的書類・コンプライアンス</td><td>スティッチ（法務部）</td><td>特定商取引法・プライバシーポリシー・開業届・異動届・規約管理</td></tr>
+    <tr><th>工程</th><th>内容</th></tr>
+    <tr><td>顧客情報の受領・管理</td><td><code>/apply</code>・<code>/survey</code> の回答が D1 の <code>cases</code> に入る。転記はしない。進行の更新は <code>/admin/cases</code> から</td></tr>
+    <tr><td>LINEの紐づけ</td><td><code>/admin/cases</code> の候補（申込時刻と友だち追加の時刻の突き合わせ）を確認して「紐づける」を押す。自動では確定させない</td></tr>
+    <tr><td>プランニング</td><td>プレゼント選定・演出シナリオ作成</td></tr>
+    <tr><td>プレゼント発注</td><td>ブランドに直接発注・ラッピング依頼</td></tr>
+    <tr><td>配送手配</td><td>ブランドからユーザー指定住所へ直送手配</td></tr>
+    <tr><td>レストラン予約</td><td>ユーザー希望に合わせて予約代行</td></tr>
+    <tr><td>指示書・資料作成</td><td>演出指示書・予約情報を見やすくまとめてユーザーへ共有</td></tr>
+    <tr><td>SNS・広報</td><td>コンテンツ制作・投稿・HP集客</td></tr>
+    <tr><td>LP制作・デザイン</td><td><code>public/</code> の素のHTMLを Cloudflare Workers で配信。ビジュアルデザイン・モバイル対応</td></tr>
+    <tr><td>システム管理</td><td>Cloudflare（Workers・D1・R2・Access・Turnstile）・Resend・Stripe・LINE公式アカウント（Messaging API）の管理。本番反映は <code>npm run deploy</code></td></tr>
+    <tr><td>顧客対応（LINE）</td><td><code>src/lib/templates.ts</code> の定型文を管理画面から選んで送る。LINE上でヒアリング・プラン提案・決済案内・納品まで</td></tr>
+    <tr><td>法的書類・コンプライアンス</td><td>特定商取引法・プライバシーポリシー・開業届・異動届・規約管理</td></tr>
   </table>
+  <div class="note">全工程を運営者1名で回す。担当者を分けない前提でツールを選んでいる（案件の状態は <code>/admin/cases</code> 1画面に集約し、複数サービスに散らさない）。</div>
 
   <!-- 9. HP・システム要件 -->
   <h2>9. HP・システム要件（MVP）</h2>
@@ -285,29 +296,49 @@
   <table>
     <tr><th>用途</th><th>ツール</th><th>選定理由</th></tr>
     <tr>
-      <td>LP制作</td>
-      <td><strong>HTML/CSS + Vercel</strong> <span class="badge badge-decided">確定</span></td>
-      <td>カスタム実装。GitHub連携でVercel自動デプロイ。固定費0円。デザイン・構造を自由に変更可能。</td>
+      <td>ホスティング・LP制作</td>
+      <td><strong>HTML/CSS + Astro 7 + Cloudflare Workers</strong>（<code>@astrojs/cloudflare</code>） <span class="badge badge-decided">確定</span></td>
+      <td>本番は <code>https://anniv.gift</code>。<code>public/</code> の素のHTMLはそのまま配信し、<code>/media</code>・<code>/admin</code>・<code>/api</code> は Worker がその場でレンダリングする。固定費0円。2026-08 に Vercel から移行</td>
     </tr>
     <tr>
       <td>ソース管理</td>
       <td><strong>GitHub</strong> <span class="badge badge-decided">確定</span></td>
-      <td>kinenbiplanner-source/kinenbi-planner。push 時にVercelが自動でデプロイ。</td>
+      <td>kinenbiplanner-source/kinenbi-planner。<strong>本番反映は <code>npm run deploy</code> を手で叩く</strong>（Workers Builds は繋いでいないので push では変わらない）</td>
     </tr>
     <tr>
-      <td>アンケートフォーム</td>
-      <td><strong>Tally</strong> <span class="badge badge-decided">確定</span></td>
-      <td>会話式UIで無料プランが実質無制限（設問数・回答数の制限なし）。モバイル体験優秀。Make連携・Notion連携で自動化も容易</td>
+      <td>申込フォーム</td>
+      <td><strong>自前（<code>/apply</code>）</strong> <span class="badge badge-decided">確定</span></td>
+      <td>お名前・メールアドレス・LINEのお名前の3つだけ。2026-09-07 に15問から絞った（長いと答え切る前に離脱するため）。同一サイト内なので計測が分断されない</td>
     </tr>
     <tr>
-      <td>フォーム→メール自動化</td>
-      <td><strong>Make</strong> <span class="badge badge-decided">確定</span></td>
-      <td>Tally送信を起点にGmailで受付確認メールを自動送信。月1,000オペレーション無料</td>
+      <td>詳しいアンケート</td>
+      <td><strong>自前（<code>/survey</code>）</strong> <span class="badge badge-decided">確定</span></td>
+      <td>記念日の種類・日付・予算が必須。パートナーの好みなどは任意。LINE で友だち追加したあとに自動で案内が飛ぶ</td>
+    </tr>
+    <tr>
+      <td>無料相談の窓口</td>
+      <td><strong>自前（<code>/contact</code>）</strong> <span class="badge badge-decided">確定</span></td>
+      <td>軽い相談用。送信先は申込と同じ API（<code>kind=consult</code> として同じテーブルに入る）</td>
+    </tr>
+    <tr>
+      <td>顧客・案件管理（データ）</td>
+      <td><strong>Cloudflare D1</strong>（<code>anniv</code> の <code>cases</code> テーブル） <span class="badge badge-decided">確定</span></td>
+      <td>旧 Notion の「顧客管理DB」「案件管理DB」を1テーブルに畳んだもの。生の回答は <code>submission_json</code> に持つので、設問を増やしても過去の行が壊れない</td>
+    </tr>
+    <tr>
+      <td>案件管理画面</td>
+      <td><strong>自前（<code>/admin/cases</code>・<code>/admin/cases/&lt;id&gt;</code>・<code>/admin/cases/insights</code>）</strong> <span class="badge badge-decided">確定</span></td>
+      <td>一覧・詳細・回答の集計。リクエストのたびに Worker が D1 を読んで描くので転記が要らない。Cloudflare Access で保護</td>
+    </tr>
+    <tr>
+      <td>受付確認メール</td>
+      <td><strong>Resend</strong>（Worker から直接送信） <span class="badge badge-decided">確定</span></td>
+      <td>申込直後に受付番号・LINE追加案内・アンケートのリンクを送る。運営者への通知も同時。無料枠は月3,000通・1日100通</td>
     </tr>
     <tr>
       <td>顧客とのコミュニケーション</td>
-      <td><strong>LINE公式アカウント</strong> <span class="badge badge-decided">確定</span></td>
-      <td>申し込み後の追加ヒアリング・プラン提案・決済案内・納品・フォローまで全てLINE上で行う。無料プラン（フリープラン）で運用</td>
+      <td><strong>LINE公式アカウント（Messaging API）</strong> <span class="badge badge-decided">確定</span></td>
+      <td>申し込み後の追加ヒアリング・プラン提案・決済案内・納品・フォローまで全てLINE上で行う。無料プラン（フリープラン）で運用。Webhook で友だち追加を検知して案件と紐づける</td>
     </tr>
     <tr>
       <td>決済（クレカ・メイン）</td>
@@ -320,9 +351,20 @@
       <td>PayPay派の顧客向け補助手段として提供</td>
     </tr>
     <tr>
-      <td>顧客・案件管理</td>
-      <td><strong>Notion</strong> <span class="badge badge-decided">確定</span></td>
-      <td>顧客管理DB（Tally直接連携で自動転記）＋案件管理DB（手動更新）の2つのDBで管理</td></tr>
+      <td>画像の保管</td>
+      <td><strong>Cloudflare R2</strong>（<code>anniv-media</code>） <span class="badge badge-decided">確定</span></td>
+      <td>記事・LPで使う画像の置き場。<code>/media/img/&lt;key&gt;</code> で配信する</td>
+    </tr>
+    <tr>
+      <td>bot対策</td>
+      <td><strong>Cloudflare Turnstile</strong> <span class="badge badge-decided">確定</span></td>
+      <td><code>/apply</code> に設置。あわせて同一IP 10分5回のレート制限とハニーポットも掛ける</td>
+    </tr>
+    <tr>
+      <td>管理画面の認証</td>
+      <td><strong>Cloudflare Access</strong> <span class="badge badge-decided">確定</span></td>
+      <td><code>/admin</code> 配下をパスポリシーで保護。<code>workers.dev</code> のサブドメインは無効化して迂回経路を塞いでいる</td>
+    </tr>
     <tr>
       <td>事業所所在地</td>
       <td><strong>GMOバーチャルオフィス（大阪・梅田）</strong> <span class="badge badge-decided">確定</span></td>
@@ -334,17 +376,19 @@
       <td>Stripe・PayPay for Business の振込先口座</td>
     </tr>
   </table>
+  <div class="note">2026-08〜09 に廃止したツール：Tally / Make / Notion / Typeform / Zapier / Framer / Vercel / formsubmit.co。受注フローの実装・設定手順の詳細は <code>受注フロー.md</code> が正。</div>
 
   <h3>MVP機能一覧</h3>
   <table>
     <tr><th>機能</th><th>優先度</th><th>概要</th></tr>
-    <tr><td>LP（サービス概要ページ）</td><td><span class="badge badge-mvp">MVP</span></td><td>サービス説明・予算目安・申し込みCTA。HTML/CSS+Vercelで構築・公開済み</td></tr>
-    <tr><td>Tallyフォーム（アンケート）</td><td><span class="badge badge-mvp">MVP</span></td><td>本仕様書Section5の設問を実装・公開済み</td></tr>
-    <tr><td>Make自動返信メール</td><td><span class="badge badge-mvp">MVP</span></td><td>受付確認＋LINE追加案内の文面で稼働中（LINE案内追記は実装中）</td></tr>
-    <tr><td>LINE公式アカウント</td><td><span class="badge badge-mvp">MVP</span></td><td>友だち追加URL → サンクスページに設置。あいさつメッセージ＋手動対応で運用</td></tr>
+    <tr><td>LP（サービス概要ページ）</td><td><span class="badge badge-mvp">MVP</span></td><td>サービス説明・予算目安・申し込みCTA。HTML/CSS + Cloudflare Workers で構築・公開済み</td></tr>
+    <tr><td>申込フォーム <code>/apply</code></td><td><span class="badge badge-mvp">MVP</span></td><td>お名前・メール・LINEのお名前の3問。Turnstile＋レート制限＋ハニーポット。受付番号を採番して <code>/thanks</code> へ。実装済み（本番反映はデプロイ待ち）</td></tr>
+    <tr><td>アンケート <code>/survey</code></td><td><span class="badge badge-mvp">MVP</span></td><td>本仕様書Section5の設問を実装。必須は記念日の種類・日付・予算の3つ。実装済み（本番反映はデプロイ待ち）</td></tr>
+    <tr><td>無料相談フォーム <code>/contact</code></td><td><span class="badge badge-mvp">MVP</span></td><td>軽い相談の窓口。<code>kind=consult</code> として同じテーブルに入る。実装済み（本番反映はデプロイ待ち）</td></tr>
+    <tr><td>受付確認メール（Resend）</td><td><span class="badge badge-mvp">MVP</span></td><td>受付番号・LINE追加案内・アンケートのリンク。運営者への通知（メール＋LINE push）も同時。実装済み（本番反映はデプロイ待ち）</td></tr>
+    <tr><td>案件管理画面 <code>/admin/cases</code></td><td><span class="badge badge-mvp">MVP</span></td><td>一覧・詳細・回答の集計（<code>insights</code>）。D1 の <code>cases</code> を直接読み書きする。Cloudflare Access で保護。実装済み（本番反映はデプロイ待ち）</td></tr>
+    <tr><td>LINE公式アカウント</td><td><span class="badge badge-mvp">MVP</span></td><td>友だち追加URL → サンクスページに設置。Messaging API の Webhook で友だち追加を検知し、案件と紐づける。あいさつメッセージ＋手動対応で運用</td></tr>
     <tr><td>Stripe Invoicing</td><td><span class="badge badge-mvp">MVP</span></td><td>案件ごとに請求書発行。本番化申請中</td></tr>
-    <tr><td>Notion 顧客管理DB</td><td><span class="badge badge-mvp">MVP</span></td><td>Tally直接連携で自動転記・稼働中</td></tr>
-    <tr><td>Notion 案件管理DB</td><td><span class="badge badge-mvp">MVP</span></td><td>20カラムのスキーマで構築済み。案件ごとに進行状況を手動更新</td></tr>
     <tr><td>SNS連携・シェアボタン</td><td><span class="badge badge-future">将来対応</span></td><td></td></tr>
     <tr><td>ホテル連携</td><td><span class="badge badge-future">将来対応</span></td><td>サービス拡大後に営業・連携</td></tr>
     <tr><td>マイページ・注文履歴</td><td><span class="badge badge-future">将来対応</span></td><td></td></tr>
@@ -355,8 +399,8 @@
   <table>
     <tr><th>項目</th><th>内容</th></tr>
     <tr><td>ターゲットプラットフォーム</td><td>Instagram / TikTok（大学生〜20代が主戦場）※詳細はおいおい詰める</td></tr>
-    <tr><td>集客の基本フロー</td><td>SNS投稿 → HPへ誘導 → プラン選択 → アンケート送信</td></tr>
-    <tr><td>担当</td><td>シェリーメイ（マーケティング部）</td></tr>
+    <tr><td>集客の基本フロー</td><td>SNS投稿 → HPへ誘導 → <code>/apply</code> で申し込み → LINE友だち追加 → <code>/survey</code></td></tr>
+    <tr><td>担当</td><td>運営者</td></tr>
     <tr><td>コンテンツ方針</td><td>TBD（おいおい詰める）</td></tr>
   </table>
 
@@ -378,12 +422,12 @@
     <tr>
       <td><strong>特定商取引法に基づく表記</strong></td>
       <td>販売業者名・住所・電話番号・メール・価格・支払方法・サービス提供時期・キャンセルポリシーなどを記載したページをLP内に設置</td>
-      <td>スティッチ（法務部）＋リーナ・ベル</td>
+      <td>運営者</td>
     </tr>
     <tr>
       <td><strong>プライバシーポリシー</strong></td>
-      <td>収集する個人情報の種類・利用目的・第三者提供の有無・問い合わせ先を記載したページをLP内に設置。Tallyで収集するデータの取り扱いも明記。</td>
-      <td>スティッチ（法務部）＋リーナ・ベル</td>
+      <td>収集する個人情報の種類・利用目的・第三者提供の有無・問い合わせ先を記載したページをLP内に設置。<code>/apply</code>・<code>/survey</code> で収集して D1 に保存するデータの取り扱いも明記。</td>
+      <td>運営者</td>
     </tr>
   </table>
 
@@ -392,9 +436,9 @@
   <table>
     <tr><th>ルール</th><th>内容</th></tr>
     <tr><td>ファイル更新</td><td>作業が進むたびに、関連するファイル・書類（仕様書・ロードマップ等）を最新状態にアップデートする</td></tr>
-    <tr><td>法的・グレーゾーン回避</td><td>法的にグレーな手法・ツールは採用しない。不明な場合はダッフィーに確認してから進める</td></tr>
-    <tr><td>セキュリティ</td><td>決済・個人情報を扱うツールは業界標準の信頼できるものに限定する（Stripe・PayPay・Tally・Make・Notion・LINE公式アカウント・Vercel・GitHubで固定）</td></tr>
-    <tr><td>ダッフィーとのコミュニケーション</td><td>フランク・友達感覚でOK。進捗・問題・提案はどんどん話しかけて</td></tr>
+    <tr><td>法的・グレーゾーン回避</td><td>法的にグレーな手法・ツールは採用しない。不明な場合は確認が取れるまで進めない</td></tr>
+    <tr><td>セキュリティ</td><td>決済・個人情報を扱うツールは業界標準の信頼できるものに限定する（Stripe・PayPay・LINE公式アカウント・Cloudflare（Workers・D1・R2・Access・Turnstile）・Resend・GitHubで固定）</td></tr>
+    <tr><td>認証不要のAPI</td><td><code>/api/*</code> のうち認証を掛けないのは受け口の数本だけに限る。増やすときは Turnstile・レート制限・署名検証など受け口側の検証を必ずセットで書く</td></tr>
   </table>
 
   <!-- 14. 未決定事項 -->
@@ -402,27 +446,32 @@
   <table>
     <tr><th>項目</th><th>状況</th></tr>
     <tr><td>SNSプラットフォームとコンテンツ方針</td><td>Phase 2 で着手予定（Instagram/TikTok候補）</td></tr>
-    <tr><td>演出指示書テンプレートのフォーマット</td><td>ステラ・ルー＋ジェラトーニで設計予定（Phase 1試運転までに）</td></tr>
+    <tr><td>演出指示書テンプレートのフォーマット</td><td>Phase 1試運転までに設計予定</td></tr>
     <tr><td>ロゴ・ブランディング</td><td>Phase 2 で着手予定</td></tr>
-    <tr><td>カスタムドメイン</td><td>Phase 2 で取得・Vercelに紐付け</td></tr>
-    <tr><td>プレゼント仕入れ先・レストランリストの整備</td><td>Phase 1試運転までにオル・メル担当で整備</td></tr>
+    <tr><td>カスタムドメイン</td><td><strong>取得済み</strong>。<code>anniv.gift</code> を Cloudflare で管理し、Worker の Custom Domain として設定済み（<code>www</code> は apex へ 301）</td></tr>
+    <tr><td>プレゼント仕入れ先・レストランリストの整備</td><td>Phase 1試運転までに整備</td></tr>
   </table>
 
   <!-- 15. フロー試運転（自己テスト計画） -->
   <h2>15. フロー試運転（Phase 1の自己テスト計画）</h2>
-  <p>初受注前に、運営側でフル工程を1回通してみる試運転を必須とする。詳細は ロードマップ.html Phase 1 内の「フロー試運転」セクション参照。</p>
+  <p>初受注前に、運営側でフル工程を1回通してみる試運転を必須とする。システム側の手順の詳細は <code>受注フロー.md</code> の 7-3 参照。</p>
   <table>
     <tr><th>テスト工程</th><th>確認内容</th></tr>
-    <tr><td>① Tallyフォーム送信</td><td>テスト用Gmail or 友人のメアドで送信 → 自動返信メールが届くか</td></tr>
-    <tr><td>② LINE友だち追加</td><td>サンクスページ→ LINE追加が機能するか</td></tr>
-    <tr><td>③ あいさつメッセージ</td><td>応答テンプレB-1が自動配信されるか</td></tr>
-    <tr><td>④ 手動メッセージ</td><td>応答テンプレB-2・C-1・D-1を実際に送ってやり取りできるか</td></tr>
-    <tr><td>⑤ Stripe Invoice</td><td>少額（¥500等）でInvoice発行 → LINE送付 → 支払い → 領収書確認</td></tr>
-    <tr><td>⑥ Notion案件管理DB</td><td>テスト案件を入力し、進行ステータスを更新できるか</td></tr>
-    <tr><td>⑦ プレゼント手配</td><td>実際にECで1点購入・自宅 or 友人宅に発送</td></tr>
-    <tr><td>⑧ レストラン予約</td><td>実際に1件電話予約 or オンライン予約代行（模擬テストでも可）</td></tr>
-    <tr><td>⑨ 演出指示書納品</td><td>フォーマットを作成・LINE送付</td></tr>
-    <tr><td>⑩ フォロー</td><td>応答テンプレH-2を送り、返答を確認</td></tr>
+    <tr><td>① <code>/apply</code> 送信</td><td>テスト用のメールアドレスで送信 → 受付番号が採番され <code>/thanks?c=XXXX-XXXX</code> に飛ぶか</td></tr>
+    <tr><td>② 受付確認メール</td><td>Resend から届くか（迷惑メールフォルダも確認）。運営者への通知も来るか</td></tr>
+    <tr><td>③ <code>/admin/cases</code></td><td>申し込みが行として出るか</td></tr>
+    <tr><td>④ LINE友だち追加</td><td>サンクスページのボタンから追加できるか。「未紐づけの友だち」に出て、さっきの申し込みが選択済みになっているか</td></tr>
+    <tr><td>⑤ 紐づけ</td><td>「紐づける」を押して <code>/admin/cases/&lt;id&gt;</code> に LINE が紐づくか</td></tr>
+    <tr><td>⑥ あいさつメッセージ・アンケート案内</td><td>友だち追加の直後に <code>/survey</code> の案内が自動で届くか</td></tr>
+    <tr><td>⑦ <code>/survey</code> 回答</td><td>回答が案件に反映され、アンケート未回答の帯が消えるか</td></tr>
+    <tr><td>⑧ 手動メッセージ</td><td>案件詳細の「返信」から <code>src/lib/templates.ts</code> の定型文（first-contact・hearing・proposal）を送ってやり取りできるか</td></tr>
+    <tr><td>⑨ 進行の更新</td><td>プレゼント・レストラン・入金の列を更新して保存できるか</td></tr>
+    <tr><td>⑩ <code>/contact</code></td><td>1件送って <code>kind=consult</code> の案件として入るか</td></tr>
+    <tr><td>⑪ Stripe Invoice</td><td>少額（¥500等）でInvoice発行 → LINE送付 → 支払い → 領収書確認</td></tr>
+    <tr><td>⑫ プレゼント手配</td><td>実際にECで1点購入・自宅 or 友人宅に発送</td></tr>
+    <tr><td>⑬ レストラン予約</td><td>実際に1件電話予約 or オンライン予約代行（模擬テストでも可）</td></tr>
+    <tr><td>⑭ 演出指示書納品</td><td>フォーマットを作成・LINE送付</td></tr>
+    <tr><td>⑮ フォロー</td><td>定型文 follow を送り、返答を確認</td></tr>
   </table>
   <p style="margin-top:8px;">試運転後、所要時間・詰まりポイントをメモして即改善。これが完了して初めてLP正式公開＆告知に進む。</p>
 

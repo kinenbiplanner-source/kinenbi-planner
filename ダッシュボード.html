@@ -265,6 +265,8 @@
     /* ── 計測（別ページ）への入口 ─────────────────
        計測本体は /dashboard/measurement（計測ダッシュボード.html）に分離した。
        ここに残すのは入口だけ。数字を出すと結局この画面が伸びるので出さない。 */
+    /* 2026-09-07 に Measurement へのリンクを外したので、以下は現在どこからも使っていない。
+       計測の入口を戻すときに使い回せるよう残してある。 */
     .mx-link {
       display: flex; align-items: center; justify-content: space-between; gap: 16px;
       margin: 32px 0 30px; padding: 16px 20px;
@@ -359,7 +361,9 @@
     <div class="cost-item">
       <div class="cost-item-dot dot-free"></div>
       <div class="cost-item-body">
-        <div class="cost-item-name">Cloudflare Workers / D1 / R2 / Zero Trust / GitHub / Tally / Make / Notion / Formsubmit</div>
+        <!-- Tally / Make / Notion / Formsubmit は 2026-09-07 に受注フローを自前化して不要になった。
+             代わりに入ったのが Resend（メール送信・月3,000通まで無料）と Turnstile（bot対策・無料）。 -->
+        <div class="cost-item-name">Cloudflare Workers / D1 / R2 / Zero Trust / Turnstile / GitHub / Resend</div>
         <div class="cost-item-amount free">¥0（無料枠）</div>
         <!-- Cloudflareは現状すべて無料枠の中：Workers 10万リクエスト/日（アカウント全体で共有）、
              D1 5GB・500万行読み取り/日、R2 10GB。超えたら Workers Paid $5/月に上げる。 -->
@@ -376,16 +380,12 @@
   </div>
 </div>
 
-<!-- MEASUREMENT（別ページ）-->
-<!-- 計測はKPI・流入元・CTA別・日次と縦に伸びて画面の大半を占めていたので、
-     /dashboard/measurement に分けた（2026-08-28）。数字の出どころは変えていない。 -->
-<a class="mx-link" href="/dashboard/measurement">
-  <div>
-    <div class="mx-link-title">Measurement</div>
-    <div class="mx-link-note">CV・導線クリック・記事PV・流入元（自前＋GA4）／期間は7日・28日・90日で切替</div>
-  </div>
-  <span class="mx-link-arrow" aria-hidden="true">→</span>
-</a>
+<!-- 計測（Measurement）へのリンクは 2026-09-07 に外した。
+     このファイルはローカルで直接開かれることが多く、そのとき `/dashboard/measurement` は
+     file:///dashboard/measurement を指して必ず壊れる。数字も出ないまま置いておくと
+     「更新されていない画面」に見えるので、入口をここに置くのをやめた。
+     計測そのものは生きている：https://anniv.gift/dashboard/measurement か、
+     管理画面（/admin）のヘッダーの「計測」から開く。 -->
 
 <!-- LP BANNER -->
 <div class="lp-banner">
@@ -408,6 +408,14 @@
      ここが日常的にいちばん開く場所なので、業務サービスより上に置く。 -->
 <div class="section-title">Media &amp; Infrastructure</div>
 <div class="grid">
+
+  <!-- 受注フロー（申込→LINE→進行）の入口。Tally→Notion→Make を自前に置き換えたので、
+       朝いちばんに開くのはここになる。だからカード群の先頭。 -->
+  <a href="https://anniv.gift/admin/cases" target="_blank" class="card">
+    <div class="card-icon">📋</div>
+    <div class="card-name">案件管理</div>
+    <div class="card-desc">申込・LINE・進行</div>
+  </a>
 
   <a href="https://anniv.gift/admin" target="_blank" class="card">
     <div class="card-icon">📝</div>
@@ -441,11 +449,9 @@
     <div class="card-desc">公開中の記事一覧</div>
   </a>
 
-  <a href="https://analytics.google.com/" target="_blank" class="card">
-    <div class="card-icon">📊</div>
-    <div class="card-name">GA4</div>
-    <div class="card-desc">アクセス解析・CV計測</div>
-  </a>
+  <!-- GA4 のカードも外した（2026-09-07）。「メディア分析」「計測」「GA4」と
+       数字を見る入口が3つ並んでいて、どれを開けばいいのか分からなくなっていたため。
+       GA4 は管理画面（/admin）のヘッダーの「アナリティクス」から開ける。 -->
 
   <a href="https://dash.cloudflare.com/?to=/:account/workers" target="_blank" class="card">
     <div class="card-icon">☁️</div>
@@ -495,17 +501,10 @@
     <div class="card-desc">ヒアリング・提案・納品</div>
   </a>
 
-  <a href="https://tally.so/" target="_blank" class="card">
-    <div class="card-icon">📋</div>
-    <div class="card-name">Tally</div>
-    <div class="card-desc">申し込みフォーム管理</div>
-  </a>
-
-  <a href="https://www.notion.so/" target="_blank" class="card">
-    <div class="card-icon">🗂</div>
-    <div class="card-name">Notion</div>
-    <div class="card-desc">顧客管理DB・案件管理</div>
-  </a>
+  <!-- Tally（申込フォーム）・Notion（顧客/案件DB）・Make（受付メール）のカードは
+       2026-09-07 に撤去した。3つとも anniv.gift の Worker に畳んで使わなくなったため
+       （申込は /apply → D1 cases、進行は /admin/cases、メールは Worker から直接送る）。
+       アカウント自体は当面残してあるが、日常の入口からは外す。経緯は 受注フロー.md。 -->
 
   <a href="https://mail.google.com/" target="_blank" class="card">
     <div class="card-icon">✉️</div>
@@ -525,10 +524,10 @@
     <div class="card-desc">事業用口座</div>
   </a>
 
-  <a href="https://www.make.com/" target="_blank" class="card">
-    <div class="card-icon">⚙️</div>
-    <div class="card-name">Make</div>
-    <div class="card-desc">受付確認メール自動送信</div>
+  <a href="https://resend.com/emails" target="_blank" class="card">
+    <div class="card-icon">✉</div>
+    <div class="card-name">Resend</div>
+    <div class="card-desc">受付確認メールの送信ログ</div>
   </a>
 
   <a href="https://www.instagram.com/anniv.gift/" target="_blank" class="card">
@@ -561,12 +560,9 @@
     <div class="card-desc">国税電子申告</div>
   </a>
 
-  <a href="実装状況.html" target="_blank" class="card local">
-    <div class="card-icon">📌</div>
-    <div class="card-name">実装状況</div>
-    <!-- リポジトリ直下のHTML。配信していないので /dashboard 側からは開けない -->
-    <div class="card-desc">進捗・ロードマップ（ローカルのみ）</div>
-  </a>
+  <!-- 「実装状況」カードは 2026-09-07 に外した。中身が Tally / Make / Notion 前提のまま
+       止まっていて、受注フロー.md と メディア方針/改良ロードマップ.md が完全に置き換えたため
+       （ファイルごと削除済み）。進捗はその2つを見る。 -->
 
   <!-- LPは public/ 配下から配信され、正規URLは拡張子なし（wrangler.jsonc の html_handling）。
        lp/ という置き場所は Astro 移行時に無くなったので、サイトのURLを直接指す。 -->

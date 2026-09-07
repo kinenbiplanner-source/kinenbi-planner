@@ -508,3 +508,29 @@ export async function syncKeywordForArticle(
   await updateKeywordStatus(row.id, next, articleId);
   return { keyword, status: next, changed: true };
 }
+
+/* ────────────────────────────────────────────────
+ * 週次レポート（schema.sql の pv_reports。/anniv-update-pv が入れる）
+ * ──────────────────────────────────────────────── */
+
+export interface PvReportRow {
+  ymd: string;
+  report_md: string;
+  snapshot_json: string;
+  created_at: string;
+}
+
+/**
+ * 最新の週次レポート。無ければ null。
+ * テーブルがまだ無い（schema を当てる前）ときも null にする——
+ * レポートが読めないだけで /admin/stats 全体が落ちるのは釣り合わない。
+ */
+export async function latestPvReport(): Promise<PvReportRow | null> {
+  try {
+    return await db()
+      .prepare('SELECT ymd, report_md, snapshot_json, created_at FROM pv_reports ORDER BY ymd DESC LIMIT 1')
+      .first<PvReportRow>();
+  } catch {
+    return null;
+  }
+}

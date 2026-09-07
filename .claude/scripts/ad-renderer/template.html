@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- LP / メディアと同じ書体。--font-serif-jp（tokens.css）の日本語実体は Noto Serif JP -->
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* 色は src/styles/tokens.css の :root が正 */
+  :root {
+    --navy:      #1a2840;
+    --navy-deep: #0e1626;
+    --navy-lift: #2c4162;
+    --gold:      #c4a35a;
+    --gold-soft: #ddc488;
+    --white:     #ffffff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    background: transparent;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .stage {
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(120% 88% at 50% 26%,
+        var(--navy-lift) 0%, var(--navy) 46%, var(--navy-deep) 100%);
+  }
+
+  /* ── サイズプリセット ────────────────────────────────
+     top はすべて stage 高さに対する % 。安全域の根拠は下表。
+       feed   1080x1350  UIの被りなし。上下8%だけ空けて全面を使う
+       story  1080x1920  上13%/下18%にIGのUI（プロフィール名・CTA）が乗る
+       reel   1080x1920  下35%までUI（いいね・キャプション・音源名）が乗る
+       square 1080x1080  カルーセル用
+  ------------------------------------------------------ */
+  .stage.feed   { width: 1080px; height: 1350px; }
+  .stage.story  { width: 1080px; height: 1920px; }
+  .stage.reel   { width: 1080px; height: 1920px; }
+  .stage.square { width: 1080px; height: 1080px; }
+
+  .stage.feed   .heading { top: 11%; font-size: 62px; }
+  .stage.feed   .body    { top: 34%; }
+  .stage.feed   .closing { top: 60%; }
+  .stage.feed   .logo    { bottom: 7%; }
+
+  .stage.story  .heading { top: 19%; font-size: 66px; }
+  .stage.story  .body    { top: 40%; }
+  .stage.story  .closing { top: 60%; }
+  .stage.story  .logo    { bottom: 21%; }
+
+  .stage.reel   .heading { top: 15%; font-size: 58px; }
+  .stage.reel   .body    { top: 30%; }
+  .stage.reel   .closing { top: 45%; }
+  .stage.reel   .logo    { bottom: 42%; }
+
+  .stage.square .heading { top: 12%; font-size: 56px; }
+  .stage.square .body    { top: 35%; }
+  .stage.square .closing { top: 62%; }
+  .stage.square .logo    { bottom: 7%; }
+
+  .stage.feed   .body li { font-size: 32px; }
+  .stage.story  .body li { font-size: 31px; }
+  .stage.reel   .body li { font-size: 30px; }
+  .stage.square .body li { font-size: 29px; }
+
+  .stage.feed   .closing { font-size: 27px; }
+  .stage.story  .closing { font-size: 28px; }
+  .stage.reel   .closing { font-size: 26px; }
+  .stage.square .closing { font-size: 24px; }
+
+  .stage.feed   .logo img { height: 150px; }
+  .stage.story  .logo img { height: 150px; }
+  .stage.reel   .logo img { height: 120px; }
+  .stage.square .logo img { height: 130px; }
+
+  /* ── 金の曲線（左上・右下の2箇所だけ） ── */
+  .flourish { position: absolute; pointer-events: none; }
+  .flourish.tl { top: -4%; left: -12%;  width: 78%; }
+  .flourish.br { bottom: -4%; right: -12%; width: 78%; transform: rotate(180deg); }
+
+  /* ── 金の粒子。座標は固定（再生成しても揺れない） ── */
+  .dust {
+    position: absolute; top: 0; left: 0; width: 2px; height: 2px;
+    border-radius: 50%; background: var(--gold-soft); opacity: .55;
+    box-shadow:
+      118px  214px 0 0 var(--gold-soft),  946px  132px 0 0 var(--gold),
+      304px   92px 0 0 var(--gold-soft),   62px  470px 0 0 var(--gold),
+      880px  356px 0 0 var(--gold-soft),  190px  128px 0 0 var(--gold),
+     1012px  268px 0 0 var(--gold),        44px  172px 0 0 var(--gold-soft),
+      770px   74px 0 0 var(--gold-soft),  246px  336px 0 0 var(--gold),
+       86px  742px 0 0 var(--gold),       990px  656px 0 0 var(--gold-soft),
+      152px 1042px 0 0 var(--gold-soft),  928px  914px 0 0 var(--gold),
+       58px 1288px 0 0 var(--gold),      1006px 1176px 0 0 var(--gold-soft),
+      206px 1454px 0 0 var(--gold-soft),  874px 1362px 0 0 var(--gold),
+      104px 1626px 0 0 var(--gold),       952px 1710px 0 0 var(--gold-soft),
+      268px 1836px 0 0 var(--gold-soft),  816px 1878px 0 0 var(--gold);
+  }
+
+  /* ── 文字ブロック ────────────────────────────────
+     見出しは中央揃え。箇条書きと締めは「中央に置いた同じ幅の
+     ブロックの中で左揃え」——左端を必ず揃える（1枚目の試作で
+     ここがズレて中央揃えに見えたのを潰す）
+  ------------------------------------------------------ */
+  .heading, .body, .closing, .logo {
+    position: absolute; left: 50%; transform: translateX(-50%);
+  }
+
+  .heading {
+    width: 86%;
+    font-family: "Noto Serif JP", serif;
+    font-weight: 600;
+    color: var(--white);
+    text-align: center;
+    line-height: 1.55;
+    letter-spacing: .05em;
+    text-shadow: 0 2px 24px rgba(0, 0, 0, .35);
+  }
+
+  .body    { width: var(--block-w, 76%); }
+  .closing { width: var(--block-w, 76%); }
+
+  .body ul { list-style: none; }
+  .body li {
+    position: relative;
+    font-family: "Noto Serif JP", serif;
+    font-weight: 400;
+    color: rgba(255, 255, 255, .94);
+    line-height: 1.5;
+    letter-spacing: .03em;
+    padding-left: 1.5em;
+    margin-bottom: .85em;
+  }
+  .body li:last-child { margin-bottom: 0; }
+  .body li::before {
+    content: "";
+    position: absolute; left: .25em; top: .62em;
+    width: .38em; height: .38em; border-radius: 50%;
+    background: var(--gold);
+    box-shadow: 0 0 10px rgba(196, 163, 90, .6);
+  }
+
+  .closing {
+    font-family: "Noto Serif JP", serif;
+    font-weight: 400;
+    color: rgba(255, 255, 255, .82);
+    line-height: 1.85;
+    letter-spacing: .03em;
+  }
+  .closing p { text-align: left; }
+
+  /* 本文をゴシック（LPの本文と同じ Noto Sans JP）に寄せたいとき用。
+     spec に "body_sans": true を入れると付く */
+  .sans .body li, .sans .closing { font-family: "Noto Sans JP", sans-serif; }
+
+  /* ロゴは紺・金の2色で、そのまま置くと紺の輪とANNIVが背景に沈む。
+     LPのフッター（暗い背景）が brightness(0) invert(1) で白一色にしているので、
+     同じ処理に揃える（public/index.html の .footer-logo img） */
+  .logo { width: 86%; text-align: right; }
+  .logo img {
+    width: auto;
+    filter: brightness(0) invert(1);
+    opacity: .8;
+  }
+</style>
+</head>
+<body>
+<div class="stage __SIZE__ __SANS__">
+
+  <svg class="flourish tl" viewBox="0 0 800 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%"   stop-color="#c4a35a" stop-opacity="0"/>
+        <stop offset="35%"  stop-color="#ddc488" stop-opacity="1"/>
+        <stop offset="100%" stop-color="#c4a35a" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <path d="M-60 92 C 140 18, 330 150, 520 84 S 760 6, 880 66"  stroke="url(#g1)" stroke-width="5"   opacity=".95"/>
+    <path d="M-60 148 C 170 62, 300 214, 500 140 S 780 62, 880 126" stroke="url(#g1)" stroke-width="2.5" opacity=".7"/>
+    <path d="M-60 34 C 120 -20, 360 96, 540 26 S 800 -30, 880 22"  stroke="url(#g1)" stroke-width="1.5" opacity=".5"/>
+    <path d="M-60 232 C 210 128, 320 300, 470 226"                stroke="url(#g1)" stroke-width="2"   opacity=".45"/>
+  </svg>
+
+  <svg class="flourish br" viewBox="0 0 800 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M-60 92 C 140 18, 330 150, 520 84 S 760 6, 880 66"  stroke="url(#g1)" stroke-width="5"   opacity=".95"/>
+    <path d="M-60 148 C 170 62, 300 214, 500 140 S 780 62, 880 126" stroke="url(#g1)" stroke-width="2.5" opacity=".7"/>
+    <path d="M-60 34 C 120 -20, 360 96, 540 26 S 800 -30, 880 22"  stroke="url(#g1)" stroke-width="1.5" opacity=".5"/>
+    <path d="M-60 232 C 210 128, 320 300, 470 226"                stroke="url(#g1)" stroke-width="2"   opacity=".45"/>
+  </svg>
+
+  <div class="dust"></div>
+
+  __CONTENT__
+
+</div>
+
+<script>
+(function () {
+  function fit(sel, min) {
+    var els = Array.prototype.slice.call(document.querySelectorAll(sel));
+    if (!els.length) return;
+    els.forEach(function (e) { e.style.whiteSpace = "nowrap"; });
+    var fs = parseFloat(getComputedStyle(els[0]).fontSize);
+    var over = function () { return els.some(function (e) { return e.scrollWidth > e.clientWidth; }); };
+    while (fs > min && over()) {
+      fs -= 1;
+      els.forEach(function (e) { e.style.fontSize = fs + "px"; });
+    }
+  }
+  fit(".body li", 18);   // 行が折り返すと箇条書きの見た目が崩れるので、収まるまで下げる
+  fit(".closing p", 15);
+})();
+</script>
+</body>
+</html>

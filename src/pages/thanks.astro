@@ -1,0 +1,675 @@
+---
+/**
+ * サンクスページ（/thanks）。
+ *
+ * 以前は public/thanks.html（静的）だった。受付番号を出すために Astro 側へ移した。
+ * **静的アセットが先に配信されるので、public/thanks.html は消してある**
+ * （残しているとこのページには永遠に到達しない）。見た目・文言・計測タグは元のまま。
+ *
+ * `?c=XXXX-XXXX` が付いていれば受付番号を大きく出し、LINE の友だち追加へ送る。
+ *
+ * 番号が無いのは、ブックマークや URL の直叩きで来た場合。案件が特定できないので
+ * 番号まわりを出さず、友だち追加の案内だけにする。
+ */
+export const prerender = false;
+
+import { oaMessageUrl, addFriendUrl } from '../lib/line';
+
+/** 受付番号。形式が合わないものは無視する（画面に任意の文字列を出させない）。 */
+const raw = Astro.url.searchParams.get('c') ?? '';
+const code = /^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(raw) ? raw : '';
+
+/** 友だち追加とトーク送信を1タップにする URL。ベーシックID未設定なら null。 */
+const oaUrl = code ? oaMessageUrl(code) : null;
+const addUrl = addFriendUrl();
+
+/** 完了の計測ラベル（計測設計.md 4章）。 */
+const completeLabel = 'apply_form';
+
+/**
+ * LINE 導線の出しわけ。1タップで番号まで送れる oaMessage が使えるときだけ文言を変え、
+ * それ以外（ベーシックID未設定 / 番号なし）は従来どおりの「友だち追加」に落とす。
+ */
+/*
+  LINE 導線。
+
+  **顧客にやってもらうのは「友だち追加」だけ。** 受付番号は控えとして見せるが、
+  送信は求めない（申し込みの直後に追加した人は、管理画面側で申込時刻から突き合わせて
+  紐づける＝src/lib/cases.ts の rankLinkCandidates）。
+
+  ベーシックID（LINE_OA_ID）が入っているときだけ、番号まで自動で入る oaMessage リンクにする。
+  こちらは1タップで確実に紐づくので体験としては上位だが、**無くても成立する**。
+*/
+const oneTap = Boolean(code && oaUrl);
+const stepTitle = 'LINEで友だち追加してください';
+const stepDesc = oneTap
+  ? '下のボタンを押すと LINE が開き、受付番号が入った状態でトークが立ち上がります。そのまま送信してください。'
+  : '下のボタンから友だち追加していただかないと、こちらからご連絡ができません。';
+const btnHref = oneTap ? (oaUrl as string) : addUrl;
+const btnLabel = 'LINEで友だち追加する';
+
+/**
+ * 詳しいアンケート（/survey）への副導線。
+ *
+ * 2段階化（2026-09-07）で、記念日・予算・好みは友だち追加の**あとに LINE から案内する**。
+ * ただし、この場で答えたい人がそこそこいる想定なので近道も置いておく。
+ * **主導線はあくまで友だち追加**（連絡が取れないと何も進まない）なので、見た目は一段弱くする。
+ * 受付番号が無いと案件に紐づけられないので、そのときは出さない。
+ */
+const surveyUrl = code ? `/survey?c=${encodeURIComponent(code)}` : '';
+
+/**
+ * 計測タグは head で撃つ。define:vars はテンプレートリテラルと併用できないので
+ * 文字列を組んで set:html で流し込む（label は上の2値のどちらかしか入らない）。
+ */
+const completeScript =
+  `gtag('event', 'form_complete', { event_category: 'conversion', event_label: '${completeLabel}' });` +
+  `(window.annivQueue = window.annivQueue || []).push(['form_complete', '${completeLabel}']);`;
+
+// 受付番号が URL に載るので、共有キャッシュに残さない。
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+---
+
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+
+  <!-- Google tag (gtag.js) -->
+  <script is:inline async src="https://www.googletagmanager.com/gtag/js?id=G-77X1XS59RB"></script>
+  <script is:inline>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-77X1XS59RB');
+  </script>
+  <!--
+    自前計測にも同じ完了を積む。track.js はこの下（body末尾）で読むので、
+    先に呼ばれても取りこぼさないよう待ち行列に入れる（track.js の annivQueue）。
+  -->
+  <script is:inline set:html={completeScript} />
+
+  <!-- Meta Pixel Code -->
+  <script is:inline>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '1686039682668276');
+  fbq('track', 'PageView');
+  fbq('track', 'CompleteRegistration');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=1686039682668276&ev=PageView&noscript=1"
+  /></noscript>
+  <!-- End Meta Pixel Code -->
+
+  <title>お申し込みありがとうございます | Anniv</title>
+  <link rel="icon" href="/favicon.png" type="image/png" />
+  <link rel="apple-touch-icon" href="/favicon.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <style is:inline>
+    :root {
+      --white: #ffffff;
+      --blue-pale: #f0f7fc;
+      --blue-light: #d6eaf8;
+      --blue-pastel: #a8c8e0;
+      --blue-mid: #4a8ab5;
+      --navy: #1a2840;
+      --navy-soft: #243550;
+      --text: #2d3748;
+      --text-light: #64748b;
+      --border: #d1e8f5;
+      --gold: #c4a35a;
+      --gold-soft: #ddc488;
+      --gold-pale: #fdf8ef;
+      --line-green: #06C755;
+      --line-green-dark: #05a847;
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-weight: 400;
+      color: var(--text);
+      background: var(--white);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── NAV ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 60px;
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--navy);
+      letter-spacing: 0.05em;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .nav-logo img {
+      height: 64px;
+      width: auto;
+    }
+
+    /* ── MAIN ── */
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 24px;
+      position: relative;
+      overflow: hidden;
+      background: var(--white);
+    }
+    .main-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 70% 40%, rgba(168,200,224,0.20) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 20% 80%, rgba(168,200,224,0.10) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    .container {
+      position: relative;
+      max-width: 640px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .check-icon {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 32px;
+      border-radius: 50%;
+      background: var(--blue-pale);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--blue-pastel);
+    }
+    .check-icon svg {
+      width: 36px;
+      height: 36px;
+      stroke: var(--navy);
+      stroke-width: 2.5;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 500;
+      color: var(--navy);
+      letter-spacing: 0.02em;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+    .lead {
+      font-size: 15px;
+      font-weight: 400;
+      color: var(--text-light);
+      line-height: 1.9;
+      margin-bottom: 48px;
+    }
+
+    /* ── 受付番号（自前フォームから来たときだけ出る） ── */
+    .code-card {
+      background: var(--gold-pale);
+      border: 1px solid var(--gold-soft);
+      border-radius: var(--radius);
+      padding: 26px 24px;
+      margin-bottom: 24px;
+    }
+    .code-label {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      color: var(--text-light);
+      margin-bottom: 10px;
+    }
+    /* 手で打ち写す番号なので等幅にする（0とO、1とIを見間違えないため。
+       ブランドの Cormorant はオールドスタイル数字で桁がガタつくので使わない） */
+    .code-value {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Courier New', monospace;
+      font-size: 34px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--navy);
+      line-height: 1.3;
+      word-break: break-all;
+    }
+    .code-copy {
+      margin-top: 14px;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--navy);
+      background: var(--white);
+      border: 1px solid var(--gold-soft);
+      border-radius: 8px;
+      padding: 10px 20px;
+      min-height: 40px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .code-copy:hover { background: var(--white); border-color: var(--gold); }
+
+    .next-step-card {
+      background: var(--blue-pale);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 36px 32px;
+      margin-bottom: 32px;
+      text-align: left;
+    }
+    .next-step-label {
+      display: inline-block;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      color: var(--blue-mid);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .next-step-title {
+      font-size: 19px;
+      font-weight: 500;
+      color: var(--navy);
+      margin-bottom: 14px;
+      line-height: 1.6;
+    }
+    .next-step-desc {
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--text);
+      line-height: 1.9;
+      margin-bottom: 24px;
+    }
+    .next-step-desc strong {
+      font-weight: 700;
+      color: var(--navy);
+    }
+    .next-step-sub {
+      font-size: 13px;
+      color: var(--text-light);
+      line-height: 1.9;
+      margin-top: 16px;
+    }
+
+    /*
+      アプリ内ブラウザ向けの案内。JS が検知したときだけ出る（既定は hidden）。
+      見落とされると詰むので、注意書きより一段強い見た目にする。
+    */
+    .inapp-note {
+      margin-top: 16px;
+      padding: 14px 16px;
+      background: var(--gold-pale, #fdf8ef);
+      border: 1px solid var(--gold-soft, #ddc488);
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.9;
+      color: var(--text);
+      text-align: left;
+    }
+    .inapp-note strong { font-weight: 700; color: var(--navy); }
+    .next-step-sub a {
+      color: var(--blue-mid);
+      text-decoration: underline;
+    }
+
+    /* アンケートへの近道。友だち追加ボタンより明らかに弱い、文字だけの導線にする */
+    .survey-link {
+      margin-top: 16px;
+      font-size: 13px;
+      line-height: 1.9;
+      color: var(--text-light);
+    }
+    .survey-link a {
+      color: var(--blue-mid);
+      font-weight: 500;
+      text-decoration: none;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1px;
+    }
+    .survey-link a:hover { color: var(--navy); border-color: var(--navy); }
+    .next-step-sub strong {
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    .line-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      background: var(--line-green);
+      color: var(--white);
+      font-size: 16px;
+      font-weight: 700;
+      text-decoration: none;
+      padding: 18px 32px;
+      border-radius: 10px;
+      letter-spacing: 0.03em;
+      transition: background 0.2s, transform 0.1s;
+      box-shadow: 0 4px 12px rgba(6,199,85,0.25);
+    }
+    .line-btn:hover {
+      background: var(--line-green-dark);
+      transform: translateY(-1px);
+    }
+    .line-btn:active {
+      transform: translateY(0);
+    }
+    .line-btn svg {
+      width: 22px;
+      height: 22px;
+      fill: var(--white);
+      flex: none;
+    }
+
+    .note-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      text-align: left;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    .note-list li {
+      font-size: 13px;
+      color: var(--text-light);
+      line-height: 1.8;
+      padding-left: 22px;
+      position: relative;
+      margin-bottom: 10px;
+    }
+    .note-list li::before {
+      content: '';
+      position: absolute;
+      left: 6px;
+      top: 11px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--blue-pastel);
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 40px;
+      font-size: 13px;
+      color: var(--text-light);
+      text-decoration: none;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 2px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .back-link:hover {
+      color: var(--navy);
+      border-color: var(--navy);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      padding: 32px 24px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-light);
+      border-top: 1px solid var(--border);
+      background: var(--white);
+    }
+    footer a {
+      color: var(--text-light);
+      text-decoration: none;
+      margin: 0 8px;
+      transition: color 0.2s;
+    }
+    footer a:hover { color: var(--navy); }
+
+    /* ── MOBILE ── */
+    @media (max-width: 640px) {
+      nav { padding: 20px 24px; }
+      main { padding: 56px 20px; }
+      h1 { font-size: 24px; }
+      .lead { font-size: 14px; margin-bottom: 36px; }
+      .next-step-card { padding: 28px 22px; }
+      .next-step-title { font-size: 17px; }
+      .next-step-desc { font-size: 13px; }
+      .line-btn { font-size: 15px; padding: 16px 24px; }
+      .check-icon { width: 60px; height: 60px; margin-bottom: 24px; }
+      .check-icon svg { width: 30px; height: 30px; }
+      .code-value { font-size: 27px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="/" class="nav-logo"><img src="/assets/logo_trans.png" alt="" />Anniv</a>
+  </nav>
+
+  <main>
+    <div class="main-bg"></div>
+
+    <div class="container">
+
+      <div class="check-icon">
+        <svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"></polyline></svg>
+      </div>
+
+      <h1>お申し込みありがとうございます</h1>
+      <p class="lead">
+        お申し込みを受け付けました。<br />
+        ここから先のご連絡は、すべて <strong style="color: var(--navy); font-weight: 700;">LINE公式アカウント</strong> でお送りします。
+      </p>
+
+      {code && (
+        <div class="code-card">
+          <div class="code-label">受付番号</div>
+          <div class="code-value" id="codeValue">{code}</div>
+          <button type="button" class="code-copy" id="codeCopy" data-code={code}>受付番号をコピー</button>
+        </div>
+      )}
+
+      <div class="next-step-card">
+        <div class="next-step-label">Next Step</div>
+        <div class="next-step-title">{stepTitle}</div>
+        <p class="next-step-desc">
+          <strong>担当からのご連絡・プラン提案・お見積もりはすべて LINE 経由</strong> でお送りします。<br />
+          {stepDesc}<br />
+          記念日の内容やご予算などの詳しいご希望は、<strong>友だち追加のあとLINEでアンケートをご案内します。</strong>いまこの場で答える必要はありません。
+        </p>
+
+        {/*
+          **target="_blank" を付けない。** LINE のリンクは OS がアプリへ橋渡しする
+          ユニバーサルリンクで、新しいタブを開かせると橋渡しに失敗してブラウザ上の
+          Web版が出たり、何も起きなかったりする端末がある。スマホからの利用が主なので
+          同じコンテキストで遷移させるのが正しい。
+        */}
+        <a href={btnHref} class="line-btn" id="lineBtn" data-code={code}>
+          <svg viewBox="0 0 24 24"><path d="M19.365 9.863c.349 0 .63.285.631.631 0 .345-.282.63-.631.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.282.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
+          {btnLabel}
+        </a>
+
+        {/*
+          Instagram・X などのアプリ内ブラウザは、LINE のユニバーサルリンクを
+          握りつぶすことがある（Anniv の流入はSNSが中心なので当たりやすい）。
+          JS で検知したときだけ出す。既定は非表示で、素のブラウザには何も見せない。
+        */}
+        <p class="inapp-note" id="inappNote" hidden>
+          いまアプリ内のブラウザで開いています。ボタンで LINE が開かないときは、
+          画面右上または右下の「⋯」から<strong>「ブラウザで開く」</strong>を選んでから、
+          もう一度お試しください。
+        </p>
+
+        {/*
+          先に答えたい人の近道。**主導線は上の友だち追加**なので、リンク1本の弱い見た目にする。
+          受付番号が無いと案件に紐づけられないため、そのときは出さない（surveyUrl が空）。
+        */}
+        {surveyUrl && (
+          <p class="survey-link">
+            <a href={surveyUrl} data-ev="cta_click" data-ev-label="survey_from_thanks">先に希望を伝えておく</a>
+            （記念日・ご予算・パートナーの好み／あとからでも大丈夫です）
+          </p>
+        )}
+
+        {oneTap && (
+          <p class="next-step-sub">
+            うまく開かないときは<a href={addUrl}>こちら</a>から追加してください。<br />
+            友だち追加さえしていただければ、こちらでお申し込みと照合してご連絡します。
+          </p>
+        )}
+        {code && !oneTap && (
+          <p class="next-step-sub">
+            <strong>追加するだけで大丈夫です。</strong>受付番号を送る必要はありません。<br />
+            こちらでお申し込みと照合してご連絡します。<br />
+            （もし担当から連絡が来ないときだけ、上の受付番号をトークに送ってください）
+          </p>
+        )}
+      </div>
+
+      <ul class="note-list">
+        <li>追加が完了したら、当日中〜翌営業日に担当よりメッセージをお送りします</li>
+        <li>受付確認メールも同時にお送りしています（迷惑メールフォルダもご確認ください）</li>
+        <li>ご相談だけでも歓迎です。プラン確定までキャンセル無料・料金は一切発生しません</li>
+      </ul>
+
+      <a href="/" class="back-link">トップページに戻る</a>
+
+    </div>
+  </main>
+
+  <footer>
+    <div>
+      <a href="/media">メディア</a>　｜　<a href="/tokutei">特定商取引法に基づく表記</a>　｜　<a href="/privacy">プライバシーポリシー</a>
+    </div>
+    <div style="margin-top: 10px;">© 2026 Anniv</div>
+  </footer>
+
+  <script is:inline>
+    /*
+      LINE への遷移を計測する。イベント名・label は従来どおり line_add_click / thanks。
+      oaMessage リンクは lin.ee ではなく line.me なので、セレクタは両方見る
+      （data-ev を付けておけば track.js 側の委譲リスナーが1件だけ送る）。
+    */
+    document.querySelectorAll('a[href*="lin.ee"], a[href*="line.me"]').forEach(function (el) {
+      el.setAttribute('data-ev', 'line_add_click');
+      el.setAttribute('data-ev-label', 'thanks');
+      el.addEventListener('click', function () {
+        if (typeof gtag === 'function') {
+          gtag('event', 'line_add_click', { event_category: 'conversion', event_label: 'thanks' });
+        }
+        if (typeof fbq === 'function') {
+          fbq('track', 'Contact');
+        }
+      });
+    });
+
+    /*
+      受付番号のコピー。
+
+      **同期版（execCommand）を先に走らせる。** LINE ボタンからも呼ぶが、あちらは
+      コピーした直後にページを離れる。clipboard API は非同期なので、遷移が先に始まると
+      書き込みが間に合わないことがある。execCommand はクリックのハンドラ内で
+      同期的に終わるので、離脱に巻き込まれない。
+      新しい API の方も撃っておく（execCommand が効かない環境の保険）。
+    */
+    function copyCode(code) {
+      var ok = false;
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = code;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.top = '0';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        ta.setSelectionRange(0, code.length); // iOS は select() だけだと選択されない
+        ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch (e) {
+        ok = false;
+      }
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(code);
+          ok = true;
+        }
+      } catch (e) {
+        /* 失敗しても画面には番号が出ているので手で写せる */
+      }
+      return ok;
+    }
+
+    (function () {
+      var btn = document.getElementById('codeCopy');
+      if (!btn) return;
+      btn.addEventListener('click', function () {
+        var ok = copyCode(btn.getAttribute('data-code') || '');
+        btn.textContent = ok ? 'コピーしました' : '手動でコピーしてください';
+        setTimeout(function () { btn.textContent = '受付番号をコピー'; }, 2000);
+      });
+    })();
+
+    /*
+      LINE ボタンを押した瞬間に受付番号をコピーしておく。
+
+      スマホではボタンを押すとアプリへ切り替わり、この画面には戻ってこない。
+      番号を控えないまま LINE に行くと、トークで何を送ればいいか分からなくなる。
+      **preventDefault はしない**——ユニバーサルリンクの遷移はブラウザに任せ、
+      その手前で同期的にコピーだけ済ませる。
+    */
+    (function () {
+      var line = document.getElementById('lineBtn');
+      if (!line) return;
+      var code = line.getAttribute('data-code') || '';
+      if (!code) return;
+      line.addEventListener('click', function () {
+        copyCode(code);
+      });
+    })();
+
+    /*
+      アプリ内ブラウザの検知。
+
+      Instagram・X・Facebook・TikTok のアプリ内ブラウザは、LINE のユニバーサルリンクを
+      開かずに握りつぶすことがある。Anniv の流入はSNS中心なので、当たったときに
+      「詰んだ」で終わらないよう、外部ブラウザで開き直す案内を出す。
+      LINE 自身のブラウザは素通し（そこからは確実に開くため）。
+    */
+    (function () {
+      var note = document.getElementById('inappNote');
+      if (!note) return;
+      var ua = navigator.userAgent || '';
+      if (/\bLine\//i.test(ua)) return;
+      var inApp = /Instagram|FBAN|FBAV|FB_IAB|Twitter|TikTok|Snapchat/i.test(ua);
+      if (inApp) note.hidden = false;
+    })();
+  </script>
+  <script is:inline src="/assets/track.js" defer></script>
+</body>
+</html>

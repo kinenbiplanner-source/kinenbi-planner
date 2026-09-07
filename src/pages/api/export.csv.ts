@@ -3,100 +3,63 @@
  *
  * D1 が記事の正になった後も、管理台帳（`記事管理/KWマスターDB.csv`）は
  * リライト計画や内部リンク設計を眺めるのに使う。手で二重管理すると必ずズレるので、
- * 「台帳は D1 から吐き出すもの」に寄せる。列は既存CSVのヘッダーと1文字も変えない。
+ * 「台帳は D1 から吐き出すもの」に寄せる。
+ *
+ * 列の定義と整形は src/lib/kw-csv.ts に置いてある。scripts/update-pv.ts（/anniv-update-pv）も
+ * 同じモジュールで同じ列を書くので、どちらで出しても台帳の形は変わらない。
+ * PV列（累計／直近28日／前28日／増減／判定）の計算も /admin/stats と同じ手順。
  */
 import type { APIRoute } from 'astro';
-import { db } from '../../lib/db';
-import { axisName } from '../../lib/axis';
+import { db, jstYmd, pvFirstYmd, pvSince, pvTotals } from '../../lib/db';
+import { WINDOW_DAYS, daysBetween, pivotByArticle, shiftYmd, ymdRange } from '../../lib/stats';
+import { buildKwCsv, windowPerf, type KwCsvArticle } from '../../lib/kw-csv';
 
 export const prerender = false;
 
-const HEADER = ['KW', '軸', 'ファネル層', 'タイトル', 'ステータス', 'URL', '公開日', 'リライト日', '備考'];
-
-const SITE = 'https://anniv.gift';
-
-interface Row {
-  slug: string;
-  title: string;
-  keyword: string;
-  axis: string;
-  funnel: string;
-  status: string;
-  is_ad: number;
-  published_at: string | null;
-  updated_at: string;
-}
-
-/**
- * 日付は JST で切る。DB は ISO8601（UTC）で持っているので、
- * そのまま先頭10文字を取ると夜間に保存した記事が前日扱いになる。
- * 台帳を見るのは日本にいる運営者なので JST が正しい。
- */
-const JST_DATE = new Intl.DateTimeFormat('en-CA', {
-  timeZone: 'Asia/Tokyo',
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-});
-
-function jstDate(iso: string | null): string {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  return JST_DATE.format(d);
-}
-
-/** RFC 4180。カンマ・改行・ダブルクォートを含む値だけ囲み、内側の " は "" にする。 */
-function csvCell(value: string): string {
-  if (value === '') return '';
-  if (/[",\r\n]/.test(value) || value !== value.trim()) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
-}
-
-function csvRow(cells: string[]): string {
-  return cells.map(csvCell).join(',');
+interface Row extends KwCsvArticle {
+  id: number;
 }
 
 export const GET: APIRoute = async () => {
-  const { results } = await db()
-    .prepare(
-      `SELECT slug, title, keyword, axis, funnel, status, is_ad, published_at, updated_at
-       FROM articles ORDER BY COALESCE(published_at, updated_at) DESC, id DESC`,
-    )
-    .all<Row>();
+  const today = jstYmd();
+  const curYmds = ymdRange(today, WINDOW_DAYS);
+  const prevYmds = ymdRange(shiftYmd(today, -WINDOW_DAYS), WINDOW_DAYS);
 
-  const lines = [csvRow(HEADER)];
+  // どれも独立したクエリなので同時に投げる。
+  const [{ results }, windowRows, totals, firstYmd] = await Promise.all([
+    db()
+      .prepare(
+        `SELECT id, slug, title, keyword, axis, funnel, status, is_ad, published_at, updated_at
+         FROM articles ORDER BY COALESCE(published_at, updated_at) DESC, id DESC`,
+      )
+      .all<Row>(),
+    pvSince(prevYmds[0]!),
+    pvTotals(),
+    pvFirstYmd(),
+  ]);
 
-  for (const r of results ?? []) {
-    const published = jstDate(r.published_at);
-    const updated = jstDate(r.updated_at);
-    lines.push(
-      csvRow([
-        r.keyword,
-        axisName(r.axis),
-        r.funnel,
-        r.title,
-        r.status === 'published' ? '公開' : '下書き',
-        r.status === 'published' ? `${SITE}/media/${r.slug}` : '',
-        published,
-        // 公開日と同じ日の更新は「公開しただけ」なのでリライトではない。
-        // 別日に更新されていればリライト日として出す。
-        updated && updated !== published ? updated : '',
-        // 備考は台帳側の自由記入欄。D1 に対応する列が無いので、
-        // 唯一機械的に分かる PR 表記（frontmatter の ad: true）だけ入れる。
-        r.is_ad ? 'PR記事' : '',
-      ]),
-    );
-  }
+  // 計測開始から28日たつまでは判定を出さない（/admin/stats と同じ）。
+  const measuredDays = firstYmd ? daysBetween(firstYmd, today) + 1 : 0;
+  const canJudge = measuredDays >= WINDOW_DAYS;
+  const perArticle = pivotByArticle(windowRows);
 
-  // Excel は UTF-8 の CSV を BOM 無しだと Shift_JIS と誤認して化ける。
-  // 改行も CRLF に揃えておく（Excel 以外でも問題にならない）。
-  // BOM はエスケープで書く。ソースに生の U+FEFF を置くと編集時に消えても気付けない。
-  const body = '\uFEFF' + lines.join('\r\n') + '\r\n';
+  const rows = (results ?? []).map((r) => ({
+    article: r,
+    perf:
+      r.status === 'published'
+        ? windowPerf({
+            publishedAt: r.published_at,
+            today,
+            by: perArticle.get(r.id),
+            curYmds,
+            prevYmds,
+            total: totals.get(r.id) ?? 0,
+            canJudge,
+          })
+        : null,
+  }));
 
-  return new Response(body, {
+  return new Response(buildKwCsv(rows), {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
       // 日本語ファイル名は filename*（RFC 5987）で渡す。素の filename に日本語を入れると

@@ -93,3 +93,118 @@ CREATE TABLE IF NOT EXISTS keywords (
 );
 CREATE INDEX IF NOT EXISTS idx_kw_status ON keywords(status, priority, id);
 CREATE INDEX IF NOT EXISTS idx_kw_axis   ON keywords(axis, priority);
+
+-- ────────────────────────────────────────────────
+-- 週次レポート（/anniv-update-pv が入れる）。
+--
+-- Claude が現状ファクトシートを読んで書いた分析文（Markdown）と、その回の記事別 GA4 / Search Console の断面。
+-- /admin/stats がここを読んで本文とGA4・GSC列を出す。**ダッシュボードは D1 を読むだけ**なので、
+-- 毎週の更新はこのテーブルに1行入れるだけで済み、デプロイは要らない。
+--
+-- GA4 と GSC の記事別の数字を Worker から都度引かないのは、GA4 のクォータと GSC の遅延があるうえ、
+-- 「レポートを書いた時点の数字」と画面の数字が違うと読みが狂うため。その回の断面をそのまま置く。
+-- 書き込みは scripts/update-pv.ts --publish（wrangler 経由）だけ。Worker 側は読むだけ。
+CREATE TABLE IF NOT EXISTS pv_reports (
+  ymd           TEXT PRIMARY KEY,               -- レポートの日付（JST）。同じ日に何度入れても1件
+  report_md     TEXT NOT NULL,                  -- 週次レポート本文（Markdown）
+  snapshot_json TEXT NOT NULL DEFAULT '{}',     -- 記事別の断面（src/lib/stats.ts の PvSnapshot）
+  created_at    TEXT NOT NULL
+);
+
+-- ────────────────────────────────────────────────
+-- 受注（案件）。Tally → Notion 2DB → Make の流れを D1 1テーブルに畳んだもの（2026-09-07）。
+--
+-- 「顧客管理DB（生ログ）」と「案件管理DB（進行管理）」は実態が同じ1行の前半と後半なので、
+-- 生の回答は submission_json に丸ごと持ち、進行の列を同じ行に足す。
+-- 申込フォーム（/apply）と無料相談（/contact）は同じテーブルで kind だけ違う。
+--
+-- code は顧客に見せる受付番号（例 K7M2-4QXA）。サンクスページでこの番号を LINE に送ってもらい、
+-- Webhook 側で line_user_id に紐づける（＝「LINE 登録があったか」を管理画面で見られるようにする）。
+-- 紛らわしい 0/O/1/I/L は使わない（src/lib/cases.ts の generateCode）。
+CREATE TABLE IF NOT EXISTS cases (
+  id               INTEGER PRIMARY KEY AUTOINCREMENT,
+  code             TEXT    NOT NULL UNIQUE,            -- 受付番号 XXXX-XXXX
+  kind             TEXT    NOT NULL DEFAULT 'apply',   -- apply（申込フォーム） | consult（無料相談）
+  status           TEXT    NOT NULL DEFAULT 'new',     -- src/lib/intake.ts の CASE_STATUSES
+  -- 顧客
+  name             TEXT    NOT NULL,
+  email            TEXT    NOT NULL DEFAULT '',
+  phone            TEXT    NOT NULL DEFAULT '',
+  line_name        TEXT    NOT NULL DEFAULT '',        -- 顧客が申告した LINE の表示名
+  line_user_id     TEXT,                               -- 紐づいた LINE の userId（line_users.user_id）
+  -- 申込内容（フォームの回答。列は Tally の現行フォーム 2026-09-07 時点と対）
+  age              TEXT    NOT NULL DEFAULT '',
+  partner_age      TEXT    NOT NULL DEFAULT '',
+  relationship     TEXT    NOT NULL DEFAULT '',        -- 交際期間
+  anniversary      TEXT    NOT NULL DEFAULT '',        -- 記念日の内容
+  anniversary_date TEXT    NOT NULL DEFAULT '',        -- YYYY-MM-DD
+  budget           TEXT    NOT NULL DEFAULT '',
+  express          INTEGER NOT NULL DEFAULT 0,         -- スピード対応
+  delegation       TEXT    NOT NULL DEFAULT '',        -- お任せ度合い 100 | 70 | 30
+  interests_json   TEXT    NOT NULL DEFAULT '[]',      -- パートナーの興味（配列）
+  past_style       TEXT    NOT NULL DEFAULT '',        -- これまでの過ごし方
+  wishes           TEXT    NOT NULL DEFAULT '',        -- 希望・こだわり
+  message          TEXT    NOT NULL DEFAULT '',        -- 無料相談の相談内容
+  submission_json  TEXT    NOT NULL DEFAULT '{}',      -- 生の回答（そのまま）
+  source           TEXT    NOT NULL DEFAULT 'direct',  -- 流入元（track.js が持つ UTM）
+  medium           TEXT    NOT NULL DEFAULT '',
+  campaign         TEXT    NOT NULL DEFAULT '',
+  -- 進行（旧 Notion 案件管理DB の列）
+  plan             TEXT    NOT NULL DEFAULT '',
+  gift             TEXT    NOT NULL DEFAULT '',
+  gift_arranged    INTEGER NOT NULL DEFAULT 0,
+  gift_shipped_on  TEXT    NOT NULL DEFAULT '',
+  restaurant       TEXT    NOT NULL DEFAULT '',
+  restaurant_booked INTEGER NOT NULL DEFAULT 0,
+  guide_sent       INTEGER NOT NULL DEFAULT 0,         -- 演出指示書を送ったか
+  payment_method   TEXT    NOT NULL DEFAULT 'stripe',  -- stripe | paypay | other
+  payment_status   TEXT    NOT NULL DEFAULT 'none',    -- none | sent | paid | refunded
+  amount           INTEGER NOT NULL DEFAULT 0,         -- 円
+  stripe_invoice_id TEXT   NOT NULL DEFAULT '',
+  memo             TEXT    NOT NULL DEFAULT '',
+  -- 詳しいアンケート（/survey）に答えた日時。**null なら未回答**。
+  -- 入口の /apply では お名前・メール・LINE名 の3つしか聞かないので、
+  -- ここが空の案件は提案に必要な情報がまだ揃っていない（2026-09-07 に2段階化）。
+  survey_at        TEXT,
+  created_at       TEXT    NOT NULL,
+  updated_at       TEXT    NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_cases_status ON cases(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_cases_line   ON cases(line_user_id);
+CREATE INDEX IF NOT EXISTS idx_cases_date   ON cases(anniversary_date);
+
+-- 案件の履歴（誰がいつ何をしたか。Notion のコメント欄の代わり）
+CREATE TABLE IF NOT EXISTS case_log (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  case_id    INTEGER NOT NULL,
+  kind       TEXT    NOT NULL,                 -- created | status | note | mail | line_out | line_in | link | unlink
+  body       TEXT    NOT NULL DEFAULT '',
+  created_at TEXT    NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_case_log ON case_log(case_id, id);
+
+-- ────────────────────────────────────────────────
+-- LINE 公式アカウントの友だち（Messaging API の Webhook が入れる）。
+-- follow で行を作り、unfollow で unfollowed_at を立てる（行は消さない。再追加で戻す）。
+CREATE TABLE IF NOT EXISTS line_users (
+  user_id         TEXT PRIMARY KEY,
+  display_name    TEXT NOT NULL DEFAULT '',
+  picture_url     TEXT NOT NULL DEFAULT '',
+  followed_at     TEXT NOT NULL,
+  unfollowed_at   TEXT,
+  last_message_at TEXT,
+  updated_at      TEXT NOT NULL
+);
+
+-- LINE のやり取り（受信は Webhook、送信は管理画面から push したもの）。
+-- 顧客対応そのものは LINE Official Account Manager のチャットで続ける前提なので、
+-- ここに全会話を再現する意図は無い。「いつ何を送った／受けたか」の控え。
+CREATE TABLE IF NOT EXISTS line_messages (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id    TEXT NOT NULL,
+  direction  TEXT NOT NULL,                    -- in | out
+  text       TEXT NOT NULL DEFAULT '',
+  event_at   TEXT NOT NULL,
+  raw_json   TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_line_msg ON line_messages(user_id, id DESC);

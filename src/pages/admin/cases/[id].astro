@@ -1,0 +1,872 @@
+---
+/**
+ * 案件詳細（/admin/cases/[id]）。
+ *
+ * 一覧（cases/index.astro）が「どれを見るか」を選ぶ画面なのに対し、ここは1件を最後まで進める画面。
+ * 申込の回答・進行・やり取りを1ページに畳んでいる。上から
+ *   1. ヘッダ（受付番号・名前・状態）… 今どこにいるか
+ *   2. 申込内容 ／ 進行         … 読む列と書く列を左右に分ける
+ *   3. LINE                     … 紐づけと、やり取りの控え
+ *   4. 返信                     … 定型文を選んでそのまま送る
+ *   5. 履歴                     … 何をしたかの記録とメモ
+ *   6. 危険な操作               … 削除
+ * の順。運営者は1人なので「誰が見ても分かる」より「1人が上から下へ流せる」を優先している。
+ *
+ * データはサーバ側で lib を直接読み、書き込みだけ /api/cases/* を叩く。
+ * テンプレートの差し込み（{name} など）もサーバ側で済ませ、boot JSON で画面に渡す
+ * ——置き換えの規則を script 側に写経すると templates.ts と二重管理になるため。
+ */
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import {
+  BUDGET_OPTIONS,
+  CASE_STATUSES,
+  DELEGATION_OPTIONS,
+  PAYMENT_METHODS,
+  PAYMENT_STATUSES,
+  kindLabel,
+  statusLabel,
+} from '../../../lib/intake';
+import { daysUntil, getCase, listCaseLog, parseInterests } from '../../../lib/cases';
+import { getLineUser, listLineMessages, listLineUsers } from '../../../lib/line';
+import { REPLY_TEMPLATES, renderTemplate } from '../../../lib/templates';
+import { siteUrl } from '../../../lib/config';
+
+export const prerender = false;
+
+// URL を手で書き換えられても落ちないように、数値でなければ 404 と同じ扱いにする。
+const rawId = Number(Astro.params.id);
+const id = Number.isInteger(rawId) && rawId > 0 ? rawId : null;
+const c = id === null ? null : await getCase(id);
+if (!c) Astro.response.status = 404;
+
+// 以下は案件がある時だけ引く。LINE は紐づいていれば会話の控え、いなければ紐づけ候補。
+const log = c ? await listCaseLog(c.id) : [];
+const lineUser = c?.line_user_id ? await getLineUser(c.line_user_id) : null;
+const messages = c?.line_user_id ? await listLineMessages(c.line_user_id, 50) : [];
+const lineCandidates = c && !c.line_user_id ? await listLineUsers({ unlinkedOnly: true, limit: 50 }) : [];
+
+// listLineMessages は新しい順。会話として読むので古い順に直す。
+const thread = [...messages].reverse();
+
+const interests = c ? parseInterests(c) : [];
+
+/**
+ * 生の回答。整形して読めるようにするが、壊れていたら生文字列のまま出す
+ * （「読めない」より「読みにくいが中身は見える」方が調査に使える）。
+ */
+let submissionText = '';
+if (c) {
+  try {
+    submissionText = JSON.stringify(JSON.parse(c.submission_json), null, 2);
+  } catch {
+    submissionText = c.submission_json;
+  }
+}
+
+// 日付は JST で表示する。DB は ISO8601（UTC）なので、そのまま切ると
+// 夜に受け付けた申込が前日扱いになる。
+const JST = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Tokyo',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+const JST_TIME = new Intl.DateTimeFormat('ja-JP', {
+  timeZone: 'Asia/Tokyo',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+});
+const fmtDateTime = (iso: string | null): string => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '—' : `${JST.format(d)} ${JST_TIME.format(d)}`;
+};
+
+/** 記念日までの残りを「あと N 日／今日／済」にする。クラスは近さで色を変えるため（一覧と同じ規則）。 */
+function daysBadge(ymd: string): { text: string; cls: string } | null {
+  const n = daysUntil(ymd);
+  if (n === null) return null;
+  if (n < 0) return { text: '済', cls: 'is-past' };
+  if (n === 0) return { text: '今日', cls: 'is-urgent' };
+  return { text: `あと${n}日`, cls: n <= 3 ? 'is-urgent' : n <= 7 ? 'is-soon' : '' };
+}
+const annBadge = c ? daysBadge(c.anniversary_date) : null;
+
+const delegationLabel = (v: string): string => DELEGATION_OPTIONS.find((d) => d.value === v)?.label ?? (v || '—');
+
+/** アンケート未回答のときに案内する URL。受付番号付きならメールを打たずに答えられる。 */
+const surveyUrl = c ? `${siteUrl()}/survey?c=${c.code}` : '';
+
+/** 履歴の種別。DB には英字で入っているので、読むとき用に日本語へ寄せる。 */
+const LOG_KINDS: Record<string, string> = {
+  created: '受付',
+  status: '状態変更',
+  note: 'メモ',
+  mail: 'メール',
+  line_out: 'LINE送信',
+  line_in: 'LINE受信',
+  link: '紐づけ',
+  unlink: '紐づけ解除',
+};
+
+/**
+ * 状態変更の本文は `new → contacted` のように内部値で入っている。
+ * 読むときだけ日本語ラベルに直す（DB の値は変えない＝過去の行も同じ規則で読める）。
+ */
+function logBody(kind: string, body: string): string {
+  if (kind !== 'status') return body;
+  return body
+    .split('→')
+    .map((s) => statusLabel(s.trim()))
+    .join(' → ');
+}
+
+// 返信テンプレートは差し込みまで済ませて配る。件名はメールだけで使う。
+const templates = c
+  ? REPLY_TEMPLATES.map((t) => {
+      const vars = { name: c.name, code: c.code, anniversary_date: c.anniversary_date };
+      return {
+        key: t.key,
+        label: t.label,
+        subject: renderTemplate(t.subject, vars),
+        body: renderTemplate(t.body, vars),
+      };
+    })
+  : [];
+
+const boot = c
+  ? JSON.stringify({ id: c.id, name: c.name, code: c.code, templates }).replace(/</g, '\\u003c')
+  : '';
+---
+
+<AdminLayout title="案件" current="cases">
+  {
+    !c ? (
+      <div class="admin-card case-notfound">
+        <p class="admin-empty">案件が見つかりません。削除されたか、URL の番号が違います。</p>
+        <p class="case-notfound-actions">
+          <a class="btn btn-primary" href="/admin/cases">
+            案件一覧へ
+          </a>
+        </p>
+      </div>
+    ) : (
+      <>
+        <script id="case-boot" type="application/json" is:inline set:html={boot} />
+
+        {/* ── ヘッダ ── */}
+        <div class="admin-bar case-head">
+          <span class="case-head-code">{c.code}</span>
+          <h1 class="case-head-name">{c.name}</h1>
+          <span class={`case-kind case-kind-${c.kind}`}>{kindLabel(c.kind)}</span>
+          <select id="case-status" class="case-status-select" aria-label="状態">
+            {CASE_STATUSES.map((s) => (
+              <option value={s.value} selected={c.status === s.value} title={s.hint}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+          <span class="case-head-meta">申込 {fmtDateTime(c.created_at)}</span>
+          <a class="btn" href="/admin/cases">
+            一覧へ
+          </a>
+        </div>
+
+        <div class="notice notice-error" id="case-error" hidden></div>
+        <div class="notice notice-ok" id="case-ok" hidden></div>
+
+        <div class="case-grid">
+          {/* ── 左：申込内容（読むだけ。フォームの回答そのもの）── */}
+          <div class="admin-card">
+            <div class="admin-card-head">
+              申込内容
+              <span class="admin-hint">{kindLabel(c.kind)}フォームの回答</span>
+            </div>
+            {/*
+              アンケート（/survey）の回答有無。入口の /apply は3つしか聞かないので、
+              **未回答だと記念日・予算・興味が空のまま**になる。「無記入」なのか
+              「そもそも聞けていない」のかを、この帯で先に伝える。
+            */}
+            {c.kind === 'apply' && !c.survey_at && (
+              <div class="admin-card-body survey-warn">
+                <strong>アンケート未回答。</strong>
+                下の記念日・予算・パートナーの好みは、まだ聞けていません（入口で聞くのはお名前・メール・LINE名の3つだけ）。
+                LINE で <code>{surveyUrl}</code> を案内すると埋まります。
+              </div>
+            )}
+            <div class="admin-card-body">
+              <dl class="case-dl">
+                {c.kind === 'apply' ? (
+                  <>
+                    <div>
+                      <dt>年齢</dt>
+                      <dd>{c.age || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>パートナーの年齢</dt>
+                      <dd>{c.partner_age || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>交際期間</dt>
+                      <dd>{c.relationship || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>記念日</dt>
+                      <dd>{c.anniversary || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>日付</dt>
+                      <dd>
+                        {c.anniversary_date ? (
+                          <span class="case-date-line">
+                            <span class="cell-date">{c.anniversary_date}</span>
+                            {annBadge && <span class:list={['case-days', annBadge.cls]}>{annBadge.text}</span>}
+                          </span>
+                        ) : (
+                          '—'
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>予算</dt>
+                      <dd>{c.budget || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>種別</dt>
+                      <dd>
+                        {c.express === 1 ? <span class="case-express">スピード対応</span> : '通常'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>お任せ度</dt>
+                      <dd>{delegationLabel(c.delegation)}</dd>
+                    </div>
+                    <div>
+                      <dt>興味</dt>
+                      <dd>
+                        {interests.length === 0 ? (
+                          '—'
+                        ) : (
+                          <span class="case-chips">
+                            {interests.map((v) => (
+                              <span class="case-chip">{v}</span>
+                            ))}
+                          </span>
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>過ごし方</dt>
+                      <dd>{c.past_style || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>希望・こだわり</dt>
+                      <dd class="case-pre">{c.wishes || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>電話</dt>
+                      <dd>{c.phone ? <a href={`tel:${c.phone}`}>{c.phone}</a> : '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>メール</dt>
+                      <dd>{c.email ? <a href={`mailto:${c.email}`}>{c.email}</a> : '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>LINE名</dt>
+                      <dd>{c.line_name || '—'}</dd>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <dt>記念日</dt>
+                      <dd>{c.anniversary || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>日付</dt>
+                      <dd>
+                        {c.anniversary_date ? (
+                          <span class="case-date-line">
+                            <span class="cell-date">{c.anniversary_date}</span>
+                            {annBadge && <span class:list={['case-days', annBadge.cls]}>{annBadge.text}</span>}
+                          </span>
+                        ) : (
+                          '—'
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>相談内容</dt>
+                      <dd class="case-pre">{c.message || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>メール</dt>
+                      <dd>{c.email ? <a href={`mailto:${c.email}`}>{c.email}</a> : '—'}</dd>
+                    </div>
+                  </>
+                )}
+                <div>
+                  <dt>流入元</dt>
+                  <dd class="case-source">
+                    {c.source}
+                    {c.medium ? ` / ${c.medium}` : ''}
+                    {c.campaign ? ` / ${c.campaign}` : ''}
+                  </dd>
+                </div>
+              </dl>
+
+              {/* 列に落とし込む前の回答そのもの。フォームを変えた直後の突き合わせ用 */}
+              <details class="case-details">
+                <summary>生の回答を表示</summary>
+                <pre class="case-raw">{submissionText}</pre>
+              </details>
+            </div>
+          </div>
+
+          {/* ── 右：進行（書く列。手配・決済の状態をここで更新する）── */}
+          <div class="admin-card">
+            <div class="admin-card-head">
+              進行
+              <span class="admin-hint">最終更新 {fmtDateTime(c.updated_at)}</span>
+            </div>
+            <div class="admin-card-body" id="form-progress">
+              <div class="field">
+                <label for="f-plan">プラン</label>
+                <input type="text" id="f-plan" data-patch="plan" value={c.plan} placeholder="提案したプランの名前・要約" />
+              </div>
+              <div class="field">
+                <label for="f-gift">プレゼント</label>
+                <textarea id="f-gift" data-patch="gift" rows="3" placeholder="商品名・購入先・金額">{c.gift}</textarea>
+              </div>
+              <div class="field">
+                <label class="checkbox">
+                  <input type="checkbox" data-patch="gift_arranged" checked={c.gift_arranged === 1} />
+                  プレゼント手配済み
+                </label>
+              </div>
+              <div class="field">
+                <label for="f-shipped">発送日</label>
+                <input type="date" id="f-shipped" data-patch="gift_shipped_on" value={c.gift_shipped_on} />
+              </div>
+              <div class="field">
+                <label for="f-restaurant">レストラン</label>
+                <input
+                  type="text"
+                  id="f-restaurant"
+                  data-patch="restaurant"
+                  value={c.restaurant}
+                  placeholder="店名・時間"
+                />
+              </div>
+              <div class="field">
+                <label class="checkbox">
+                  <input type="checkbox" data-patch="restaurant_booked" checked={c.restaurant_booked === 1} />
+                  レストラン予約済み
+                </label>
+              </div>
+              <div class="field">
+                <label class="checkbox">
+                  <input type="checkbox" data-patch="guide_sent" checked={c.guide_sent === 1} />
+                  演出指示書 送付済み
+                </label>
+              </div>
+              <div class="field-grid">
+                <div class="field">
+                  <label for="f-pay-method">支払い方法</label>
+                  <select id="f-pay-method" data-patch="payment_method">
+                    {PAYMENT_METHODS.map((m) => (
+                      <option value={m.value} selected={c.payment_method === m.value}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="f-pay-status">入金</label>
+                  <select id="f-pay-status" data-patch="payment_status">
+                    {PAYMENT_STATUSES.map((p) => (
+                      <option value={p.value} selected={c.payment_status === p.value}>
+                        {p.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="f-amount">金額（円）</label>
+                  <input type="number" id="f-amount" data-patch="amount" value={String(c.amount)} min="0" step="1" />
+                </div>
+                <div class="field">
+                  <label for="f-invoice">Stripe Invoice ID</label>
+                  <input type="text" id="f-invoice" data-patch="stripe_invoice_id" value={c.stripe_invoice_id} class="mono" />
+                </div>
+              </div>
+              <div class="field">
+                <label for="f-memo">メモ</label>
+                <textarea id="f-memo" data-patch="memo" rows="4" placeholder="この案件の覚え書き（履歴とは別）">{c.memo}</textarea>
+              </div>
+              <div class="case-form-actions">
+                <button class="btn btn-primary" type="button" id="btn-save-progress">保存</button>
+              </div>
+            </div>
+
+            {/*
+              顧客情報は受付時の回答そのもの。打ち間違いの訂正でしか触らないので
+              既定では畳んでおく（進行の入力と同じ重さで並べない）。
+              進行フォームの外に出しているのは、保存ボタンごとに送る列を分けるため
+              （#form-progress の data-patch だけを集めれば進行の payload になる）。
+            */}
+            <div class="admin-card-body case-body-sub">
+              <details class="case-details">
+                <summary>顧客情報を編集</summary>
+                <div id="form-customer">
+                  <div class="field-grid">
+                    <div class="field">
+                      <label for="f-name">名前</label>
+                      <input type="text" id="f-name" data-patch="name" value={c.name} />
+                    </div>
+                    <div class="field">
+                      <label for="f-email">メール</label>
+                      <input type="text" id="f-email" data-patch="email" value={c.email} />
+                    </div>
+                    <div class="field">
+                      <label for="f-phone">電話</label>
+                      <input type="text" id="f-phone" data-patch="phone" value={c.phone} />
+                    </div>
+                    <div class="field">
+                      <label for="f-line-name">LINE名</label>
+                      <input type="text" id="f-line-name" data-patch="line_name" value={c.line_name} />
+                    </div>
+                    <div class="field">
+                      <label for="f-anniversary">記念日</label>
+                      <input type="text" id="f-anniversary" data-patch="anniversary" value={c.anniversary} />
+                    </div>
+                    <div class="field">
+                      <label for="f-ann-date">日付</label>
+                      <input type="date" id="f-ann-date" data-patch="anniversary_date" value={c.anniversary_date} />
+                    </div>
+                    <div class="field">
+                      <label for="f-budget">予算</label>
+                      {/* 選択肢は intake.ts が正だが、過去の値や自由入力も残せるよう list で候補を出すだけにする */}
+                      <input type="text" id="f-budget" data-patch="budget" value={c.budget} list="budget-options" />
+                      <datalist id="budget-options">
+                        {BUDGET_OPTIONS.map((b) => (
+                          <option value={b}></option>
+                        ))}
+                      </datalist>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label class="checkbox">
+                      <input type="checkbox" data-patch="express" checked={c.express === 1} />
+                      スピード対応
+                    </label>
+                  </div>
+                  <div class="case-form-actions">
+                    <button class="btn" type="button" id="btn-save-customer">顧客情報を保存</button>
+                  </div>
+                </div>
+              </details>
+            </div>
+          </div>
+        </div>
+
+        {/* ── LINE ── */}
+        <div class="admin-card">
+          <div class="admin-card-head">
+            LINE
+            {c.line_user_id ? (
+              <span class="line-linked">{lineUser?.display_name || '紐づけ済み'}</span>
+            ) : (
+              <span class="line-none">未紐づけ</span>
+            )}
+          </div>
+          <div class="admin-card-body">
+            {c.line_user_id ? (
+              <>
+                <div class="line-meta">
+                  <span>
+                    表示名 <strong>{lineUser?.display_name || '（表示名なし）'}</strong>
+                  </span>
+                  <span>追加 {fmtDateTime(lineUser?.followed_at ?? null)}</span>
+                  <span>最終メッセージ {fmtDateTime(lineUser?.last_message_at ?? null)}</span>
+                  {lineUser?.unfollowed_at && (
+                    <span class="line-blocked">ブロック中（{fmtDateTime(lineUser.unfollowed_at)}）</span>
+                  )}
+                  <button class="btn btn-sm btn-danger" type="button" id="btn-line-unlink">
+                    紐づけを外す
+                  </button>
+                </div>
+                {thread.length === 0 ? (
+                  <p class="admin-empty case-empty-sm">まだやり取りがありません。</p>
+                ) : (
+                  <ul class="line-thread">
+                    {thread.map((m) => (
+                      <li class:list={['line-bubble', m.direction === 'in' ? 'is-in' : 'is-out']}>
+                        <span class="line-bubble-text">{m.text || '（テキスト以外のメッセージ）'}</span>
+                        <span class="line-bubble-time">{fmtDateTime(m.event_at)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            ) : lineCandidates.length === 0 ? (
+              <p class="admin-empty case-empty-sm">
+                まだ友だち追加されていません。顧客がトークで受付番号を送ると自動で紐づきます。
+              </p>
+            ) : (
+              <div class="line-link-row">
+                <select id="line-candidate" aria-label="紐づける LINE の友だち">
+                  <option value="">友だちを選ぶ</option>
+                  {lineCandidates.map((u) => (
+                    <option value={u.user_id}>
+                      {u.display_name || '（表示名なし）'}（追加 {fmtDateTime(u.followed_at)}）
+                    </option>
+                  ))}
+                </select>
+                <button class="btn btn-primary" type="button" id="btn-line-link">
+                  この人を紐づける
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── 返信（定型文を選んでそのまま送る）── */}
+        <div class="admin-card">
+          <div class="admin-card-head">
+            返信
+            <span class="admin-hint">やり取りの本線は LINE 公式アカウントのチャット。ここは定型文用</span>
+          </div>
+          <div class="admin-card-body">
+            <div class="field">
+              <label for="reply-template">テンプレート</label>
+              <select id="reply-template">
+                <option value="">選ぶと件名と本文が入る</option>
+                {templates.map((t) => (
+                  <option value={t.key}>{t.label}</option>
+                ))}
+              </select>
+            </div>
+            <div class="field">
+              <label for="reply-subject">件名<span class="admin-hint">メールのみ</span></label>
+              <input type="text" id="reply-subject" />
+            </div>
+            <div class="field">
+              <label for="reply-body">本文</label>
+              <textarea id="reply-body" rows="10"></textarea>
+            </div>
+            <div class="case-reply-actions">
+              <button
+                class="btn btn-primary"
+                type="button"
+                id="btn-send-line"
+                disabled={!c.line_user_id}
+              >
+                LINEで送る
+              </button>
+              <button class="btn" type="button" id="btn-send-mail" disabled={!c.email}>
+                メールで送る
+              </button>
+              {c.status === 'new' && (
+                <button class="btn" type="button" id="btn-mark-contacted">
+                  状態を「連絡済み」にする
+                </button>
+              )}
+            </div>
+            {!c.line_user_id && (
+              <p class="field-note is-warn">LINE が紐づいていないので LINE では送れません。</p>
+            )}
+            {!c.email && <p class="field-note is-warn">メールアドレスが無いのでメールでは送れません。</p>}
+          </div>
+        </div>
+
+        {/* ── 履歴 ── */}
+        <div class="admin-card">
+          <div class="admin-card-head">
+            履歴
+            <span class="admin-hint">{log.length}件</span>
+          </div>
+          <div class="admin-card-body">
+            <div class="field">
+              <label for="note-body">メモを追加</label>
+              <textarea id="note-body" rows="2" placeholder="電話で確認した内容など"></textarea>
+            </div>
+            <div class="case-form-actions">
+              <button class="btn" type="button" id="btn-note">メモを残す</button>
+            </div>
+
+            {log.length === 0 ? (
+              <p class="admin-empty case-empty-sm">まだ履歴がありません。</p>
+            ) : (
+              <ul class="case-log">
+                {log.map((l) => (
+                  <li class="case-log-item">
+                    <span class={`case-log-kind is-${l.kind}`}>{LOG_KINDS[l.kind] ?? l.kind}</span>
+                    <span class="case-log-time">{fmtDateTime(l.created_at)}</span>
+                    <span class="case-log-body">{logBody(l.kind, l.body)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+
+        {/* ── 危険な操作 ── */}
+        <div class="danger-zone">
+          <div>
+            <strong>この案件を削除する</strong>
+            <p class="field-note">
+              案件と履歴が消える。元に戻せない。実際の案件は削除せず、状態を「失注・取消」にして残す。
+            </p>
+          </div>
+          <button class="btn btn-danger" type="button" id="btn-delete">削除</button>
+        </div>
+      </>
+    )
+  }
+</AdminLayout>
+
+<script>
+  /*
+   * 案件詳細のクライアント側。やることは
+   *   進行／顧客情報の保存・状態変更・LINE の紐づけ／解除・返信の送信・メモ追加・削除
+   * の6つで、すべて /api/cases/* への JSON リクエスト。
+   * 画面の再構築はしない——1画面に出している情報（履歴・LINE・状態）が絡み合うので、
+   * 表示が変わる操作は location.reload() で読み直す方が食い違わない。
+   */
+
+  interface BootTemplate {
+    key: string;
+    label: string;
+    subject: string;
+    body: string;
+  }
+  interface Boot {
+    id: number;
+    name: string;
+    code: string;
+    templates: BootTemplate[];
+  }
+
+  const bootEl = document.getElementById('case-boot');
+  const boot: Boot | null = bootEl?.textContent ? (JSON.parse(bootEl.textContent) as Boot) : null;
+
+  function el<T>(id: string): T | null {
+    return document.getElementById(id) as T | null;
+  }
+
+  /**
+   * querySelectorAll の型引数に具体的な要素型を渡すと Element と噛み合わず型エラーになる
+   * （keywords.astro の all() と同じ事情）。素の型引数で受けて畳む。
+   */
+  function all<T>(root: HTMLElement, selector: string): T[] {
+    return Array.from(root.querySelectorAll(selector)) as unknown as T[];
+  }
+
+  function init(boot: Boot) {
+    const msgError = el<HTMLElement>('case-error');
+    const msgOk = el<HTMLElement>('case-ok');
+
+    function hideMsgs() {
+      if (msgError) msgError.hidden = true;
+      if (msgOk) msgOk.hidden = true;
+    }
+
+    function show(box: HTMLElement | null, text: string) {
+      if (!box) return;
+      box.textContent = text;
+      box.hidden = false;
+      box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
+    const showError = (text: string) => show(msgError, text);
+    const showOk = (text: string) => show(msgOk, text);
+
+    /** API のエラーは JSON の error に入る。列ごとの不備は errors の配列で来るので繋げて出す。 */
+    async function errorText(res: Response): Promise<string> {
+      try {
+        const data = (await res.json()) as { error?: string; errors?: string[] };
+        const detail = Array.isArray(data.errors) && data.errors.length ? `：${data.errors.join(' / ')}` : '';
+        return `${data.error ?? `エラー（HTTP ${res.status}）`}${detail}`;
+      } catch {
+        return `エラー（HTTP ${res.status}）`;
+      }
+    }
+
+    async function send(path: string, method: string, payload?: unknown): Promise<boolean> {
+      hideMsgs();
+      try {
+        const res = await fetch(path, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: payload === undefined ? undefined : JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error(await errorText(res));
+        return true;
+      } catch (e) {
+        showError(e instanceof Error ? e.message : '通信に失敗しました');
+        return false;
+      }
+    }
+
+    /**
+     * data-patch を付けた入力を集めて PATCH の payload にする。
+     * 列名を JS 側にもう一度書かずに済むので、列が増えても HTML だけ直せばよい。
+     */
+    function collect(root: HTMLElement): Record<string, unknown> {
+      const out: Record<string, unknown> = {};
+      for (const node of all<HTMLElement>(root, '[data-patch]')) {
+        const key = node.dataset.patch;
+        if (!key) continue;
+        if (node instanceof HTMLInputElement && node.type === 'checkbox') {
+          out[key] = node.checked ? 1 : 0;
+        } else if (node instanceof HTMLInputElement && node.type === 'number') {
+          out[key] = Number(node.value || 0);
+        } else {
+          out[key] = (node as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement).value;
+        }
+      }
+      return out;
+    }
+
+    /** 保存中はボタンを止める。二重送信でメールを2通出すのがいちばん困る。 */
+    async function withBusy(btn: HTMLButtonElement | null, fn: () => Promise<void>) {
+      if (btn) btn.disabled = true;
+      try {
+        await fn();
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    const patchUrl = `/api/cases/${boot.id}`;
+
+    /* ── 状態（ヘッダの select）── */
+    const statusSel = el<HTMLSelectElement>('case-status');
+    if (statusSel) {
+      statusSel.addEventListener('change', async () => {
+        statusSel.disabled = true;
+        // ここではリロードしない。進行フォームに書きかけの値があると消えてしまうため
+        // （履歴への反映は次にこのページを開いたときで足りる）。
+        const ok = await send(patchUrl, 'PATCH', { status: statusSel.value });
+        if (ok) showOk('状態を変更しました。');
+        statusSel.disabled = false;
+      });
+    }
+
+    /* ── 進行・顧客情報の保存 ── */
+    const btnProgress = el<HTMLButtonElement>('btn-save-progress');
+    btnProgress?.addEventListener('click', () =>
+      withBusy(btnProgress, async () => {
+        const root = el<HTMLElement>('form-progress');
+        if (!root) return;
+        if (await send(patchUrl, 'PATCH', collect(root))) showOk('進行を保存しました。');
+      }),
+    );
+
+    const btnCustomer = el<HTMLButtonElement>('btn-save-customer');
+    btnCustomer?.addEventListener('click', () =>
+      withBusy(btnCustomer, async () => {
+        const root = el<HTMLElement>('form-customer');
+        if (!root) return;
+        if (await send(patchUrl, 'PATCH', collect(root))) {
+          // 名前・記念日はヘッダと申込内容の両方に出ているので読み直す
+          location.reload();
+        }
+      }),
+    );
+
+    /* ── LINE の紐づけ ── */
+    const btnLink = el<HTMLButtonElement>('btn-line-link');
+    btnLink?.addEventListener('click', () =>
+      withBusy(btnLink, async () => {
+        const sel = el<HTMLSelectElement>('line-candidate');
+        const userId = sel?.value ?? '';
+        if (!userId) {
+          showError('紐づける友だちを選んでください。');
+          return;
+        }
+        if (await send(`${patchUrl}/line`, 'POST', { user_id: userId })) location.reload();
+      }),
+    );
+
+    const btnUnlink = el<HTMLButtonElement>('btn-line-unlink');
+    btnUnlink?.addEventListener('click', () =>
+      withBusy(btnUnlink, async () => {
+        if (!confirm('この案件から LINE の紐づけを外します。よろしいですか？')) return;
+        if (await send(`${patchUrl}/line`, 'DELETE')) location.reload();
+      }),
+    );
+
+    /* ── 返信 ── */
+    const tplSel = el<HTMLSelectElement>('reply-template');
+    const replySubject = el<HTMLInputElement>('reply-subject');
+    const replyBody = el<HTMLTextAreaElement>('reply-body');
+    if (tplSel) {
+      tplSel.addEventListener('change', () => {
+        const t = boot.templates.find((x) => x.key === tplSel.value);
+        if (!t) return;
+        // 差し込みはサーバ側で済んでいるので、ここでは入れるだけ
+        if (replySubject) replySubject.value = t.subject;
+        if (replyBody) replyBody.value = t.body;
+      });
+    }
+
+    async function doSend(channel: 'line' | 'mail', btn: HTMLButtonElement | null) {
+      const text = replyBody?.value.trim() ?? '';
+      if (!text) {
+        showError('本文を入力してください。');
+        return;
+      }
+      const subject = replySubject?.value.trim() ?? '';
+      if (channel === 'mail' && !subject) {
+        showError('メールで送るには件名が要ります。');
+        return;
+      }
+      await withBusy(btn, async () => {
+        const ok = await send(`${patchUrl}/send`, 'POST', { channel, text, subject });
+        if (ok) showOk('送信しました。');
+      });
+    }
+
+    const btnSendLine = el<HTMLButtonElement>('btn-send-line');
+    btnSendLine?.addEventListener('click', () => doSend('line', btnSendLine));
+    const btnSendMail = el<HTMLButtonElement>('btn-send-mail');
+    btnSendMail?.addEventListener('click', () => doSend('mail', btnSendMail));
+
+    const btnContacted = el<HTMLButtonElement>('btn-mark-contacted');
+    btnContacted?.addEventListener('click', () =>
+      withBusy(btnContacted, async () => {
+        // ヘッダの select・履歴・このボタン自体が全部変わるのでリロードする
+        if (await send(patchUrl, 'PATCH', { status: 'contacted' })) location.reload();
+      }),
+    );
+
+    /* ── メモ ── */
+    const btnNote = el<HTMLButtonElement>('btn-note');
+    btnNote?.addEventListener('click', () =>
+      withBusy(btnNote, async () => {
+        const box = el<HTMLTextAreaElement>('note-body');
+        const body = box?.value.trim() ?? '';
+        if (!body) {
+          showError('メモが空です。');
+          return;
+        }
+        if (await send(`${patchUrl}/note`, 'POST', { body })) location.reload();
+      }),
+    );
+
+    /* ── 削除 ── */
+    const btnDelete = el<HTMLButtonElement>('btn-delete');
+    btnDelete?.addEventListener('click', () =>
+      withBusy(btnDelete, async () => {
+        if (!confirm(`案件「${boot.name}」（${boot.code}）を削除します。元に戻せません。よろしいですか？`)) return;
+        if (await send(patchUrl, 'DELETE')) location.href = '/admin/cases';
+      }),
+    );
+  }
+
+  // 404（案件が見つからない）のときは boot 自体が無い。何も動かさない。
+  if (boot) init(boot);
+</script>

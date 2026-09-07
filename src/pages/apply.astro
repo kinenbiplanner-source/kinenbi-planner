@@ -1,0 +1,657 @@
+---
+/**
+ * 申込フォーム（/apply）。LP・記事の CTA から来る本命の入口。
+ *
+ * **2026-09-07 に3問へ絞った。** それまでは15問を1画面で聞いていたが、
+ * 答え切る前に離脱されるほうが損が大きい。ここでは「連絡が取れる状態」だけを作り、
+ * 記念日・予算・パートナーの好みは友だち追加のあと `/survey` で聞く（`受注フロー.md` 2章）。
+ *
+ * 設問・選択肢は **src/lib/intake.ts が SSOT**（このページに対応するのは `parseIntake`）。
+ * 選択肢の文字列をこのファイルに書き写さないこと（画面には出るのに保存で弾かれる、が起きる）。
+ *
+ * 送信先は POST /api/apply。JS があれば JSON で投げて `{ok,redirect}` を見て遷移し、
+ * JS が無ければ素の form submit がサーバ側で 303 になって /thanks へ飛ぶ。
+ * どちらの経路でも最終判定はサーバ（parseIntake）。ここの検証は入力の親切さのため。
+ *
+ * 見た目は LP・thanks と同じ紺×金の世界観。CSS は tokens.css の値を必要分だけ
+ * `<style is:inline>` に書き写している。計測タグを遅らせたくないのでバンドルに載せない
+ * （LP と同じ素朴な作り。thanks / contact.html も同じ構造）。
+ */
+export const prerender = false;
+
+import { readVar, lineAddUrl } from '../lib/config';
+
+/** サイトキーが無い環境（ローカル・未設定）では Turnstile を一切出さない。 */
+const turnstileKey = readVar('TURNSTILE_SITE_KEY');
+
+const lineUrl = lineAddUrl();
+
+/**
+ * JS へ渡す値。define:vars はテンプレートリテラルと併用できないので JSON を埋めて読ませる
+ * （src/pages/admin/keywords.astro の kw-boot と同じやり方）。
+ */
+const boot = JSON.stringify({ line: lineUrl }).replace(/</g, '\\u003c');
+---
+
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+
+  <!-- Google tag (gtag.js) -->
+  <script is:inline async src="https://www.googletagmanager.com/gtag/js?id=G-77X1XS59RB"></script>
+  <script is:inline>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-77X1XS59RB');
+  </script>
+
+  <!-- Meta Pixel Code -->
+  <script is:inline>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '1686039682668276');
+  fbq('track', 'PageView');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=1686039682668276&ev=PageView&noscript=1"
+  /></noscript>
+  <!-- End Meta Pixel Code -->
+
+  <title>無料相談・お申し込み | Anniv</title>
+  <link rel="icon" href="/favicon.png" type="image/png" />
+  <link rel="apple-touch-icon" href="/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet" />
+
+  <style is:inline>
+    :root {
+      --white: #ffffff;
+      --ivory: #fafaf8;
+      --blue-pale: #f0f7fc;
+      --blue-light: #d6eaf8;
+      --blue-pastel: #a8c8e0;
+      --blue-mid: #4a8ab5;
+      --navy: #1a2840;
+      --navy-soft: #243550;
+      --text: #2d3748;
+      --text-light: #64748b;
+      --border: #d1e8f5;
+      --gold: #c4a35a;
+      --gold-soft: #ddc488;
+      --gold-pale: #fdf8ef;
+      --radius: 12px;
+      --danger: #c0392b;
+      --line-green: #06C755;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-weight: 400;
+      color: var(--text);
+      background: var(--white);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── NAV ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 60px;
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--navy);
+      letter-spacing: 0.05em;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .nav-logo img { height: 64px; width: auto; }
+
+    /* ── MAIN ── */
+    main {
+      flex: 1;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 64px 24px 100px;
+      position: relative;
+      overflow: hidden;
+    }
+    .main-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 70% 30%, rgba(168,200,224,0.18) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 20% 80%, rgba(196,163,90,0.08) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    .container { position: relative; max-width: 560px; width: 100%; }
+
+    /* ── HEADING ── */
+    .page-label {
+      display: inline-block;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      color: var(--blue-mid);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 500;
+      color: var(--navy);
+      letter-spacing: 0.02em;
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+    .lead {
+      font-size: 14px;
+      color: var(--text-light);
+      line-height: 1.9;
+      margin-bottom: 20px;
+    }
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      list-style: none;
+      margin-bottom: 32px;
+    }
+    .badges li {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--navy);
+      background: var(--gold-pale);
+      border: 1px solid var(--gold-soft);
+      border-radius: 999px;
+      padding: 7px 14px;
+      letter-spacing: 0.02em;
+    }
+
+    /*
+      フォームを飛ばして LINE に行きたい人向けの一文。
+      入口をフォーム1本に絞った代わりの逃げ道なので、見つかるが目立ちすぎない強さにする。
+    */
+    .skip-line {
+      font-size: 13px;
+      line-height: 1.9;
+      color: var(--text-light);
+      margin: -18px 0 30px;
+    }
+    .skip-line a {
+      color: var(--blue-mid);
+      font-weight: 500;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1px;
+      text-decoration: none;
+    }
+    .skip-line a:hover { color: var(--navy); border-color: var(--navy); }
+
+    /* ── BANNER（通信エラーなどページ全体に関わるもの） ── */
+    .banner {
+      background: #fdf0ee;
+      border: 1px solid #e8bbb3;
+      border-radius: 10px;
+      padding: 16px 18px;
+      font-size: 13px;
+      line-height: 1.9;
+      color: var(--danger);
+      margin-bottom: 24px;
+    }
+    .banner:empty { display: none; }
+    .banner a { color: var(--danger); font-weight: 700; }
+
+    /* ── BLOCK ── */
+    .block {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px 32px 28px;
+      box-shadow: 0 4px 24px rgba(26,40,64,0.06);
+      margin-bottom: 20px;
+    }
+    .block-head {
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .block-head h2 {
+      font-size: 17px;
+      font-weight: 500;
+      color: var(--navy);
+      letter-spacing: 0.03em;
+    }
+
+    /* ── FIELD ── */
+    .field { margin-bottom: 24px; }
+    .field:last-child { margin-bottom: 0; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--navy);
+      margin-bottom: 8px;
+      letter-spacing: 0.02em;
+    }
+    .req {
+      font-size: 11px;
+      font-weight: 400;
+      margin-left: 6px;
+      letter-spacing: 0;
+      padding: 2px 7px;
+      border-radius: 4px;
+      vertical-align: 1px;
+      color: var(--white);
+      background: var(--blue-mid);
+    }
+
+    .hint {
+      font-size: 12px;
+      color: var(--text-light);
+      line-height: 1.8;
+      margin: -2px 0 10px;
+    }
+    .hint strong { font-weight: 700; color: var(--navy); }
+
+    input[type="text"],
+    input[type="email"] {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 16px; /* iOS はここが 16px 未満だとフォーカスで勝手にズームする */
+      color: var(--text);
+      background: var(--white);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+      appearance: none;
+    }
+    input:focus {
+      border-color: var(--blue-pastel);
+      box-shadow: 0 0 0 3px rgba(168,200,224,0.25);
+    }
+    input.invalid { border-color: #e0a0a0; }
+
+    /* エラー文。空のときは消す（aria-live を DOM に残したまま隠せる） */
+    .err {
+      display: block;
+      margin-top: 6px;
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--danger);
+    }
+    .err:empty { display: none; }
+
+    /* ハニーポット。人間には見えない・触れない・読み上げない */
+    .hp { position: absolute; left: -9999px; top: 0; width: 1px; height: 1px; overflow: hidden; }
+
+    /* ── SUBMIT ── */
+    .submit-area { margin-top: 28px; }
+    .cf-turnstile { margin-bottom: 18px; }
+    .agree {
+      font-size: 12px;
+      color: var(--text-light);
+      line-height: 1.8;
+      text-align: center;
+      margin-bottom: 14px;
+    }
+    .agree a { color: var(--blue-mid); text-decoration: none; }
+    .agree a:hover { text-decoration: underline; }
+    .submit-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 18px 32px;
+      background: var(--navy);
+      color: var(--white);
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 16px;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 16px rgba(26,40,64,0.18);
+    }
+    .submit-btn:hover { background: var(--navy-soft); transform: translateY(-2px); }
+    .submit-btn:active { transform: translateY(0); }
+    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    /* 送信ボタンの下に置く一文。次に何が起きるかを先に見せて不安を減らす */
+    .after-note {
+      margin-top: 16px;
+      font-size: 12px;
+      color: var(--text-light);
+      line-height: 1.9;
+      text-align: center;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 28px;
+      font-size: 13px;
+      color: var(--text-light);
+      text-decoration: none;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 2px;
+    }
+    .back-link:hover { color: var(--navy); border-color: var(--navy); }
+
+    /* ── FOOTER ── */
+    footer {
+      padding: 32px 24px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-light);
+      border-top: 1px solid var(--border);
+      background: var(--white);
+    }
+    footer a { color: var(--text-light); text-decoration: none; margin: 0 8px; }
+    footer a:hover { color: var(--navy); }
+
+    /* ── MOBILE（375px でも崩さない） ── */
+    @media (max-width: 640px) {
+      nav { padding: 16px 20px; }
+      .nav-logo img { height: 48px; }
+      main { padding: 40px 16px 72px; }
+      h1 { font-size: 22px; }
+      .block { padding: 24px 18px 22px; border-radius: 10px; }
+      .block-head { margin-bottom: 20px; }
+      .submit-btn { font-size: 15px; padding: 17px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <script id="apply-boot" type="application/json" is:inline set:html={boot} />
+
+  <nav>
+    <a href="/" class="nav-logo"><img src="/assets/logo_trans.png" alt="" />Anniv</a>
+  </nav>
+
+  <main>
+    <div class="main-bg"></div>
+    <div class="container">
+
+      <div class="page-label">Apply</div>
+      <h1>無料相談・お申し込み</h1>
+      <p class="lead">
+        まずはご連絡先だけ教えてください。<br />
+        記念日の内容やご希望は、LINEでつながったあとにゆっくり伺います。
+      </p>
+      <ul class="badges">
+        <li>30秒で完了</li>
+        <li>プラン確定まで料金は発生しません</li>
+      </ul>
+
+      {/*
+        フォームを飛ばしたい人の逃げ道。
+
+        以前は記事とLPのCTAに「無料で相談する」と「LINEで相談する」を並べていたが、
+        どちらを押しても最終的な窓口はLINEなので、選択肢が増えるだけだった。
+        入口は「無料で相談する」の1本に統一し、LINE直行はここに1つだけ置く。
+        先に答えてもらえるほど提案が早くなるので、フォームより一段弱い見た目にする。
+      */}
+      <p class="skip-line">
+        先にざっと聞きたいだけなら、
+        <a href={lineUrl} data-ev="line_add_click" data-ev-label="apply_skip">LINEで直接相談する</a>
+        こともできます。
+      </p>
+
+      <div class="banner" id="formBanner" role="alert"></div>
+
+      <!--
+        JS が無い環境でも成立するように素の form として書く。
+        JS が動く場合は submit を横取りして /api/apply に JSON で投げ、
+        動かない場合はこのまま POST されてサーバ側が 303 で /thanks に飛ばす。
+      -->
+      <form id="applyForm" method="post" action="/api/apply">
+        <input type="hidden" name="kind" value="apply" />
+        <input type="hidden" name="_source" id="fSource" value="" />
+        <input type="hidden" name="_medium" id="fMedium" value="" />
+        <input type="hidden" name="_campaign" id="fCampaign" value="" />
+
+        <div class="hp" aria-hidden="true">
+          <label for="f-website">ウェブサイト（入力しないでください）</label>
+          <input type="text" id="f-website" name="website" tabindex="-1" autocomplete="off" />
+        </div>
+
+        <section class="block">
+          <div class="block-head"><h2>ご連絡先</h2></div>
+
+          <div class="field">
+            <label for="f-name">お名前<span class="req">必須</span></label>
+            <input type="text" id="f-name" name="name" placeholder="山田 太郎" autocomplete="name" required />
+            <p class="err" data-err="name" aria-live="polite"></p>
+          </div>
+
+          <div class="field">
+            <label for="f-email">メールアドレス<span class="req">必須</span></label>
+            <p class="hint">受付番号をお送りします。</p>
+            <input type="email" id="f-email" name="email" placeholder="example@email.com" autocomplete="email" required />
+            <p class="err" data-err="email" aria-live="polite"></p>
+          </div>
+
+          <div class="field">
+            <label for="f-line-name">LINEのお名前<span class="req">必須</span></label>
+            <p class="hint"><strong>担当がLINEであなたを見つけるための目印です。</strong>LINEの表示名をそのまま入れてください。</p>
+            <input type="text" id="f-line-name" name="line_name" placeholder="LINE の表示名" autocomplete="off" required />
+            <p class="err" data-err="line_name" aria-live="polite"></p>
+          </div>
+        </section>
+
+        <div class="submit-area">
+          {turnstileKey && <div class="cf-turnstile" data-sitekey={turnstileKey}></div>}
+          <p class="agree">
+            送信することで<a href="/privacy">プライバシーポリシー</a>に同意したものとみなします
+          </p>
+          <button type="submit" class="submit-btn" id="submitBtn">
+            <span id="btnLabel">送信してLINEに進む</span>
+          </button>
+          <p class="after-note">送信後、LINEの友だち追加をご案内します。</p>
+        </div>
+      </form>
+
+      <a href="/" class="back-link">トップページに戻る</a>
+
+    </div>
+  </main>
+
+  <footer>
+    <div>
+      <a href="/media">メディア</a>　｜　<a href="/tokutei">特定商取引法に基づく表記</a>　｜　<a href="/privacy">プライバシーポリシー</a>
+    </div>
+    <div style="margin-top: 10px;">© 2026 Anniv</div>
+  </footer>
+
+  {turnstileKey && <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>}
+
+  <script is:inline>
+    (function () {
+      'use strict';
+
+      var bootEl = document.getElementById('apply-boot');
+      var boot = { line: 'https://lin.ee/U4deTzi' };
+      try { boot = JSON.parse(bootEl.textContent) || boot; } catch (e) { /* 既定値で続ける */ }
+
+      var form = document.getElementById('applyForm');
+      var banner = document.getElementById('formBanner');
+      var submitBtn = document.getElementById('submitBtn');
+      var btnLabel = document.getElementById('btnLabel');
+      var BTN_TEXT = btnLabel.textContent;
+
+      /* ── 流入元。track.js が sessionStorage に置いた値を hidden に移す ── */
+      try {
+        var attr = JSON.parse(sessionStorage.getItem('anniv_attr') || 'null');
+        if (attr && typeof attr === 'object') {
+          document.getElementById('fSource').value = attr.source || '';
+          document.getElementById('fMedium').value = attr.medium || '';
+          document.getElementById('fCampaign').value = attr.campaign || '';
+        }
+      } catch (e) { /* 読めなくても送信は続ける（サーバ側で direct 扱いになる） */ }
+
+      /* ── エラー表示 ── */
+      function clearErrors() {
+        banner.innerHTML = '';
+        var list = form.querySelectorAll('.err');
+        for (var i = 0; i < list.length; i++) list[i].textContent = '';
+        var marked = form.querySelectorAll('.invalid');
+        for (var j = 0; j < marked.length; j++) marked[j].classList.remove('invalid');
+      }
+
+      function fieldFor(name) {
+        return form.querySelector('[name="' + name + '"]');
+      }
+
+      /** 該当欄の下にエラー文を出す。置き場所が無い項目は上部バナーに落とす。 */
+      function showFieldError(name, message) {
+        var slot = form.querySelector('.err[data-err="' + name + '"]');
+        if (!slot) {
+          banner.textContent = message;
+          return null;
+        }
+        slot.textContent = message;
+        var input = fieldFor(name);
+        if (input) input.classList.add('invalid');
+        return slot;
+      }
+
+      function scrollToFirst(el) {
+        if (!el) return;
+        try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { el.scrollIntoView(); }
+      }
+
+      function showBanner(html) {
+        banner.innerHTML = html;
+        scrollToFirst(banner);
+      }
+
+      /** 送信できなかったことの記録。関数が無い環境では何もしない。 */
+      function trackError() {
+        if (typeof gtag === 'function') {
+          gtag('event', 'form_error', { event_category: 'error', event_label: 'apply_form' });
+        }
+        if (typeof window.annivTrack === 'function') {
+          window.annivTrack('form_error', 'apply_form');
+        }
+      }
+
+      var NETWORK_MSG =
+        '送信できませんでした。時間をおいて再度お試しください。お急ぎの場合は ' +
+        '<a href="' + boot.line + '" target="_blank" rel="noopener" data-ev="line_add_click" data-ev-label="apply_form">LINE</a>' +
+        ' から直接ご相談ください。';
+
+      function setSending(on) {
+        submitBtn.disabled = on;
+        btnLabel.textContent = on ? '送信中…' : BTN_TEXT;
+      }
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        clearErrors();
+
+        var fd = new FormData(form);
+        var payload = {};
+        fd.forEach(function (v, k) {
+          payload[k] = v;
+        });
+        // Turnstile のトークン（cf-turnstile-response）はウィジェットが hidden input を
+        // form に差し込むので、上の FormData でそのまま拾えている。
+
+        setSending(true);
+
+        fetch('/api/apply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(payload),
+        })
+          .then(function (res) {
+            // ここでは判断だけして、表示は次の then にまとめる（後始末を1箇所にする）。
+            if (res.status === 429) return { failed: '送信が集中しています。少し時間をおいてお試しください。' };
+            if (res.status >= 500) return { failed: NETWORK_MSG };
+            return res.json().then(
+              function (json) { return { data: json }; },
+              function () { return { failed: NETWORK_MSG }; },
+            );
+          })
+          .then(function (r) {
+            if (r.failed) {
+              trackError();
+              setSending(false);
+              showBanner(r.failed);
+              return;
+            }
+
+            var data = r.data || {};
+
+            if (data.ok) {
+              // 完了イベントは遷移先の /thanks が撃つ（二重に数えない）。
+              location.href = data.redirect || '/thanks';
+              return;
+            }
+
+            trackError();
+            setSending(false);
+
+            if (data.error === 'turnstile') {
+              showBanner('認証に失敗しました。ページを再読み込みしてもう一度お試しください。');
+              // 使い切ったトークンは再送に使えないのでウィジェットを作り直す。
+              if (window.turnstile && typeof window.turnstile.reset === 'function') {
+                try { window.turnstile.reset(); } catch (e) { /* 失敗しても再読み込みで復帰できる */ }
+              }
+              return;
+            }
+
+            if (data.errors && typeof data.errors === 'object') {
+              var first = null;
+              for (var key in data.errors) {
+                if (!Object.prototype.hasOwnProperty.call(data.errors, key)) continue;
+                var slot = showFieldError(key, String(data.errors[key]));
+                if (!first && slot) first = slot;
+              }
+              scrollToFirst(first || banner);
+              return;
+            }
+
+            showBanner(NETWORK_MSG);
+          })
+          .catch(function () {
+            trackError();
+            setSending(false);
+            showBanner(NETWORK_MSG);
+          });
+      });
+    })();
+  </script>
+
+  <script is:inline src="/assets/track.js" defer></script>
+</body>
+</html>

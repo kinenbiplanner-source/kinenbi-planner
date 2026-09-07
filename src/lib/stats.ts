@@ -304,3 +304,63 @@ export function buildSpark(values: number[], width = 96, height = 24): Spark {
     empty: false,
   };
 }
+
+/* ────────────────────────────────────────────────
+ * 週次レポートの断面（pv_reports.snapshot_json）
+ *
+ * scripts/update-pv.ts --publish が書き、/admin/stats が読む。
+ * GA4 と Search Console の記事別の数字は Worker から都度引かない（GA4 のクォータと GSC の遅延があるうえ、
+ * 「レポートを書いた時点の数字」と画面の数字が違うと読みが狂う）。その回の断面をそのまま置く。
+ * ──────────────────────────────────────────────── */
+
+export interface PvSnapshotRow {
+  slug: string;
+  /** GA4 の直近 WINDOW_DAYS 日 PV。その系統を取れなかった回は null */
+  ga4Pv: number | null;
+  ga4Users: number | null;
+  gscClicks: number | null;
+  gscImpr: number | null;
+  /** 表示数で加重した平均順位。表示0なら 0 */
+  gscPos: number | null;
+}
+
+export interface PvSnapshot {
+  ymd: string;
+  ga4: boolean;
+  gsc: boolean;
+  gscRange: { start: string; end: string } | null;
+  rows: PvSnapshotRow[];
+}
+
+/** 壊れた JSON や古い形でも落とさず、空の断面に落とす。 */
+export function parsePvSnapshot(json: string): PvSnapshot {
+  const empty: PvSnapshot = { ymd: '', ga4: false, gsc: false, gscRange: null, rows: [] };
+  try {
+    const v = JSON.parse(json) as Partial<PvSnapshot> | null;
+    if (!v || typeof v !== 'object') return empty;
+    const num = (x: unknown): number | null => (typeof x === 'number' && Number.isFinite(x) ? x : null);
+    return {
+      ymd: typeof v.ymd === 'string' ? v.ymd : '',
+      ga4: v.ga4 === true,
+      gsc: v.gsc === true,
+      gscRange:
+        v.gscRange && typeof v.gscRange.start === 'string' && typeof v.gscRange.end === 'string'
+          ? { start: v.gscRange.start, end: v.gscRange.end }
+          : null,
+      rows: Array.isArray(v.rows)
+        ? v.rows
+            .filter((r): r is PvSnapshotRow => !!r && typeof (r as PvSnapshotRow).slug === 'string')
+            .map((r) => ({
+              slug: r.slug,
+              ga4Pv: num(r.ga4Pv),
+              ga4Users: num(r.ga4Users),
+              gscClicks: num(r.gscClicks),
+              gscImpr: num(r.gscImpr),
+              gscPos: num(r.gscPos),
+            }))
+        : [],
+    };
+  } catch {
+    return empty;
+  }
+}

@@ -1,0 +1,486 @@
+---
+/**
+ * 案件一覧（/admin/cases）。
+ *
+ * 受注フローの「見る画面」。
+ * 運営者（1人）が朝いちばんに知りたいのは
+ *   1. 新しい申込が来たか（ステータス別の件数）
+ *   2. その人が LINE を追加したか・案件に紐づいたか（LINE 友だちのカード）
+ *   3. 記念日が近い案件はどれか（14日以内の帯）
+ *   4. 今どの工程か（一覧の状態バッジ）
+ * の4つなので、上からその順に置いている。
+ *
+ * 絞り込みは keywords.astro と同じく GET のフォーム。リロードしても状態が残り、
+ * 「新規だけ」「申込だけ」のような見方を URL のまま残せる。
+ * データはサーバ側で lib を直接読む。画面から叩く API は LINE の手動紐づけだけ。
+ */
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import {
+  CASE_KINDS,
+  CASE_STATUSES,
+  CLOSED_STATUSES,
+  PAYMENT_STATUSES,
+  isCaseKind,
+  isCaseStatus,
+  kindLabel,
+  statusLabel,
+  type CaseStatus,
+} from '../../../lib/intake';
+import {
+  countCasesByStatus,
+  daysUntil,
+  listCases,
+  listUpcoming,
+  rankLinkCandidates,
+  type CaseListItem,
+  type LinkCandidate,
+} from '../../../lib/cases';
+import { countLineUsers, listLineUsers } from '../../../lib/line';
+
+export const prerender = false;
+
+// ── フィルタ（不正な値は既定の「進行中」に戻す。URL を手で書き換えられても落ちない）──
+const params = Astro.url.searchParams;
+const rawStatus = params.get('status') ?? 'open';
+const rawKind = params.get('kind') ?? '';
+const q = (params.get('q') ?? '').trim().slice(0, 100);
+
+const fStatus: CaseStatus | 'open' | 'all' =
+  rawStatus === 'all' || isCaseStatus(rawStatus) ? rawStatus : 'open';
+const fKind = isCaseKind(rawKind) ? rawKind : undefined;
+const isFiltered = fStatus !== 'open' || Boolean(fKind) || Boolean(q);
+
+// 一覧・件数・記念日・LINE は互いに依存しないので同時に投げる
+const [rows, counts, upcoming, lineCount, unlinked] = await Promise.all([
+  listCases({ status: fStatus, kind: fKind, q }),
+  countCasesByStatus(),
+  listUpcoming(14),
+  countLineUsers(),
+  listLineUsers({ unlinkedOnly: true, limit: 20 }),
+]);
+
+// 「案件に紐づける」の候補。未紐づけの友だちがいるときだけ引く（無いときは select 自体を出さない）
+const linkTargets: CaseListItem[] = unlinked.length ? await listCases({ status: 'open', limit: 200 }) : [];
+
+/**
+ * 未紐づけの友だち1人ごとの「たぶんこの案件」。
+ *
+ * 顧客に受付番号をトークで送らせないための仕掛け。申し込みからサンクスページの
+ * 緑のボタンを押して友だち追加するまでは数十秒なので、追加の直前に来た未紐づけの
+ * 申し込みがほぼ本人になる。**確定は人がやる**（rankLinkCandidates のコメント参照）。
+ *
+ * 友だちの人数ぶん呼ぶので、DBは引かず取得済みの linkTargets から絞る。
+ */
+const candCache = new Map<string, LinkCandidate | null>();
+function candidateOf(followedAt: string): LinkCandidate | null {
+  if (!candCache.has(followedAt)) {
+    candCache.set(followedAt, rankLinkCandidates(followedAt, linkTargets)[0] ?? null);
+  }
+  return candCache.get(followedAt) ?? null;
+}
+
+/**
+ * 申し込みと友だち追加の前後関係を言葉にする。
+ *
+ * 追加のほうが先だったケース（既に友だちの人が後から申し込む）も候補に出すようになったので、
+ * 負の値もここに来る。「N分後」だけだとマイナスが出て意味が通らない。
+ * テンプレート側で `<` を書くと Astro のパーサーがタグの始まりと誤解するので、
+ * 比較はここ（frontmatter）に置く。
+ */
+function gapLabel(cand: LinkCandidate): string {
+  const m = cand.minutesAfter;
+  if (m > -1 && m < 1) return 'ほぼ同時';
+  const abs = Math.abs(m);
+  const span = abs < 60 ? `${abs}分` : abs < 1440 ? `${Math.round(abs / 60)}時間` : `${Math.round(abs / 1440)}日`;
+  return m > 0 ? `${span}後` : `${span}前`;
+}
+
+const total = Object.values(counts).reduce((n, v) => n + v, 0);
+const openTotal = CASE_STATUSES.filter((s) => !CLOSED_STATUSES.includes(s.value)).reduce(
+  (n, s) => n + (counts[s.value] ?? 0),
+  0,
+);
+
+// 日付は JST で表示する。DB は ISO8601（UTC）なので、そのまま切ると
+// 夜に受け付けた申込が前日扱いになる。
+const JST = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Tokyo',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+const JST_TIME = new Intl.DateTimeFormat('ja-JP', {
+  timeZone: 'Asia/Tokyo',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+});
+const fmt = (iso: string | null): string => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '—' : JST.format(d);
+};
+const fmtDateTime = (iso: string | null): string => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '—' : `${JST.format(d)} ${JST_TIME.format(d)}`;
+};
+
+/** 記念日までの残りを「あと N 日／今日／済」にする。クラスは近さで色を変えるため */
+function daysBadge(ymd: string): { text: string; cls: string } | null {
+  const n = daysUntil(ymd);
+  if (n === null) return null;
+  if (n < 0) return { text: '済', cls: 'is-past' };
+  if (n === 0) return { text: '今日', cls: 'is-urgent' };
+  return { text: `あと${n}日`, cls: n <= 3 ? 'is-urgent' : n <= 7 ? 'is-soon' : '' };
+}
+
+const paymentLabel = (v: string): string => PAYMENT_STATUSES.find((p) => p.value === v)?.label ?? v;
+
+/** 件数チップのリンク。状態だけ差し替えて、種別と検索語はそのまま引き継ぐ */
+function statusHref(v: string): string {
+  const p = new URLSearchParams();
+  if (v !== 'open') p.set('status', v);
+  if (fKind) p.set('kind', fKind);
+  if (q) p.set('q', q);
+  const s = p.toString();
+  return `/admin/cases${s ? `?${s}` : ''}`;
+}
+---
+
+<AdminLayout title="案件" current="cases">
+  <div class="admin-bar">
+    <h1 class="admin-title">
+      案件<span class="admin-hint">（{rows.length}件{isFiltered ? ` / 全${total}件` : ''}）</span>
+    </h1>
+    {/* 回答の分布（予算・興味・リードタイム）。仕入れと記事のテーマ選びに使う */}
+    <a class="btn" href="/admin/cases/insights">回答の集計</a>
+  </div>
+
+  <div class="notice notice-error" id="case-error" hidden></div>
+
+  {/* ── ステータス別の件数。押すとその状態で絞る ── */}
+  <div class="case-counts">
+    <a class="case-count" href={statusHref('open')} aria-current={fStatus === 'open' ? 'page' : undefined}>
+      <span class="case-count-num">{openTotal}</span>進行中
+    </a>
+    {
+      CASE_STATUSES.map((s) => {
+        const n = counts[s.value] ?? 0;
+        return (
+          <a
+            class:list={['case-count', { 'is-zero': n === 0 }]}
+            href={statusHref(s.value)}
+            aria-current={fStatus === s.value ? 'page' : undefined}
+            title={s.hint}
+          >
+            <span class="case-count-num">{n}</span>
+            {s.label}
+          </a>
+        );
+      })
+    }
+    <a class="case-count" href={statusHref('all')} aria-current={fStatus === 'all' ? 'page' : undefined}>
+      <span class="case-count-num">{total}</span>すべて
+    </a>
+  </div>
+
+  {/* ── 記念日が近い（14日以内・進行中）。0件なら帯ごと出さない ── */}
+  {
+    upcoming.length > 0 && (
+      <div class="admin-card case-upcoming">
+        <div class="admin-card-head">
+          記念日が近い<span class="admin-hint">14日以内・進行中の案件だけ</span>
+        </div>
+        <ul class="case-upcoming-list">
+          {upcoming.map((c) => {
+            const d = daysBadge(c.anniversary_date);
+            return (
+              <li>
+                <span class:list={['case-days', d?.cls]}>{d?.text}</span>
+                <span class="cell-date">{c.anniversary_date}</span>
+                <a class="case-code-link" href={`/admin/cases/${c.id}`}>
+                  {c.code}
+                </a>
+                <span class="case-upcoming-name">{c.name}</span>
+                {c.anniversary && <span class="admin-hint">{c.anniversary}</span>}
+                {c.express === 1 && <span class="case-express">特急</span>}
+                <span class={`status status-${c.status}`}>{statusLabel(c.status)}</span>
+                {c.line_user_id ? (
+                  <span class="line-linked">LINE {c.line_display_name || '紐づけ済み'}</span>
+                ) : (
+                  <span class="line-none">LINE 未</span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    )
+  }
+
+  {/* ── LINE 友だち（未紐づけ）。受付番号がトークで来れば Webhook が自動で紐づけるので、ここは手動の逃げ道 ── */}
+  <div class="admin-card">
+    <div class="admin-card-head">
+      LINE 友だち
+      <span class="admin-hint">友だち {lineCount.total} 人／未紐づけ {lineCount.unlinked} 人</span>
+    </div>
+    {
+      unlinked.length === 0 ? (
+        <p class="admin-empty case-empty-sm">
+          未紐づけの友だちはいません。顧客がトークで受付番号を送ると自動で紐づきます。
+        </p>
+      ) : (
+        <div class="admin-table-wrap">
+          <table class="admin-table line-table">
+            <thead>
+              <tr>
+                <th>表示名</th>
+                <th>追加日時</th>
+                <th>最終メッセージ</th>
+                <th>案件に紐づける<span class="admin-hint"> 候補は選択済み</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {unlinked.map((u) => {
+                /*
+                  友だち追加の直前に来た未紐づけの申し込み。既定で選んでおく
+                  （顧客に受付番号を送らせないための仕掛け。判断の根拠は下のヒントに出す）。
+                  自動では確定しない——申し込みと無関係に友だち追加した人が
+                  他人の案件に付くと、別人の個人情報を送ることになるため。
+                */
+                const cand = candidateOf(u.followed_at);
+                return (
+                <tr data-line-user={u.user_id}>
+                  <td class="line-user-name">{u.display_name || '（表示名なし）'}</td>
+                  <td class="cell-date">{fmtDateTime(u.followed_at)}</td>
+                  <td class="cell-date">{fmtDateTime(u.last_message_at)}</td>
+                  <td>
+                    {linkTargets.length === 0 ? (
+                      <span class="admin-hint">進行中の案件がありません</span>
+                    ) : (
+                      <div class="line-link-row">
+                        <select class="line-link-select" aria-label={`${u.display_name || u.user_id} を紐づける案件`}>
+                          <option value="">案件を選ぶ</option>
+                          {linkTargets.map((c) => (
+                            <option value={String(c.id)} selected={c.id === cand?.case.id}>
+                              {c.code} {c.name}
+                            </option>
+                          ))}
+                        </select>
+                        <button class="btn btn-sm btn-primary line-link-btn" type="button">
+                          紐づける
+                        </button>
+                      </div>
+                    )}
+                    {cand && (
+                      <p class="line-cand-hint">
+                        {cand.case.name} さんの申し込みの<strong>{gapLabel(cand)}</strong>に友だち追加。
+                        表示名を見て合っていれば、そのまま「紐づける」
+                      </p>
+                    )}
+                    {!cand && linkTargets.length > 0 && (
+                      <p class="line-cand-hint is-none">
+                        近い時間の申し込みがありません。申込者以外が友だち追加した可能性もあります
+                      </p>
+                    )}
+                  </td>
+                </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {lineCount.unlinked > unlinked.length && (
+            <p class="admin-hint line-more">未紐づけの先頭 {unlinked.length} 人だけ出しています。</p>
+          )}
+        </div>
+      )
+    }
+  </div>
+
+  {/* ── フィルタ ── */}
+  <form class="admin-card case-filter" method="get" action="/admin/cases">
+    <div class="admin-card-body case-filter-body">
+      <div class="field">
+        <label for="filter-status">状態</label>
+        <select id="filter-status" name="status">
+          <option value="open" selected={fStatus === 'open'}>進行中</option>
+          <option value="all" selected={fStatus === 'all'}>すべて</option>
+          {CASE_STATUSES.map((s) => <option value={s.value} selected={fStatus === s.value}>{s.label}</option>)}
+        </select>
+      </div>
+      <div class="field">
+        <label for="filter-kind">種別</label>
+        <select id="filter-kind" name="kind">
+          <option value="">すべて</option>
+          {CASE_KINDS.map((k) => <option value={k.value} selected={fKind === k.value}>{k.label}</option>)}
+        </select>
+      </div>
+      <div class="field field-q">
+        <label for="filter-q">検索</label>
+        <input type="text" id="filter-q" name="q" value={q} placeholder="名前・メール・受付番号・LINE名" />
+      </div>
+      <div class="case-filter-actions">
+        <button class="btn btn-primary" type="submit">絞り込む</button>
+        <a class="btn" href="/admin/cases">リセット</a>
+      </div>
+    </div>
+  </form>
+
+  {/* ── 一覧 ── */}
+  <div class="admin-card">
+    {
+      rows.length === 0 ? (
+        <p class="admin-empty">
+          {isFiltered
+            ? '条件に合う案件がありません。'
+            : 'まだ案件がありません。申込フォーム（/apply）か無料相談（/contact）から受け付けると、ここに並びます。'}
+        </p>
+      ) : (
+        <div class="admin-table-wrap">
+          <table class="admin-table case-table">
+            <thead>
+              <tr>
+                <th>状態</th>
+                <th>受付番号</th>
+                <th>種別</th>
+                <th>名前</th>
+                <th>記念日</th>
+                <th>LINE</th>
+                <th>アンケート</th>
+                <th>予算</th>
+                <th class="col-num">金額</th>
+                <th>入金</th>
+                <th>申込日</th>
+                <th>流入元</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((c) => {
+                const d = daysBadge(c.anniversary_date);
+                return (
+                  <tr>
+                    <td>
+                      <span class={`status status-${c.status}`}>{statusLabel(c.status)}</span>
+                    </td>
+                    <td class="case-code">
+                      <a class="case-code-link" href={`/admin/cases/${c.id}`}>
+                        {c.code}
+                      </a>
+                    </td>
+                    <td>
+                      <span class={`case-kind case-kind-${c.kind}`}>{kindLabel(c.kind)}</span>
+                    </td>
+                    <td class="case-name">
+                      <a href={`/admin/cases/${c.id}`}>{c.name}</a>
+                      {c.email && <span class="case-sub">{c.email}</span>}
+                    </td>
+                    <td class="case-date">
+                      {c.anniversary_date ? (
+                        <span class="case-date-line">
+                          <span class="cell-date">{c.anniversary_date}</span>
+                          {d && <span class:list={['case-days', d.cls]}>{d.text}</span>}
+                          {c.express === 1 && <span class="case-express">特急</span>}
+                        </span>
+                      ) : (
+                        <span class="admin-hint">—</span>
+                      )}
+                      {c.anniversary && <span class="case-sub">{c.anniversary}</span>}
+                    </td>
+                    <td class="case-line">
+                      {c.line_user_id ? (
+                        <span class="line-linked">{c.line_display_name || '紐づけ済み'}</span>
+                      ) : (
+                        <span class="line-none">未</span>
+                      )}
+                      {c.line_name && <span class="case-sub">申告：{c.line_name}</span>}
+                    </td>
+                    {/*
+                      アンケート（/survey）の回答有無。入口は3項目しか聞かないので、
+                      **未回答の案件は提案に必要な情報が揃っていない**。
+                      連絡の前にここを見て、埋まっていなければ LINE で回答を促す。
+                    */}
+                    <td class="case-survey">
+                      {c.kind === 'consult' ? (
+                        <span class="admin-hint">—</span>
+                      ) : c.survey_at ? (
+                        <span class="survey-done">回答済み</span>
+                      ) : (
+                        <span class="survey-todo">未回答</span>
+                      )}
+                    </td>
+                    <td class="case-budget">{c.budget || '—'}</td>
+                    <td class={`cell-num${c.amount ? '' : ' is-zero'}`}>
+                      {c.amount ? `¥${c.amount.toLocaleString('ja-JP')}` : '—'}
+                    </td>
+                    <td class="case-payment">{paymentLabel(c.payment_status)}</td>
+                    <td class="cell-date">{fmt(c.created_at)}</td>
+                    <td class="case-source">{c.source}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+  </div>
+</AdminLayout>
+
+<script>
+  /* 案件一覧のクライアント側。やることは LINE 友だちを案件に手で紐づけるだけ。 */
+
+  const msgError = document.getElementById('case-error');
+
+  function showError(text: string) {
+    if (!msgError) return;
+    msgError.textContent = text;
+    msgError.hidden = false;
+    msgError.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  /** API のエラーは JSON の error に入る。取れなければステータスコードで返す。 */
+  async function errorText(res: Response): Promise<string> {
+    try {
+      const data = (await res.json()) as { error?: string };
+      return data.error ?? `エラー（HTTP ${res.status}）`;
+    } catch {
+      return `エラー（HTTP ${res.status}）`;
+    }
+  }
+
+  for (const row of document.querySelectorAll<HTMLTableRowElement>('tr[data-line-user]')) {
+    // querySelector に型引数を渡すと、Cloudflare の HTMLRewriter が持つ Element と
+    // 制約が噛み合わず型エラーになる（keywords.astro の all() と同じ事情）。
+    // 素で受けてから畳む。
+    const sel = row.querySelector('.line-link-select') as HTMLSelectElement | null;
+    const btn = row.querySelector('.line-link-btn') as HTMLButtonElement | null;
+    if (!sel || !btn) continue;
+
+    btn.addEventListener('click', async () => {
+      const caseId = sel.value;
+      const userId = row.dataset.lineUser ?? '';
+      if (!caseId) {
+        showError('紐づける案件を選んでください。');
+        return;
+      }
+      if (msgError) msgError.hidden = true;
+      btn.disabled = true;
+      sel.disabled = true;
+      try {
+        const res = await fetch(`/api/cases/${caseId}/line`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId }),
+        });
+        if (!res.ok) throw new Error(await errorText(res));
+        // 件数・一覧の LINE 列・未紐づけの表が全部変わるので、DOM をいじらず読み直す
+        location.reload();
+      } catch (e) {
+        showError(e instanceof Error ? e.message : '通信に失敗しました');
+        btn.disabled = false;
+        sel.disabled = false;
+      }
+    });
+  }
+</script>

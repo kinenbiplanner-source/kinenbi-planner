@@ -6,7 +6,7 @@ Anniv（記念日のプレゼント選び・レストラン予約・サプライ
 
 - `public/` — 本番LPの静的ファイル（旧 `lp/`）。素のHTMLのまま Astro が無加工で配信する。**URLは従来どおり**（`/`、`/contact.html` など）
 - `src/` — Astroのメディア基盤。`pages/media/`（一覧・記事）・`pages/admin/`（記事の投稿・編集・キーワード台帳・**メディア分析** `/admin/stats`）・`pages/api/`（保存・プレビュー・画像アップロード・CSV出力・PV計測）・`lib/`（D1アクセス・Markdownレンダラー・軸定義・**PV集計** `stats.ts`・**広告設定** `ads.ts`）・`layouts/` ・`components/` ・`styles/`
-  - 「見る画面」は4つあって別物：`/admin/stats`（自前PV。記事ごとの相対比較とリライト判断）／ GA4（流入元・行動の詳細）／ **`/dashboard/measurement`（CV・導線クリック・流入元。自前とGA4を列を分けて並べる。中身は `計測ダッシュボード.html`）** ／ `/dashboard`（事業側の固定費と各サービスの入口。中身は `ダッシュボード.html`）
+  - 「見る画面」は4つあって別物：`/admin/stats`（自前PV。記事ごとの相対比較とリライト判断。**週次レポートと記事別の GA4・GSC の断面もここに出る**＝ `/anniv-update-pv` が D1 の `pv_reports` に入れる）／ GA4（流入元・行動の詳細）／ **`/dashboard/measurement`（CV・導線クリック・流入元。自前とGA4を列を分けて並べる。中身は `計測ダッシュボード.html`）** ／ `/dashboard`（事業側の固定費と各サービスの入口。中身は `ダッシュボード.html`）
   - **計測は `/dashboard` から切り出した**（2026-08-28）。画面の大半を占めて固定費とサービスの入口が埋もれたため。`/dashboard` に残っているのは入口のバー1本だけで、データの出どころ（`/api/insights`・`/api/ga4`）は変えていない。`/admin` のヘッダーからも「計測」で飛べる
   - `/dashboard` のコスト欄にある「SNS運用（今月の実績）」は**別プロジェクト multi-SNS-manager（`C:\dev\multi-SNS-manager` / 本番 `anniv-tool.date`）のD1を読み取り専用で参照している**（`SNS_DB` バインディング → `src/lib/sns-cost.ts` → `/api/sns-cost`）。あちらの `cost_events` / `cost_settings` の列名に依存するので、壊れたら真っ先にそこを疑う（読めないときは金額を出さず「—」に落とす作り）
 - `astro.config.mjs` / `wrangler.jsonc` / `schema.sql` — ビルドとCloudflareの設定。**Astro 7 ＋ `@astrojs/cloudflare` で Cloudflare Workers にデプロイ**（root dir はリポジトリルート）。**デプロイは `npm run deploy` を手で叩く。git push では本番は変わらない**（Workers Builds を繋いでいない。詳細は `メディア方針/改良ロードマップ.md` の「本番への反映は push では起きない」）
@@ -14,19 +14,23 @@ Anniv（記念日のプレゼント選び・レストラン予約・サプライ
 - `.claude/agents/` — 記事制作サブエージェント定義（competitor-researcher / article-writer / article-reviewer / article-naturalizer）
   - `article-naturalizer` は最後（Step 5.5）に本文を1文ずつ読み返して「人間が書かない言い回し」だけを直す。**参照ファイルを持たない自己完結型**で、style-guide も content-axis も読まない（判定を「人間が書くか」の一点に絞るため）
   - `.claude/agents/reference/` — 記事制作の共有SSOT資料（article-style-guide.md / content-axis.md / interview-sheet.md / improvement-loop.md / 社内ナレッジ.md）
-- `.claude/skills/` — 記事制作オーケストレーター（anniv-write-article / anniv-rewrite-article）＋ 要約カード生成（anniv-card）＋ **SNS原稿の隔週バッチ生成（anniv-sns-batch）**。**すべて `anniv-` 始まり**——グローバル（爆速開発部）側に同名のスキルがあり、`/write-article` と打つとそちらが読まれてしまうため
-- `scripts/` — 運用スクリプト。`put-draft.ts`（書き上がった `article.md` を記事エディタの下書きとしてD1に入れる＋本文のローカル画像をR2に上げて `/media/img/<key>` に差し替える。anniv-write-article Step 6-4 から呼ぶ）
+- `.claude/skills/` — 記事制作オーケストレーター（anniv-write-article / anniv-rewrite-article）＋ 要約カード生成（anniv-card）＋ **SNS原稿の隔週バッチ生成（anniv-sns-batch）**＋ **PV更新と週次レポート（anniv-update-pv。週1）**。**すべて `anniv-` 始まり**——グローバル（爆速開発部）側に同名のスキルがあり、`/write-article` と打つとそちらが読まれてしまうため
+- `scripts/` — 運用スクリプト。`put-draft.ts`（書き上がった `article.md` を記事エディタの下書きとしてD1に入れる＋本文のローカル画像をR2に上げて `/media/img/<key>` に差し替える。anniv-write-article Step 6-4 から呼ぶ）・**`update-pv.ts`（`/anniv-update-pv` の本体。D1の自前PV＋GA4＋Search Console を取って KWマスターDB.csv／PV履歴.csv／現状ファクトシート.md を書き、`--publish` で週次レポートを D1 に入れる）**
 - `.claude/scripts/card-renderer/` — 要約カードのレンダラー（`render.py`＋`template.html`＋`icons.json`＋`to_webp.mjs`）。**ブランドカラーは template.html の `:root`**（`src/styles/tokens.css` と同じネイビー×ゴールド。爆速開発部側の青りんご版とは別物なので混同しない）
+- `.claude/scripts/ig-renderer/` — **Instagramカルーセルのレンダラー**（`render.mjs`＋`template.html`。ブランドカラーは card-renderer と同じ）。`記事管理/SNS原稿/ig_<日付>/spec.json` に投稿台本の原稿を書いて `node .claude/scripts/ig-renderer/render.mjs <spec.json>` を叩くと、1080×1350 の JPEG が枚数ぶん同じフォルダに出る。**見た目の芯は `bg/light.png`・`bg/dark.png`（ロゴ入りのブランド背景。全スライドがこのどちらかを敷く）**で、写真は全面に敷かず表紙の円セルに切り抜いて置く（`素材/` のCC0写真）。本文は light、表紙と締めは dark、本文が長くて光の面からはみ出すときは `"bg":"dark"` で逃がす（はみ出しは実行時に警告が出る）。キャプションは同じフォルダの `caption.txt`。並べて確認するときは `sheet.mjs`。投稿は anniv-tool.date のコンポーザーに手で載せる（IGは画像が要るので受信箱の自動取り込みは通らない）
 - `記事/` — 記事の作業フォルダ（下書き。`article.md`として保存。要約カードは `記事/[KW名]/images/*.webp`）
 - `素材/` — 記事本文に差し込むフリー写真素材（CC0のみ・62枚）。何がどれかは `素材/一覧.md`。使うときは管理画面から**R2にアップロードして** `/media/img/<key>` で参照する（ローカルパス参照は公開先で壊れる）
-- `記事管理/` — KWマスターDB.csv（記事の管理台帳）・**SNSネタ台帳.csv（SNS投稿ネタのSSOT。`工程×状況` のマスで管理し、`posts.idea_key` でアプリ側と紐づく）**・**SNS原稿/`<batchId>`/（`/anniv-sns-batch` が出す x.json と th.json。受信箱がファイルとして読み込む）**・アフィリ案件マスター.csv（ヘッダーのみの雛形。将来アフィリを始める時に使う）・リサーチマスター.md（リサーチ結果の鮮度付きキャッシュ、必要になったら生成）
+- `記事管理/` — KWマスターDB.csv（記事の管理台帳。**D1から吐き出す派生物で手で編集しない**。従来9列＋PV列。列定義は `src/lib/kw-csv.ts`）・**PV履歴.csv（`/anniv-update-pv` の日付スナップショット）・PVレポート/（現状ファクトシート.md＝スクリプトが毎回再生成する分析材料／週次レポート_YYYY-MM-DD.md＝Claudeが書いた数字の読みとリライト判定。最新の1件は `/admin/stats` にも出る）**・**SNSネタ台帳.csv（SNS投稿ネタのSSOT。`工程×状況` のマスで管理し、`posts.idea_key` でアプリ側と紐づく）**・**SNS原稿/`<batchId>`/（`/anniv-sns-batch` が出す x.json と th.json。受信箱がファイルとして読み込む）**・アフィリ案件マスター.csv（ヘッダーのみの雛形。将来アフィリを始める時に使う）・リサーチマスター.md（リサーチ結果の鮮度付きキャッシュ、必要になったら生成）
 - `メディア方針/` — メディア戦略.md（コンセプト・差別化軸・着手順・KPIなどメディア運営方針のSSOT）・計測設計.md（GA4/Pixelのイベント定義のSSOT。**導線を足したら必ずここも更新する**）・**改良ロードマップ.md（これから何をするかの一覧。作業を始める前にまずここを見る）**・収益化メモ.md（**AdSenseは導入決定**。受け皿は実装済みで、審査と設定の手順もここ。アフィリは未定）・SNS戦略.md（Instagram／X／ThreadsのSSOT。役割分担・計測・コスト・広告）・**投稿台本.md（SNSの実行ぶん。12/24までのカレンダーと原稿。投稿する日はこれだけ開けばいい）**
+
+- **`受注フロー.md` — 受注からサービス提供までの仕組みのSSOT（2026-09-07に自前化）。** Tally・Make・Notion を anniv.gift の Worker に畳み、申込は D1 `cases` に入る。**LINE は残す**（顧客との対話そのもの。Messaging API の Webhook で友だち追加を拾い、顧客が受付番号をトークに送ると案件と自動で紐づく）。Stripe も残す。環境変数・LINE／Resend／Turnstile の設定手順・Tally を止める順番まで全部そこに書いてある
 
 ## 記事制作システムについて
 
 爆速開発部メディア（別プロジェクト）で運用していた記事制作の仕組み（AIエージェント3体＋オーケストレーター2本）をAnniv向けに移植したもの。コンテンツ軸・自己言及ルール・DBパスなどはAnniv仕様に書き換え済み。運営方針の背景・意思決定理由は `メディア方針/メディア戦略.md` を参照。
 
 - **SNS原稿を作る：`/anniv-sns-batch`**（隔週13本＝X6・Threads6・予備1。JSONファイルを `記事管理/SNS原稿/` に出す → `anniv-tool.date/posts/inbox` でファイルを選んで取り込む → 人が1本ずつ承認 → 週3の枠へ自動で予約）
+- **週1でPVを更新して読む：`/anniv-update-pv`**（D1の自前PV・GA4・Search Console → `KWマスターDB.csv` を再生成 → `現状ファクトシート.md` **だけ**を見て週次レポートを書く → `--publish` で `/admin/stats` に載せる。**デプロイ不要**。GA4・GSC はローカルに鍵が無いと飛ばす＝計測設計.md 11章「6.」）
 - 記事を新規で書く：`/anniv-write-article <KW>`（H3が2個以上あるH2には要約カードが自動で入る）
 - 既存記事をリライトする：`/anniv-rewrite-article <KW or ファイルパス>`
 - 要約カードを単発で作る：`/anniv-card`（H2＋H3の本文を貼る）
@@ -34,7 +38,7 @@ Anniv（記念日のプレゼント選び・レストラン予約・サプライ
   - 手で入れたいときは `/admin/new` の本文欄に `article.md` の全文（frontmatter込み）をそのまま貼れば同じ状態になる（frontmatter はメタ情報に自動で移る）
   - **slug は未設定のままでも下書き保存できる**（＝一時保存）。公開のときだけ必須
   - **スラッグは公開後に変えない**。日付も入れない（URL変更＋301欠落で検索評価がリセットされた実害が爆速開発部にある）
-  - 公開したら管理画面の「CSVエクスポート」で `記事管理/KWマスターDB.csv` を丸ごと上書きする（手でURLを転記しない）
+  - 公開したら `記事管理/KWマスターDB.csv` を最新化する。管理画面の「CSVエクスポート」で丸ごと上書きするか、`/anniv-update-pv` を回す（どちらも同じ列＝従来9列＋PV列。`src/lib/kw-csv.ts`）。手でURLを転記しない
   - **要約カードの画像は下書き投入と同時にR2へ上がり、本文も `![alt](/media/img/<key>)` に差し替わる**（`scripts/put-draft.ts`）。手で上げ直す必要はない。手で本文を貼った場合だけ、管理画面の「画像をアップロード」で差し替える（ローカルパスのままだと公開先で壊れる。公開前チェックが×で拾う）
   - 詳細な手順は `.claude/skills/anniv-write-article/SKILL.md` の Step 6-4／6-6
 - ルール変更：文体・骨格・SEOなど全軸共通のルールは `.claude/agents/reference/article-style-guide.md` を編集。コンテンツ軸（テーマ・リサーチ観点・文体の寄せ）は `.claude/agents/reference/content-axis.md` を編集
