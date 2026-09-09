@@ -170,14 +170,14 @@ async function handleFollow(userId: string, at: string): Promise<void> {
     return;
   }
   const invite = [
-    '友だち追加ありがとうございます。Anniv の担当です。',
+    '友だち追加ありがとうございます。Anniv です。',
     '',
     'より良いご提案のために、あと1〜2分だけアンケートにご協力ください（分かる範囲で大丈夫です）。',
     `${siteUrl()}/survey`,
     '',
-    'お申し込み時のメールアドレスを入力いただくと、あなたのお申し込みと結びつきます。',
+    'お申し込み時のメールアドレスを入力いただくと、お客様のお申し込みと結びつきます。',
     '',
-    'お答えいただいたあと、担当からご連絡します。',
+    'お答えいただいたあと、担当者からご連絡いたします。',
   ].join('\n');
   const sent = await pushText(userId, invite);
   if (!sent.ok) {
@@ -236,7 +236,7 @@ async function handleTextMessage(ev: LineWebhookEvent, userId: string, at: strin
         );
         await replyText(
           replyToken,
-          'ご連絡ありがとうございます。担当が確認のうえ、あらためてご連絡します。',
+          'ご連絡ありがとうございます。担当者が確認のうえ、あらためてご連絡いたします。',
         );
         await notifyOwner(
           `【Anniv】要確認：受付番号の重複 ${c.name}`,
@@ -262,14 +262,14 @@ async function handleTextMessage(ev: LineWebhookEvent, userId: string, at: strin
         既に答えている人（survey_at あり）には出さない。同じ案内を二度出すと不信感になる。
       */
       const reply = c.survey_at
-        ? `受付番号 ${c.code} を確認しました。担当から順にご連絡しますので、少しお待ちください。`
+        ? `受付番号 ${c.code} を確認しました。担当者から順にご連絡いたしますので、少しお待ちください。`
         : [
             `受付番号 ${c.code} を確認しました。`,
             '',
-            'まだアンケートにお答えいただいていないようです。よろしければこちらから：',
+            'まだアンケートにお答えいただいていないようです。よろしければこちらからお願いいたします。',
             `${siteUrl()}/survey?c=${c.code}`,
             '',
-            '担当から順にご連絡しますので、少しお待ちください。',
+            '担当者から順にご連絡いたしますので、少しお待ちください。',
           ].join('\n');
       // reply は通数を消費しないので自動応答はこちらを使う。replyToken は1イベント1回だけ。
       await replyText(replyToken, reply);
@@ -290,7 +290,7 @@ async function handleTextMessage(ev: LineWebhookEvent, userId: string, at: strin
     // 番号の形はしているが該当が無い＝打ち間違いか、別サービスの番号。
     await replyText(
       replyToken,
-      '受付番号が見つかりませんでした。受付確認メールに記載の番号をもう一度お送りください。',
+      '受付番号が見つかりませんでした。受付確認メールに記載の番号を、もう一度お送りいただけますでしょうか。',
     );
     return;
   }
