@@ -37,7 +37,14 @@ import {
   linkLineUser,
 } from '../../../lib/cases';
 import { readVar, siteUrl } from '../../../lib/config';
-import { getLineUser, markLineUnfollow, recordLineMessage, touchLineUser, upsertLineUser } from '../../../lib/line';
+import {
+  getLineUser,
+  issueSurveyToken,
+  markLineUnfollow,
+  recordLineMessage,
+  touchLineUser,
+  upsertLineUser,
+} from '../../../lib/line';
 import { getLineProfile, lineApiConfigured, pushText, replyText, verifyLineSignature } from '../../../lib/line-api';
 import { notifyOwner } from '../../../lib/notify';
 
@@ -169,11 +176,24 @@ async function handleFollow(userId: string, at: string): Promise<void> {
     console.warn('[line-webhook] LINE_CHANNEL_ACCESS_TOKEN が未設定のためアンケート案内を送っていない');
     return;
   }
+  /*
+    案内リンクには**このトーク専用のトークン**を載せる（2026-09-10）。
+
+    push の宛先 userId はこちらが握っているのに、素の `/survey` を送っていたので
+    「誰が答えたか」を毎回捨てていた。結果、申し込みと違うメールアドレスを入れた人は
+    404 で回答ごと消え、申し込まずに追加した人（Instagram 経由）は受け皿が無かった。
+    トークンがあれば /api/survey 側で本人を確定でき、案件との紐づけまで自動で済む。
+
+    発行に失敗したときは素の URL に落とす。**案内を送らないより送るほうがまし**で、
+    その場合もメールアドレスでの照合は従来どおり効く。
+  */
+  const token = await issueSurveyToken(userId, at);
+  const surveyUrl = token ? `${siteUrl()}/survey?t=${token}` : `${siteUrl()}/survey`;
   const invite = [
     '友だち追加ありがとうございます。Anniv です。',
     '',
     'より良いご提案のために、あと1〜2分だけアンケートにご協力ください（分かる範囲で大丈夫です）。',
-    `${siteUrl()}/survey`,
+    surveyUrl,
     '',
     'お申し込み時のメールアドレスを入力いただくと、お客様のお申し込みと結びつきます。',
     '',

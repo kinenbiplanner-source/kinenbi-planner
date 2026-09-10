@@ -33,9 +33,21 @@
  * 回答は D1 に入っていて管理画面から見えるので、ここで 500 を返して送り直させる方が損。
  */
 import type { APIRoute } from 'astro';
-import { applySurvey, findCaseByEmail, getCaseByCode, parseInterests, type CaseRow } from '../../lib/cases';
+import {
+  applySurvey,
+  createCase,
+  findCaseByEmail,
+  findCaseByLineUser,
+  getCase,
+  getCaseByCode,
+  linkLineUser,
+  parseInterests,
+  addCaseLog,
+  type CaseRow,
+} from '../../lib/cases';
 import { siteUrl } from '../../lib/config';
 import { DELEGATION_OPTIONS, formDataToRecord, parseSurvey } from '../../lib/intake';
+import { findLineUserByToken, type LineUserRow } from '../../lib/line';
 import { notifyOwner } from '../../lib/notify';
 
 export const prerender = false;
@@ -142,7 +154,7 @@ function delegationLabel(v: string): string {
  * 申し込みの受付通知（/api/apply）とは別に1通出す。
  * best-effort で、失敗しても応答は成功のまま返す。
  */
-async function notifySurvey(c: CaseRow): Promise<void> {
+async function notifySurvey(c: CaseRow, notes: string[] = []): Promise<void> {
   const rows: Array<[string, string]> = [
     ['受付番号', c.code],
     ['お名前', c.name],
@@ -157,6 +169,8 @@ async function notifySurvey(c: CaseRow): Promise<void> {
     `【Anniv】アンケート回答 ${c.name}`,
     [
       'アンケートの回答が届きました。',
+      // 新規作成・紐づけの衝突など、**あなたが手を動かす必要がある事情**は本文の頭に出す。
+      ...(notes.length ? ['', ...notes.map((n) => `※ ${n}`)] : []),
       '',
       ...rows.map(([k, v]) => `${k}：${v || '—'}`),
       '',
@@ -217,16 +231,61 @@ export const POST: APIRoute = async ({ request }) => {
   const codeRaw = typeof raw.code === 'string' ? raw.code.trim().toUpperCase() : '';
   const code = CODE_RE.test(codeRaw) ? codeRaw : '';
   const email = typeof raw.email === 'string' ? raw.email.trim().toLowerCase() : '';
+  const token = typeof raw.t === 'string' ? raw.t.trim() : '';
 
+  /*
+    照会の順番は 受付番号 → メール → LINE のトークン。
+
+    受付番号が一番強い（推測できない8桁で、本人にしか届いていない）。
+    メールは「申し込んだ本人がその画面を開いた」ことの弱い証拠だが、
+    従来からの導線なので残す。トークンは**こちらが特定のトークへ push したURL**なので
+    LINE ユーザーの特定としては確実。ただし「どの申し込みか」は分からないので、
+    紐づけ済みの案件がある場合の受け皿として最後に使う。
+  */
+  let lineUser: LineUserRow | null = null;
   let c: CaseRow | null = null;
   try {
+    if (token) lineUser = await findLineUserByToken(token);
     if (code) c = await getCaseByCode(code);
     else if (email) c = await findCaseByEmail(email);
+    if (!c && lineUser) c = await findCaseByLineUser(lineUser.user_id);
   } catch (e) {
     console.error(`[survey] 案件の照会に失敗 ip=${ip}`, e);
     return wantsJson
       ? json({ ok: false, error: 'server' }, 500)
       : errorHtml(['お申し込みを照会できませんでした。時間をおいて再度お試しください'], '保存できませんでした', 500);
+  }
+
+  /*
+    案件は無いが LINE のトークンは正しい＝**申し込みを通っていない人**。
+    Instagram のプロフィールから友だち追加した人、あるいは申し込みと違うメールアドレスを
+    入れた人がここに来る。404 で突き返すと、1〜2分かけて書いた回答が丸ごと消えて
+    こちらにも何も残らない。**新しい案件として受け止める**（重複したら管理画面で統合する）。
+
+    メールが空のときは作らない。連絡手段が無い案件を作っても追いかけようがない
+    （画面側では必須なので、ここに来るのは JS 無しで手で送った場合くらい）。
+  */
+  let createdFromLine = false;
+  if (!c && lineUser && email) {
+    try {
+      c = await createCase(
+        {
+          kind: 'apply',
+          name: lineUser.display_name || 'LINE のお客様',
+          email,
+          line_name: lineUser.display_name,
+        },
+        { submission: {}, source: 'line', medium: 'survey', campaign: '' },
+      );
+      createdFromLine = true;
+      await addCaseLog(
+        c.id,
+        'note',
+        'LINE のアンケートから受付（お申し込みが見つからなかったため新規に作成）',
+      );
+    } catch (e) {
+      console.error(`[survey] LINE のトークンから案件を作れなかった user=${lineUser.user_id}`, e);
+    }
   }
 
   if (!c) {
@@ -249,7 +308,13 @@ export const POST: APIRoute = async ({ request }) => {
     2回目以降は受付番号（推測できない8桁）を要求する。
     番号を無くした人は LINE で言ってもらえば、管理画面から直せる。
   */
-  if (!code && c.survey_at) {
+  /**
+   * 本人だと確認が取れているか。受付番号（推測できない）か、
+   * **その案件に紐づいている LINE 本人のトークン**で来ていれば確認済みとみなす。
+   */
+  const verified = !!code || !!(lineUser && c.line_user_id === lineUser.user_id);
+
+  if (!verified && c.survey_at) {
     console.warn(`[survey] 回答済みの案件をメール一致で更新しようとした ip=${ip} case=${c.id}`);
     return wantsJson
       ? json({ ok: false, error: 'needs_code' }, 409)
@@ -286,6 +351,9 @@ export const POST: APIRoute = async ({ request }) => {
     // submission_json の survey キーにぶら下げる（入口の回答と同じ考え方）。
     const rawSurvey: Record<string, unknown> = { ...raw };
     delete rawSurvey.website;
+    // 本人確認トークンは案件の記録に残さない（管理画面に出しても使い道が無く、
+    // CSV に出ると本人以外の目に触れる経路が増えるだけ）。
+    delete rawSurvey.t;
     updated = await applySurvey(c.id, parsed.value, rawSurvey);
   } catch (e) {
     // ここだけは失敗を隠さない。保存できていないのに完了画面を出すと回答が消える。
@@ -303,9 +371,50 @@ export const POST: APIRoute = async ({ request }) => {
       : errorHtml(['お申し込みが見つかりませんでした'], 'お申し込みが見つかりません', 404);
   }
 
+  /*
+    ── LINE との紐づけ ──
+
+    **まっさらな組み合わせのときだけ自動で結ぶ。**
+    案件にも LINE ユーザーにもまだ相手がいないなら、取り違えようがない
+    （トークンはその人のトークにしか送っていない）。ここが自動化の本体で、
+    これまで「友だち追加の通知を見て管理画面でワンタップ」していた手順が要らなくなる。
+
+    どちらかが既に埋まっていて相手が違うときは**触らない**。
+      - 案件に別の LINE が付いている … 取り違えたまま提案を送る事故になる
+      - LINE が別の案件に付いている  … リピートの2件目かもしれないし、
+                                       リンクを誰かに転送されただけかもしれない
+    どちらも人が見れば1秒で分かるので、通知に書いて管理画面で決めてもらう。
+  */
+  const notes: string[] = [];
+  if (createdFromLine) {
+    notes.push('お申し込みが見つからなかったため、新しい案件として作成しました（重複していれば統合してください）');
+  }
+  if (lineUser) {
+    try {
+      const held = await findCaseByLineUser(lineUser.user_id);
+      if (!updated.line_user_id && !held) {
+        await linkLineUser(updated.id, lineUser.user_id, 'アンケートの案内リンクから自動で紐づけ');
+        updated = (await getCase(updated.id)) ?? updated;
+      } else if (updated.line_user_id !== lineUser.user_id) {
+        notes.push(
+          held
+            ? `回答した LINE（${lineUser.display_name || '表示名なし'}）は別の案件 #${held.id}（${held.code}）に紐づいています。付け替えるかは管理画面で判断してください`
+            : `この案件には別の LINE が紐づいています。回答したのは ${lineUser.display_name || '表示名なし'} です`,
+        );
+        await addCaseLog(
+          updated.id,
+          'note',
+          `アンケートに回答した LINE（${lineUser.user_id}）と、この案件の紐づけが一致しない`,
+        );
+      }
+    } catch (e) {
+      console.error(`[survey] LINE の紐づけで例外 case=${updated.id}`, e);
+    }
+  }
+
   // ここから先は「送れなくても保存は成立している」。失敗しても応答は成功で返す。
   try {
-    await notifySurvey(updated);
+    await notifySurvey(updated, notes);
   } catch (e) {
     console.error(`[survey] 運営者通知で例外 case=${updated.id}`, e);
   }

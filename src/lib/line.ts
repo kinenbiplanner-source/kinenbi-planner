@@ -15,6 +15,9 @@ export interface LineUserRow {
   followed_at: string;
   unfollowed_at: string | null;
   last_message_at: string | null;
+  /** アンケートの案内リンクに載せる本人確認トークン。未発行なら空文字（schema.sql の line_users）。 */
+  survey_token: string;
+  survey_token_at: string;
   updated_at: string;
 }
 
@@ -87,6 +90,62 @@ export async function markLineUnfollow(userId: string, at: string): Promise<void
 
 export async function getLineUser(userId: string): Promise<LineUserRow | null> {
   return await db().prepare('SELECT * FROM line_users WHERE user_id=?').bind(userId).first<LineUserRow>();
+}
+
+/* ── アンケートの本人確認トークン ── */
+
+/**
+ * トークンの文字種。**紛らわしい l / o / 0 / 1 を抜いた32文字**なので、
+ * 256 % 32 === 0 ＝ 乱数を剰余で落としても偏らない。
+ */
+const TOKEN_ALPHABET = 'abcdefghijkmnpqrstuvwxyz23456789';
+const TOKEN_LENGTH = 24;
+
+/** URL に載る形かどうか。DB を引く前にここで弾く（空文字で全件に当たるのを防ぐ）。 */
+export const SURVEY_TOKEN_RE = /^[a-z2-9]{24}$/;
+
+export function generateSurveyToken(): string {
+  const buf = new Uint8Array(TOKEN_LENGTH);
+  crypto.getRandomValues(buf);
+  let out = '';
+  for (const b of buf) out += TOKEN_ALPHABET[b % TOKEN_ALPHABET.length];
+  return out;
+}
+
+/**
+ * その LINE ユーザーのアンケート用トークンを返す。無ければ発行して保存する。
+ *
+ * **一度発行したら作り直さない。** 作り直すと、過去のトークに残っている案内リンクが
+ * 全部死ぬ（顧客は「前に送られたリンク」を後から開くことがある）。
+ * 有効期限も設けない。このトークンでできるのは**自分の案件にアンケートを書き込むこと**だけで、
+ * 案件の中身は読めないため（/api/survey は回答を受け取るだけで、既存の値を返さない）。
+ *
+ * 行が無い／更新できなかったときは空文字を返す。呼び出し側はトークン無しのURLに落とす。
+ */
+export async function issueSurveyToken(userId: string, at: string): Promise<string> {
+  const row = await getLineUser(userId);
+  if (!row) return '';
+  if (row.survey_token) return row.survey_token;
+
+  const token = generateSurveyToken();
+  // 同じ相手の follow が二重に届いても2本目が上書きしないよう、未発行のときだけ書く。
+  const res = await db()
+    .prepare(
+      `UPDATE line_users SET survey_token=?, survey_token_at=?, updated_at=?
+       WHERE user_id=? AND survey_token=''`,
+    )
+    .bind(token, at, new Date().toISOString(), userId)
+    .run();
+  if (Number(res.meta.changes) > 0) return token;
+
+  const again = await getLineUser(userId);
+  return again?.survey_token ?? '';
+}
+
+/** トークンから LINE ユーザーを引く。形が違えば DB を叩かない。 */
+export async function findLineUserByToken(token: string): Promise<LineUserRow | null> {
+  if (!SURVEY_TOKEN_RE.test(token)) return null;
+  return await db().prepare('SELECT * FROM line_users WHERE survey_token=?').bind(token).first<LineUserRow>();
 }
 
 export async function listLineUsers(
