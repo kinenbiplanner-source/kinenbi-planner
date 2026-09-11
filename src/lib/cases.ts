@@ -154,6 +154,12 @@ export interface CreateCaseExtra {
   source: string;
   medium: string;
   campaign: string;
+  /**
+   * 履歴の最初の1行。省略すると入口の種類から決める。
+   * フォーム以外の経路（LINE のアンケートから作る場合など）で「申込フォームから受付」と
+   * 残ると、あとで履歴を読んだときに経路を取り違えるので、呼び出し側から言えるようにしてある。
+   */
+  logBody?: string;
 }
 
 export async function createCase(input: IntakeInput, extra: CreateCaseExtra): Promise<CaseRow> {
@@ -200,7 +206,8 @@ export async function createCase(input: IntakeInput, extra: CreateCaseExtra): Pr
       await addCaseLog(
         id,
         'created',
-        input.kind === 'apply' ? '申込フォームから受付（アンケートは未回答）' : '無料相談フォームから受付',
+        extra.logBody ??
+          (input.kind === 'apply' ? '申込フォームから受付（アンケートは未回答）' : '無料相談フォームから受付'),
       );
       const row = await getCase(id);
       if (!row) throw new Error('作成直後の案件が読めない');
