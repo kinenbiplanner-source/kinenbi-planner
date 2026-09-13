@@ -12,6 +12,6 @@
     "プレゼントからお店の予約、当日の演出まで。",
     "まとめてご相談いただけます。"
   ],
-  "size": "square",
-  "output": "C:\\dev\\kinenbi-planner\\広告素材\\anniv-ad-01-square.png"
+  "size": "feed",
+  "output": "素材/広告/anniv-ad-01-feed.png"
 }

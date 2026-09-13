@@ -5,7 +5,7 @@
  * 仕組みは card-renderer/render.py と同じ（Chrome headless で撮影 → sharp で切り出し・JPEG化）。
  * IG は JPEG しか受け付けないので JPEG 固定（SNS戦略.md 5章）。
  *
- * 見た目の芯は bg/light.png・bg/dark.png（ブランドの背景。ロゴ入り）。
+ * 見た目の芯は 素材/ブランド/ig-light.png・ig-dark.png（ブランドの背景。ロゴ入り。2026-09-13 に bg/ から移した）。
  * 全スライドがこの2枚のどちらかを敷き、文字は背景の空いている場所に置く。
  * 写真は全面に敷かず、表紙の中央に金の輪で切り抜いた円セルとして置く。
  *   表紙 = dark ／ 本文 = light（長いものは "bg": "dark" で逃がせる）／ 締め = dark
@@ -16,7 +16,7 @@
  * {
  *   "output_dir": "記事管理/SNS原稿/ig_2026-09-07",     // リポジトリルート基準 or 絶対パス
  *   "slides": [
- *     { "type": "cover", "photo": "素材/xxx.webp",
+ *     { "type": "cover", "photo": "素材/写真/xxx.webp",
  *       "eyebrow": "小さい前置き", "title": ["1行目", "2行目"], "sub": "補足" },
  *     { "type": "body", "bg": "light|dark（既定 light）", "kicker": "推奨", "heading": "見出し（\n で改行）",
  *       "lead": "任意", "items": ["①の文", "②の文"], "paras": ["段落", "段落"], "note": "任意" },
@@ -41,8 +41,8 @@ import sharp from 'sharp';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..', '..');
 const TPL = readFileSync(path.join(HERE, 'template.html'), 'utf8')
-  .replace('__BG_LIGHT__', pathToFileURL(path.join(HERE, 'bg', 'light.png')).href)
-  .replace('__BG_DARK__', pathToFileURL(path.join(HERE, 'bg', 'dark.png')).href);
+  .replace('__BG_LIGHT__', pathToFileURL(path.join(ROOT, '素材', 'ブランド', 'ig-light.png')).href)
+  .replace('__BG_DARK__', pathToFileURL(path.join(ROOT, '素材', 'ブランド', 'ig-dark.png')).href);
 
 const W = 1080;
 const H = 1350;
