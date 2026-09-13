@@ -27,8 +27,8 @@ async function axesWithArticles(): Promise<Set<string>> {
   return new Set((results ?? []).map((r) => r.axis));
 }
 
-/** LP側の静的ページ。public/ 配下に素のHTMLで置いてあるもの。 */
-const STATIC_PATHS = ['/', '/privacy', '/tokutei'];
+/** LPと共通の固定ページ。`/about` だけは Astro 側（src/pages/about.astro）にある。 */
+const STATIC_PATHS = ['/', '/about', '/privacy', '/tokutei'];
 
 function esc(s: string): string {
   return s

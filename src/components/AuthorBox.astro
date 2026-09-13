@@ -1,0 +1,43 @@
+---
+/**
+ * 記事末尾の「この記事を書いた人」。
+ *
+ * AdSense の審査が「有用性の低いコンテンツ」で落ちたときに追加した（2026-09-10）。
+ * 記事の量は足りていて、欠けていたのは**書き手が誰か分かる面**だったため。
+ *
+ * 名義は個人名ではなく「Anniv編集部」で通す（2026-09-10 に決定）。
+ * 個人のプロフィールは出さず、運営主体は事業者としての Anniv、
+ * 詳しい編集方針と事業者情報は `/about` と `/tokutei` に置く。
+ *
+ * 文面は style-guide 2章の縛り（実績の量・年数を暗示しない）に従うこと。
+ * 「多数の実績」「長年」といった表現をここに書かない。
+ *
+ * アイコンは `logo_trans.png`（ヘッダー・フッターのロゴ）を使わない。理由は2つ：
+ *   - **ワードマーク入り**なので、48pxの丸に入れると "ANNIV" の文字が潰れて読めない
+ *   - **地色が紺**なので、紺の丸背景に載せると埋もれる（最初これをやって見えなくなった）
+ * 代わりにシンボルだけを切り出した `author_anniv.png`（96px／`anniv_logo_symbol_square.png`
+ * を sharp で縮小したもの）を、**白い丸**に載せる。紺のリングと金のリボンはこれで出る。
+ */
+---
+
+<aside class="author-box" aria-labelledby="author-box-head">
+  <p class="author-box-head" id="author-box-head">この記事を書いた人</p>
+  <div class="author-box-body">
+    <img
+      class="author-box-icon"
+      src="/assets/author_anniv.png"
+      alt=""
+      width="48"
+      height="48"
+      loading="lazy"
+      decoding="async"
+    />
+    <div>
+      <p class="author-box-name">Anniv編集部</p>
+      <p class="author-box-text">
+        記念日のプレゼント選び・レストランの予約・当日のサプライズ演出を、関係性や予算に合わせて完全オーダーメイドで行っています。誰もが持つであろう疑問や悩みを解決するために知っておくべき情報を記事にしています。
+      </p>
+      <a class="author-box-link" href="/about">このメディアについて</a>
+    </div>
+  </div>
+</aside>

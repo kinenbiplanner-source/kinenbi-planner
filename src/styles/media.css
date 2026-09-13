@@ -741,6 +741,115 @@
   min-height: 600px;
 }
 
+/* ── 記事末尾の著者ブロック（components/AuthorBox.astro） ──
+   本文とCTAの間に入る。CTAの直前なので、主張しすぎない箱にして
+   視線がCTAより先にここで止まらないようにする。 */
+.author-box {
+  margin: 56px 0 8px;
+  padding: 22px 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--blue-pale);
+}
+.author-box-head {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.author-box-body {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+/* 白い丸に載せる。**紺にしないこと**——ロゴのリングが紺なので地色と同化する。
+   画像はワードマーク無しのシンボル（/assets/author_anniv.png）。 */
+.author-box-icon {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  border-radius: 50%;
+  background: var(--white);
+  border: 1px solid var(--border);
+  padding: 7px;
+}
+.author-box-name {
+  font-family: var(--font-serif-jp);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--navy);
+  margin-bottom: 8px;
+}
+.author-box-text {
+  font-size: 13.5px;
+  line-height: 1.9;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+.author-box-link {
+  font-size: 13px;
+  color: var(--blue-mid);
+  text-underline-offset: 3px;
+}
+.author-box-link:hover {
+  color: var(--navy);
+}
+@media (max-width: 640px) {
+  .author-box {
+    padding: 20px 18px;
+  }
+  .author-box-body {
+    gap: 12px;
+  }
+}
+
+/* ── /about（このメディアについて）──
+   本文は .prose を借りるが、記事ではないので見出しの余白だけ少し詰める。 */
+.about-body {
+  max-width: var(--article-max);
+}
+.about-body > h2:first-child {
+  margin-top: 8px;
+}
+.about-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 22px;
+  font-size: 14px;
+}
+.about-body th,
+.about-body td {
+  border: 1px solid var(--border);
+  padding: 12px 14px;
+  text-align: left;
+  vertical-align: top;
+  line-height: 1.8;
+}
+.about-body th {
+  width: 30%;
+  white-space: nowrap;
+  background: var(--blue-pale);
+  font-weight: 500;
+  color: var(--navy);
+}
+@media (max-width: 560px) {
+  .about-body th,
+  .about-body td {
+    display: block;
+    width: auto;
+    white-space: normal;
+  }
+  .about-body th {
+    border-bottom: none;
+  }
+  .about-body td {
+    border-top: none;
+  }
+}
+
 /* ── AdSense の広告枠（components/AdSlot.astro） ──
    広告は読み込み完了まで高さが決まらない。min-height を先に取らないと
    本文が後からガクッと下がる（CLS）。記事ページは他に重い外部スクリプトが

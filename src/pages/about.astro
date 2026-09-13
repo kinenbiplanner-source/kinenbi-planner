@@ -1,0 +1,156 @@
+---
+/**
+ * 「このメディアについて」（/about）。
+ *
+ * AdSense の審査が「有用性の低いコンテンツ」で通らなかったときに追加した（2026-09-10）。
+ * 記事量は足りていたので、欠けていたのは **誰がどういう体制で作っているか** の説明だった。
+ *
+ * ここに書くのは実際に運用しているルールだけにすること。守っていない方針を並べると、
+ * 記事本文と食い違って逆効果になる。出どころは以下の3つ：
+ *   - `メディア方針/メディア戦略.md`（コンセプト・軸・更新体制）
+ *   - `.claude/agents/reference/article-style-guide.md`（自己言及の禁止・料金の書き方）
+ *   - `.claude/agents/reference/interview-sheet.md`（公開前の取材を必須にしている件）
+ * 運用を変えたらこのページも直す。
+ *
+ * 個人のプロフィールは載せない方針（2026-09-10 に決定）。運営主体は事業者としての Anniv、
+ * 記事の名義は「Anniv編集部」で通す。所在地・代表者名は `/tokutei` が持つ。
+ */
+export const prerender = false;
+
+import MediaLayout from '../layouts/MediaLayout.astro';
+import { AXES } from '../lib/axis';
+
+Astro.response.headers.set('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=86400');
+
+const SITE = 'https://anniv.gift';
+
+const title = 'このメディアについて | Anniv';
+const description =
+  '「記念日のヒント」は、記念日のプレゼント選び・レストラン予約・サプライズ演出をオーダーメイドで組み立てるAnnivが運営するメディアです。運営者・扱うテーマ・編集方針をまとめています。';
+
+const aboutLd = {
+  '@context': 'https://schema.org',
+  '@type': 'AboutPage',
+  name: 'このメディアについて',
+  description,
+  url: `${SITE}/about`,
+  publisher: {
+    '@type': 'Organization',
+    name: 'Anniv',
+    url: `${SITE}/`,
+    logo: `${SITE}/assets/logo_trans.png`,
+    contactPoint: {
+      '@type': 'ContactPoint',
+      contactType: 'customer support',
+      email: 'kinenbi.planner@gmail.com',
+      areaServed: 'JP',
+      availableLanguage: 'Japanese',
+    },
+  },
+};
+
+const breadcrumbLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Anniv', item: `${SITE}/` },
+    { '@type': 'ListItem', position: 2, name: 'このメディアについて', item: `${SITE}/about` },
+  ],
+};
+---
+
+<MediaLayout title={title} description={description} current="media">
+  <Fragment slot="head">
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(aboutLd)} />
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(breadcrumbLd)} />
+  </Fragment>
+
+  <div class="shell shell-art">
+    <nav class="art-crumb" aria-label="パンくず">
+      <a href="/">ホーム</a><span class="sep">›</span>
+      <span aria-current="page">このメディアについて</span>
+    </nav>
+
+    <header class="section-header">
+      <p class="section-label">ABOUT</p>
+      <h1 class="section-title">このメディアについて</h1>
+      <p class="section-sub">
+        「記念日のヒント」は、記念日の準備をオーダーメイドで組み立てるAnnivが運営しているメディアです。
+      </p>
+    </header>
+
+    <div class="about-body prose">
+      <h2>運営者</h2>
+      <p>
+        当メディアは、<strong>Anniv（アニヴ）</strong>が運営しています。記念日のプレゼント選び・レストランの予約・当日のサプライズ演出までを、関係性と予算に合わせて一件ずつ組み立てるサービスです。決まったプランに当てはめるのではなく、依頼のたびに内容を組み直すオーダーメイドの提供形態を取っています。
+      </p>
+      <table>
+        <tbody>
+          <tr><th>サービス名</th><td>Anniv（アニヴ）</td></tr>
+          <tr><th>事業内容</th><td>記念日のプレゼント選定、レストランの選定・予約代行、サプライズ演出のプロデュース</td></tr>
+          <tr><th>対応エリア</th><td>日本国内（オンラインでのご相談）</td></tr>
+          <tr><th>運営者・所在地</th><td><a href="/tokutei">特定商取引法に基づく表記</a>に記載しています</td></tr>
+          <tr><th>お問い合わせ</th><td><a href="/apply" data-cta="form" data-cta-label="about">お問い合わせフォーム</a></td></tr>
+        </tbody>
+      </table>
+
+      <h2>このメディアで扱うこと</h2>
+      <p>
+        記念日の準備でつまずきやすいところを、3つのテーマに分けて書いています。
+      </p>
+      <ul>
+        {
+          AXES.map((a) => (
+            <li>
+              <a href={`/media/category/${a.slug}`}>
+                <strong>{a.name}</strong>
+              </a>
+              ：{a.description}
+            </li>
+          ))
+        }
+      </ul>
+      <p>
+        扱うのは「何を贈るか」「どの店を選ぶか」だけでなく、<strong>いくらかかるのか・いつ動けばいいのか・どこで失敗するのか</strong>という、実際に準備を進めるときに必要になる情報です。
+      </p>
+
+      <h2>編集方針</h2>
+      <p>記事を書くときに守っているルールです。</p>
+
+      <h3>1. 料金と相場は幅で示す</h3>
+      <p>
+        「だいたい高め」「ピンキリ」で終わらせず、金額の幅と、その幅がどこで決まるのかを書きます。相場を扱う記事では、公開されている料金やサービス内容を実際に確認したうえで数字を出しています。
+      </p>
+
+      <h3>2. 相談を受ける中で分かったことを入れる</h3>
+      <p>
+        記事を書く前に、実際に依頼を受ける立場から見て何が判断の分かれ目になるのかを整理する工程を必ず挟んでいます。一般論をまとめ直しただけの記事にしないための工程で、省略しません。
+      </p>
+
+      <h3>3. 選択肢を並べるだけで終わらせない</h3>
+      <p>
+        候補を列挙して終わりにせず、<strong>相手との関係性や予算に応じてどう選ぶか</strong>という判断軸を必ず添えます。同じ予算でも、付き合って1年と5年では選ぶものが変わるためです。
+      </p>
+
+      <h3>4. 自社を持ち上げない</h3>
+      <p>
+        代行サービスの比較記事でも中立を保ち、自社サービスだけを有利に書くことはしません。また、Annivは立ち上げ期のため、<strong>実績の量や年数を暗示する表現は使わない</strong>ことをルールにしています。書けるのは、提供の形と、実際に相談を受ける中で分かったことまでです。
+      </p>
+
+      <h3>5. 公開前に必ず内容を確認する</h3>
+      <p>
+        記事はAnniv編集部が企画・構成し、公開前に運営者が内容を確認したうえで公開しています。公開後も、相場や制度が変わったときは記事を更新します。更新した記事には更新日を表示しています。
+      </p>
+
+      <h2>広告について</h2>
+      <p>
+        当メディアの記事ページおよびメディアトップでは、第三者配信の広告を掲載する場合があります。広告の掲載枠には「広告」と明示しており、記事の内容と広告は独立しています。広告配信にともなうCookieの取り扱いは<a href="/privacy">プライバシーポリシー</a>に記載しています。
+      </p>
+
+      <h2>お問い合わせ</h2>
+      <p>
+        記事の内容に関するご指摘、掲載内容の訂正依頼、取材・掲載のご相談は、<a href="/apply" data-cta="form" data-cta-label="about_bottom">お問い合わせフォーム</a>からご連絡ください。事業者情報は<a href="/tokutei">特定商取引法に基づく表記</a>に記載しています。
+      </p>
+    </div>
+  </div>
+</MediaLayout>

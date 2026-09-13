@@ -22,6 +22,7 @@ import MediaLayout from './MediaLayout.astro';
 import ArticleCard from '../components/ArticleCard.astro';
 import CtaBox from '../components/CtaBox.astro';
 import AdSlot from '../components/AdSlot.astro';
+import AuthorBox from '../components/AuthorBox.astro';
 import { adsEnabled } from '../lib/ads';
 import { db, type ArticleRow, type ArticleCard as ArticleCardData } from '../lib/db';
 import type { TocItem } from '../lib/markdown';
@@ -119,8 +120,15 @@ const articleLd = {
   dateModified: article.updated_at,
   ...(heroPath ? { image: `${SITE}${heroPath}` } : {}),
   mainEntityOfPage: { '@type': 'WebPage', '@id': articleUrl },
-  author: { '@type': 'Organization', name: 'Anniv', url: `${SITE}/` },
-  publisher: { '@type': 'Organization', name: 'Anniv', url: `${SITE}/` },
+  // author は /about（編集方針と運営者を書いた面）に紐づける。
+  // 記事の名義は個人ではなく「Anniv編集部」で通す方針（2026-09-10）。
+  author: { '@type': 'Organization', name: 'Anniv編集部', url: `${SITE}/about` },
+  publisher: {
+    '@type': 'Organization',
+    name: 'Anniv',
+    url: `${SITE}/`,
+    logo: `${SITE}/assets/logo_trans.png`,
+  },
 };
 
 const breadcrumbLd = {
@@ -201,6 +209,10 @@ const breadcrumbLd = {
         }
 
         <div class="prose" set:html={article.body_html} />
+
+        {/* 書き手を示す。CTAの上に置く（本文を読み終えた直後が一番効く位置で、
+            高さも小さいのでCTAを押し下げない）。名義とルールは AuthorBox.astro 側。 */}
+        <AuthorBox />
 
         {!hasInlineCta && <CtaBox />}
 
