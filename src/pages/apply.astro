@@ -19,10 +19,14 @@
  */
 export const prerender = false;
 
-import { readVar, lineAddUrl } from '../lib/config';
+import { lineAddUrl } from '../lib/config';
+import { turnstileConfigured, turnstileSiteKey } from '../lib/turnstile';
 
-/** サイトキーが無い環境（ローカル・未設定）では Turnstile を一切出さない。 */
-const turnstileKey = readVar('TURNSTILE_SITE_KEY');
+/**
+ * Turnstile のキーが**両方、正しい形で**揃っているときだけウィジェットを出す。
+ * サーバ側（/api/apply）も同じ判定で検証の要否を決めるので、画面と食い違わない。
+ */
+const turnstileKey = turnstileConfigured() ? turnstileSiteKey() : '';
 
 const lineUrl = lineAddUrl();
 

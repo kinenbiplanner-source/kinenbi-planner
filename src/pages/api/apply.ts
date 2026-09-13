@@ -35,8 +35,7 @@ import { addCaseLog, createCase, type CaseRow } from '../../lib/cases';
 import { formDataToRecord, parseAttribution, parseIntake } from '../../lib/intake';
 import { ownerNoticeMail, receiptMailForApply, receiptMailForConsult, sendMail } from '../../lib/mail';
 import { notifyOwner } from '../../lib/notify';
-import { readVar } from '../../lib/config';
-import { verifyTurnstile } from '../../lib/turnstile';
+import { turnstileConfigured, verifyTurnstile } from '../../lib/turnstile';
 
 export const prerender = false;
 
@@ -218,7 +217,8 @@ export const POST: APIRoute = async ({ request }) => {
     申し込みが1件も通らなくなる。保存前に弾かれるので case_log にも痕跡が残らず、
     気づくのが遅れる。**片方だけ入れても壊れない**ようにここで揃っているかを見る。
   */
-  const turnstileReady = readVar('TURNSTILE_SITE_KEY') !== '' && readVar('TURNSTILE_SECRET_KEY') !== '';
+  // 形の検証も含めて src/lib/turnstile.ts に寄せた（壊れたキーの貼り付けでフォームが止まったため）。
+  const turnstileReady = turnstileConfigured();
   const needsTurnstile = turnstileReady && raw.kind !== 'consult';
   if (needsTurnstile) {
     const token = typeof raw['cf-turnstile-response'] === 'string' ? raw['cf-turnstile-response'] : '';
