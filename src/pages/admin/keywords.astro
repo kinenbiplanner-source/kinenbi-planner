@@ -80,6 +80,7 @@ const boot = JSON.stringify({
       キーワード台帳<span class="admin-hint">（{rows.length}件{isFiltered ? ` / 全${total}件` : ''}）</span>
     </h1>
     <a class="btn" href="/admin">記事一覧へ</a>
+    <a class="btn" href="/admin/seo">SEO分析へ</a>
     <a class="btn" href="/api/export.csv">CSVエクスポート</a>
   </div>
 
@@ -180,6 +181,9 @@ const boot = JSON.stringify({
                 <th>ファネル</th>
                 <th>難易度</th>
                 <th>ボリューム</th>
+                <th>要塞度</th>
+                <th>需要</th>
+                <th>検索数</th>
                 <th>優先度</th>
                 <th>ステータス</th>
                 <th>検索意図</th>
@@ -200,6 +204,14 @@ const boot = JSON.stringify({
                     <td>{k.funnel}</td>
                     <td class="kw-center">{k.difficulty}</td>
                     <td class="kw-center">{k.volume}</td>
+                    {/* SEO 列（/anniv-pick-keyword が入れる）。無ければ「—」。中身の編集は「編集」→ /admin/keywords/<id> */}
+                    <td class="kw-center">{k.serp_grade || '—'}</td>
+                    <td class="kw-center">{k.demand_score === null ? '—' : k.demand_score}</td>
+                    <td class="kw-center">
+                      {k.volume_num === null
+                        ? '—'
+                        : `${k.volume_num.toLocaleString('ja-JP')}${k.volume_source ? `（${k.volume_source}）` : ''}`}
+                    </td>
                     <td class="kw-center">
                       <span class={`kw-prio kw-prio-${k.priority}`}>{k.priority}</span>
                     </td>
@@ -219,6 +231,9 @@ const boot = JSON.stringify({
                     </td>
                     <td class="kw-cell-intent">{k.intent}</td>
                     <td class="kw-cell-actions">
+                      <a class="btn btn-sm" href={`/admin/keywords/${k.id}`}>
+                        編集
+                      </a>
                       {k.status === 'done' &&
                         (article ? (
                           <>

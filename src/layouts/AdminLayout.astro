@@ -19,7 +19,7 @@ interface Props {
    * `(string & {})` を足してあるのは、ページ側が知らないキーを渡しても
    * ビルドを落とさないため（補完には既知のキーだけが出る）。
    */
-  current?: 'cases' | 'list' | 'new' | 'edit' | 'keywords' | 'stats' | (string & {});
+  current?: 'cases' | 'list' | 'new' | 'edit' | 'keywords' | 'seo' | 'competitors' | 'stats' | (string & {});
 }
 
 const { title, current } = Astro.props;
@@ -59,6 +59,8 @@ const email = Astro.locals.user?.email ?? '';
         「メディア分析」は自前のPV（D1）で記事ごとの相対比較をする画面、「アナリティクス」はGA4、
         「計測」はCV・導線クリック・流入元（自前＋GA4を列を分けて並べる画面）、
         「ダッシュボード」は事業側（固定費・各サービスの入口）と、見るものが4つとも違う。
+        「SEO」＝書く前に見る（重なり・内部リンク・検索での立ち位置）。メディア分析が書いた後（PV）なのと対。
+        「競合」＝同業の伸びている投稿・記事（Instagram と記事サイトの観測。SNSネタと KW の材料）。
       */}
       <nav class="admin-nav">
         <a href="/admin/cases" aria-current={current === 'cases' ? 'page' : undefined}>案件</a>
@@ -67,6 +69,8 @@ const email = Astro.locals.user?.email ?? '';
         <a href="/admin/keywords" aria-current={current === 'keywords' ? 'page' : undefined}>
           キーワードDB
         </a>
+        <a href="/admin/seo" aria-current={current === 'seo' ? 'page' : undefined}>SEO</a>
+        <a href="/admin/competitors" aria-current={current === 'competitors' ? 'page' : undefined}>競合</a>
         <a href="/admin/stats" aria-current={current === 'stats' ? 'page' : undefined}>メディア分析</a>
         <a
           class="is-external"

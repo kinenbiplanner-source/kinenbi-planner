@@ -1,0 +1,940 @@
+---
+/**
+ * 競合の観測（/admin/competitors）。「同業の伸びている投稿・記事を眺める画面」。
+ *
+ * 同業（カップル発信・ギフト選定・演出ベンダー・記念日代行）の Instagram 投稿と記事を眺めて、
+ * Anniv のネタ（記事管理/SNSネタ台帳.csv）と KW（/anniv-pick-keyword）に変換する材料を見る場所。
+ * 数字を集めるのはローカルの scripts/seo/ig-scan.ts（Instagram）／ site-scan.ts（記事サイト）で、
+ * この画面は D1 の competitor_* を読むだけ（pv_reports と同じ立場。Worker は書かない）。
+ *
+ * 出しているもの：
+ *   1. Instagram … アカウントのカード／伸びた投稿の上位30（?kind= ?account= で絞る）／勝ちパターンの当たり率（上位 vs 全体）／
+ *                  Anniv の独壇場に踏み込んでいる投稿
+ *   2. 記事     … 観測しているサイト／新着記事（見つけた順 50）／traffic が取れていればトラフィック上位 20
+ *   3. どれも無いとき … スクリプトの回し方
+ *
+ * 読み方の芯（メディア方針/SNS戦略.md 4章）：**伸びたかどうかはフォロワー数で比べない。同じアカウント内の中央値に対する倍率で見る。**
+ * 同じアカウント・同じデザインでいいねが 13〜118 と9倍ひらき、差は題材だけだった。フォロワー 4.5万でいいね 13〜118（0.03〜0.26%）なので
+ * フォロワー数はほとんど効いていない。倍率（ratio）・前回比（delta）・6則の当たり（pattern）は src/lib/seo/competitor.ts の純粋関数が出し、
+ * この画面は並べるだけ。判定語を増やすときもあちら。
+ *
+ * 絞り込みを GET のクエリにしているのは keywords.astro / seo.astro と同じ理由で、リロードで状態が消えず、
+ * 「ギフト選定メディアだけ」のような見方を URL のまま残せるため。
+ */
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import {
+  latestCompetitorStats,
+  listCompetitorAccounts,
+  listCompetitorPages,
+  listCompetitorPosts,
+  listCompetitorSites,
+} from '../../lib/db';
+import type { CompetitorKind, CompetitorPage, PostScore } from '../../lib/seo/types';
+import { hookOf, patternSummary, scorePosts, topPosts } from '../../lib/seo/competitor';
+
+export const prerender = false;
+
+/* ────────────────────────────────────────────────
+ * 見せ方の定数
+ * ──────────────────────────────────────────────── */
+
+/** 伸びた投稿の表に出す本数。パターン集計の「上位」もこの本数 */
+const TOP_N = 30;
+/** 新着記事の本数 */
+const NEW_PAGES_N = 50;
+/** トラフィック上位の本数 */
+const TRAFFIC_TOP_N = 20;
+/** 独壇場フラグの表の本数 */
+const TERRITORY_N = 20;
+/** 中央値比がこれ以上なら「伸びた」と太字で強調（SNS戦略.md 4章の 13〜118 の分布で、中央値の2倍は上位2割に当たる） */
+const HOT_RATIO = 2;
+
+/** schema.sql の competitor_accounts.kind と対。表示名は SNS戦略.md 3章「競合スキャン」の3タイプ＋同業 */
+const KIND_LABEL: Record<CompetitorKind, string> = {
+  couple_media: 'カップル発信',
+  gift_media: 'ギフト選定',
+  vendor: '演出ベンダー',
+  concierge: '同業',
+  other: 'その他',
+};
+const KINDS = Object.keys(KIND_LABEL) as CompetitorKind[];
+const isKind = (v: string): v is CompetitorKind => (KINDS as string[]).includes(v);
+const kindLabel = (k: string) => (isKind(k) ? KIND_LABEL[k] : k || '—');
+
+/** IG の media_type。リールは VIDEO で来る（Graph API の Business Discovery は REELS を分けない） */
+const MEDIA_LABEL: Record<string, string> = { IMAGE: '画像', VIDEO: 'リール', CAROUSEL_ALBUM: 'カルーセル' };
+const mediaLabel = (t: string) => MEDIA_LABEL[t] ?? (t || '—');
+
+/** 6則のうち機械で見える4つ（PostScore.pattern と対）。表のバッジと集計の行ラベルを共有する */
+const PATTERNS: Array<{ key: keyof PostScore['pattern']; label: string; rule: string }> = [
+  { key: 'audience', label: '相手', rule: '規則1・3：相手・状況の明示' },
+  { key: 'number', label: '数字', rule: '規則1・3：「7選」「35選」' },
+  { key: 'profileCta', label: '誘導', rule: '規則5：1行目がプロフィール誘導' },
+  { key: 'annivTerritory', label: '独壇場', rule: '規則6：店・締切・予算の内訳・段取り' },
+];
+
+/* ────────────────────────────────────────────────
+ * 取得と絞り込み
+ * ──────────────────────────────────────────────── */
+
+// どれも独立したクエリなので同時に投げる。テーブルが無い環境では全部空で返る（db.ts）。
+const [accounts, posts, stats, sites, pages] = await Promise.all([
+  listCompetitorAccounts(),
+  listCompetitorPosts(),
+  latestCompetitorStats(),
+  listCompetitorSites(),
+  listCompetitorPages(),
+]);
+const accountById = new Map(accounts.map((a) => [a.id, a]));
+
+// 絞り込み（不正な値は無視して全件に戻す。URL を手で書き換えられても落ちない）
+const params = Astro.url.searchParams;
+const rawKind = params.get('kind') ?? '';
+const rawAccount = params.get('account') ?? '';
+const fKind = isKind(rawKind) ? rawKind : '';
+const fAccount = /^\d+$/.test(rawAccount) && accountById.has(Number(rawAccount)) ? Number(rawAccount) : 0;
+const isFiltered = Boolean(fKind || fAccount);
+
+/* ── ① Instagram ── */
+// 中央値はアカウント内で閉じているので、絞る前に全件で評価しても結果は変わらない。
+// 先に評価してから絞るのは、アカウントのカード（全件の観測本数・中央値）と表（絞った分）で同じ scores を使うため。
+const allScores = scorePosts(posts, accounts, stats);
+const scores = allScores.filter((s) => (!fKind || s.account.kind === fKind) && (!fAccount || s.account.id === fAccount));
+const top = topPosts(scores, TOP_N);
+const summaryTop = patternSummary(top);
+const summaryAll = patternSummary(scores);
+// 独壇場（規則6）に踏み込んでいる投稿。scores は ratio 降順なので、上から「伸びていて、かつ踏み込んでいる」順
+const territory = scores.filter((s) => s.pattern.annivTerritory).slice(0, TERRITORY_N);
+
+/** カードに出すアカウントごとの観測本数と中央値（全件の scores から。絞り込みの影響を受けない） */
+const accountStats = new Map<number, { count: number; median: number | null }>();
+for (const s of allScores) {
+  const cur = accountStats.get(s.account.id) ?? { count: 0, median: s.median };
+  cur.count += 1;
+  accountStats.set(s.account.id, cur);
+}
+
+/* ── ② 記事 ── */
+const siteById = new Map(sites.map((s) => [s.id, s]));
+const pageCountBySite = new Map<number, number>();
+for (const p of pages) pageCountBySite.set(p.site_id, (pageCountBySite.get(p.site_id) ?? 0) + 1);
+// listCompetitorPages は first_seen 降順で返る
+const newPages = pages.slice(0, NEW_PAGES_N);
+const trafficPages = pages
+  .filter((p): p is CompetitorPage & { traffic: number } => p.traffic !== null)
+  .sort((a, b) => b.traffic - a.traffic)
+  .slice(0, TRAFFIC_TOP_N);
+
+/* ── ③ 空 ── */
+const isEmpty = accounts.length === 0 && posts.length === 0 && sites.length === 0 && pages.length === 0;
+
+/* ── 表示用 ── */
+const num = (n: number) => n.toLocaleString('ja-JP');
+const cell = (v: number | null) => (v === null ? '—' : num(v));
+/** ISO8601 → YYYY-MM-DD。日付だけの文字列や空はそのまま */
+const ymd = (s: string) => (s.length >= 10 ? s.slice(0, 10) : s || '—');
+const pct = (h: { hit: number; total: number }) => (h.total === 0 ? '—' : `${Math.round((h.hit / h.total) * 100)}%`);
+/** 中央値比。「×2.4」の形。中央値が無い（3本未満・hashtag 経由）なら — */
+const ratioText = (r: number | null) => (r === null ? '—' : `×${r.toFixed(1)}`);
+/** 前回比。符号付き。前回の断面が無ければ — */
+const deltaText = (d: number | null) => (d === null ? '—' : d > 0 ? `+${num(d)}` : d < 0 ? `−${num(-d)}` : '±0');
+/** フック。キャプションが空の投稿（リールに多い）は permalink だけでも押せるように仮の文字を出す */
+const hookText = (s: PostScore) => s.hook || hookOf(s.post.caption) || '（キャプション無し）';
+const igUrl = (handle: string) => `https://www.instagram.com/${encodeURIComponent(handle)}/`;
+const siteUrl = (host: string) => (host.startsWith('http') ? host : `https://${host}/`);
+/** 絞り込みの URL。kind と account は独立に残す */
+const filterUrl = (over: { kind?: string; account?: number }) => {
+  const q = new URLSearchParams();
+  const k = over.kind ?? fKind;
+  const a = over.account ?? fAccount;
+  if (k) q.set('kind', k);
+  if (a) q.set('account', String(a));
+  const s = q.toString();
+  return `/admin/competitors${s ? `?${s}` : ''}#ig`;
+};
+---
+
+<AdminLayout title="競合の観測" current="competitors">
+  <div class="admin-bar">
+    <h1 class="admin-title">
+      競合の観測<span class="admin-hint">（同業の伸びている投稿・記事。ネタと KW の材料）</span>
+    </h1>
+    <a class="btn" href="#ig">Instagram</a>
+    <a class="btn" href="#pages">記事</a>
+    <a class="btn" href="/admin/seo">SEO分析</a>
+    <a class="btn" href="/admin/keywords">キーワード台帳</a>
+  </div>
+
+  {
+    isEmpty ? (
+      /* ── ③ 空 ── */
+      <div class="admin-card">
+        <div class="admin-card-body">
+          <p class="admin-empty">
+            まだ観測データがありません。
+            <br />
+            ローカルで <code>scripts/seo/ig-scan.ts</code>（Instagram）／ <code>scripts/seo/site-scan.ts</code>（記事サイト）を回すか、
+            <code>/anniv-competitor</code> を実行すると入ります。対象は <code>記事管理/競合/targets.json</code>。
+            <br />
+            <span class="admin-hint">
+              Graph API の鍵が無い間は、手で見た数字を <code>ig-scan.ts --template</code> が出す JSON に書いて取り込める（source=manual）。
+            </span>
+          </p>
+        </div>
+      </div>
+    ) : (
+      <>
+        {/* ── ① Instagram ── */}
+        <h2 class="cp-h2" id="ig">Instagram</h2>
+        <div class="notice notice-info">
+          伸びたかどうかは<strong>フォロワー数で比べない</strong>。同じアカウント内の中央値に対する倍率（中央値比）で見る——
+          同じアカウント・同じデザインでいいねが 13〜118 と9倍ひらき、差は題材だけだった（SNS戦略.md 4章）。
+        </div>
+
+        {/* アカウントのカード（keywords.astro の kw-summary と同じ形。押すとそのアカウントで絞る） */}
+        {accounts.length === 0 ? (
+          <div class="admin-card">
+            <div class="admin-card-body">
+              <p class="admin-empty">観測しているアカウントがありません（targets.json の accounts が空）。</p>
+            </div>
+          </div>
+        ) : (
+          <div class="cp-accounts">
+            {accounts.map((a) => {
+              const st = accountStats.get(a.id);
+              return (
+                <div class={`cp-account${a.active ? '' : ' is-inactive'}`} aria-current={fAccount === a.id ? 'page' : undefined}>
+                  <div class="cp-account-head">
+                    <a class="cp-handle" href={igUrl(a.handle)} target="_blank" rel="noopener noreferrer" title={a.label || a.handle}>
+                      @{a.handle}
+                    </a>
+                    <span class={`cp-kind cp-kind-${a.kind || 'other'}`}>{kindLabel(a.kind)}</span>
+                  </div>
+                  {a.label && <span class="cp-account-label">{a.label}</span>}
+                  <dl class="cp-account-stats">
+                    <div>
+                      <dt>フォロワー</dt>
+                      <dd>{cell(a.followers)}</dd>
+                    </div>
+                    <div>
+                      <dt>観測本数</dt>
+                      <dd>{num(st?.count ?? 0)}</dd>
+                    </div>
+                    <div>
+                      <dt>中央値</dt>
+                      <dd>{st?.median === null || st?.median === undefined ? '—' : num(st.median)}</dd>
+                    </div>
+                    <div>
+                      <dt>最終取得</dt>
+                      <dd>{ymd(a.fetched_at)}</dd>
+                    </div>
+                  </dl>
+                  <div class="cp-account-foot">
+                    {!a.active && <span class="status status-draft">停止中</span>}
+                    {a.note && <span class="cp-account-note" title={a.note}>{a.note}</span>}
+                    <a class="btn btn-sm" href={filterUrl({ account: fAccount === a.id ? 0 : a.id })} aria-current={fAccount === a.id ? 'page' : undefined}>
+                      {fAccount === a.id ? '絞り込み中' : 'この垢だけ'}
+                    </a>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* 絞り込み（GET。keywords.astro と同じ作り） */}
+        <form class="admin-card cp-filter" method="get" action="/admin/competitors#ig">
+          <div class="admin-card-body cp-filter-body">
+            <div class="field">
+              <label for="filter-kind">種別</label>
+              <select id="filter-kind" name="kind">
+                <option value="">すべて</option>
+                {KINDS.map((k) => (
+                  <option value={k} selected={fKind === k}>
+                    {KIND_LABEL[k]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div class="field">
+              <label for="filter-account">アカウント</label>
+              <select id="filter-account" name="account">
+                <option value="">すべて</option>
+                {accounts.map((a) => (
+                  <option value={String(a.id)} selected={fAccount === a.id}>
+                    @{a.handle}
+                    {a.label ? `（${a.label}）` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div class="cp-filter-actions">
+              <button class="btn btn-primary" type="submit">
+                絞り込む
+              </button>
+              <a class="btn" href="/admin/competitors#ig">
+                リセット
+              </a>
+            </div>
+            <span class="admin-hint">
+              {isFiltered ? `${num(scores.length)}本 / 全${num(allScores.length)}本` : `${num(allScores.length)}本（直近180日）`}
+            </span>
+          </div>
+        </form>
+
+        {/* 伸びた投稿 */}
+        <div class="admin-card">
+          <div class="admin-card-head">
+            伸びた投稿 上位{TOP_N}
+            <span class="admin-hint">
+              中央値比の高い順（中央値が無いものは末尾）。×{HOT_RATIO} 以上を太字。バッジは6則のうち機械で見える4つの当たり
+            </span>
+          </div>
+          {top.length === 0 ? (
+            <div class="admin-card-body">
+              <p class="admin-empty">{isFiltered ? 'この条件に当たる投稿はありません。' : '投稿がまだありません（ig-scan.ts を回すと入る）。'}</p>
+            </div>
+          ) : (
+            <div class="admin-table-wrap">
+              <table class="admin-table cp-table">
+                <thead>
+                  <tr>
+                    <th>アカウント</th>
+                    <th>フック</th>
+                    <th class="cp-center">種類</th>
+                    <th class="col-num">いいね</th>
+                    <th class="col-num">コメント</th>
+                    <th class="col-num">中央値比</th>
+                    <th class="col-num">前回比</th>
+                    <th>パターン</th>
+                    <th class="cp-center">投稿日</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {top.map((s) => (
+                    <tr>
+                      <td class="cp-account-cell">
+                        <a href={filterUrl({ account: s.account.id })} title="このアカウントで絞る">
+                          @{s.account.handle}
+                        </a>
+                        <span class="cp-sub">{kindLabel(s.account.kind)}</span>
+                      </td>
+                      <td class="cp-hook">
+                        {s.post.permalink ? (
+                          <a href={s.post.permalink} target="_blank" rel="noopener noreferrer">
+                            {hookText(s)}
+                          </a>
+                        ) : (
+                          hookText(s)
+                        )}
+                        {s.post.source !== 'api' && <span class="cp-source">{s.post.source === 'manual' ? '手動' : '#'}</span>}
+                      </td>
+                      <td class="cp-center">{mediaLabel(s.post.media_type)}</td>
+                      <td class={`cell-num${!s.post.like_count ? ' is-zero' : ''}`}>{cell(s.post.like_count)}</td>
+                      <td class={`cell-num${!s.post.comments_count ? ' is-zero' : ''}`}>{cell(s.post.comments_count)}</td>
+                      <td class={`cell-num${s.ratio !== null && s.ratio >= HOT_RATIO ? ' cp-hot' : ''}${s.ratio === null ? ' is-zero' : ''}`}>
+                        {ratioText(s.ratio)}
+                      </td>
+                      <td class={`cell-num${s.delta === null || s.delta === 0 ? ' is-zero' : ''}`}>{deltaText(s.delta)}</td>
+                      <td class="cp-badges">
+                        {PATTERNS.filter((p) => s.pattern[p.key]).map((p) => (
+                          <span class={`cp-badge cp-badge-${p.key}`} title={p.rule}>
+                            {p.label}
+                          </span>
+                        ))}
+                      </td>
+                      <td class="cp-center cell-date">{ymd(s.post.posted_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <div class="admin-card-body cp-legend">
+            <span>
+              <span class="cp-badge cp-badge-audience">相手</span>「彼氏に」「20代」のように相手・状況が明示されている
+            </span>
+            <span>
+              <span class="cp-badge cp-badge-number">数字</span>「7選」「35選」。無い投稿は落ちる
+            </span>
+            <span>
+              <span class="cp-badge cp-badge-profileCta">誘導</span>1行目が @メンション＋矢印
+            </span>
+            <span>
+              <span class="cp-badge cp-badge-annivTerritory">独壇場</span>店・締切・予算の内訳・段取りに触れている（競合が踏み込んできた印）
+            </span>
+            <span class="admin-hint">判定は src/lib/seo/competitor.ts。前回比は stats の直近2断面の like の差。手動＝ig-scan.ts --template で取り込んだ数字</span>
+          </div>
+        </div>
+
+        {/* パターン集計 */}
+        <div class="admin-card">
+          <div class="admin-card-head">
+            勝ちパターンの当たり率
+            <span class="admin-hint">上位{TOP_N}と全体で比べる。上位で高く全体で低いパターンほど「伸びに効いている」</span>
+          </div>
+          {scores.length === 0 ? (
+            <div class="admin-card-body">
+              <p class="admin-empty">集計する投稿がありません。</p>
+            </div>
+          ) : (
+            <div class="admin-table-wrap">
+              <table class="admin-table cp-table cp-pattern">
+                <thead>
+                  <tr>
+                    <th>パターン</th>
+                    <th class="col-num">上位{Math.min(TOP_N, top.length)}</th>
+                    <th class="col-num">全体（{num(scores.length)}本）</th>
+                    <th class="col-num">差</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {PATTERNS.map((p) => {
+                    const t = summaryTop[p.key];
+                    const a = summaryAll[p.key];
+                    const diff = t.total > 0 && a.total > 0 ? Math.round((t.hit / t.total - a.hit / a.total) * 100) : null;
+                    return (
+                      <tr>
+                        <td>
+                          <span class={`cp-badge cp-badge-${p.key}`}>{p.label}</span>
+                          <span class="cp-sub">{p.rule}</span>
+                        </td>
+                        <td class="cell-num">
+                          {pct(t)}
+                          <span class="cp-sub">{num(t.hit)} / {num(t.total)}</span>
+                        </td>
+                        <td class="cell-num">
+                          {pct(a)}
+                          <span class="cp-sub">{num(a.hit)} / {num(a.total)}</span>
+                        </td>
+                        <td class={`cell-num${diff !== null && diff > 0 ? ' cp-hot' : ''}${diff === null || diff === 0 ? ' is-zero' : ''}`}>
+                          {diff === null ? '—' : diff > 0 ? `+${diff}pt` : diff < 0 ? `−${-diff}pt` : '±0'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* 独壇場フラグ */}
+        <div class="admin-card">
+          <div class="admin-card-head">
+            Anniv の独壇場に踏み込んでいる投稿
+            <span class="admin-hint">
+              規則6：店に何を頼めるか・締切・予算の内訳・段取りは、ギフトECもカップル発信も書けない領域。ここに当たる競合投稿は警戒して読む
+            </span>
+          </div>
+          {territory.length === 0 ? (
+            <div class="admin-card-body">
+              <p class="admin-empty">独壇場に触れている投稿はありません。</p>
+            </div>
+          ) : (
+            <div class="admin-table-wrap">
+              <table class="admin-table cp-table">
+                <thead>
+                  <tr>
+                    <th>アカウント</th>
+                    <th>フック</th>
+                    <th class="col-num">いいね</th>
+                    <th class="col-num">中央値比</th>
+                    <th class="cp-center">投稿日</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {territory.map((s) => (
+                    <tr>
+                      <td class="cp-account-cell">
+                        <a href={filterUrl({ account: s.account.id })} title="このアカウントで絞る">
+                          @{s.account.handle}
+                        </a>
+                        <span class="cp-sub">{kindLabel(s.account.kind)}</span>
+                      </td>
+                      <td class="cp-hook">
+                        {s.post.permalink ? (
+                          <a href={s.post.permalink} target="_blank" rel="noopener noreferrer">
+                            {hookText(s)}
+                          </a>
+                        ) : (
+                          hookText(s)
+                        )}
+                      </td>
+                      <td class={`cell-num${!s.post.like_count ? ' is-zero' : ''}`}>{cell(s.post.like_count)}</td>
+                      <td class={`cell-num${s.ratio !== null && s.ratio >= HOT_RATIO ? ' cp-hot' : ''}${s.ratio === null ? ' is-zero' : ''}`}>
+                        {ratioText(s.ratio)}
+                      </td>
+                      <td class="cp-center cell-date">{ymd(s.post.posted_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* ── ② 記事 ── */}
+        <h2 class="cp-h2" id="pages">記事</h2>
+
+        <div class="admin-card">
+          <div class="admin-card-head">
+            観測しているサイト
+            <span class="admin-hint">対象は 記事管理/競合/targets.json の sites。アダプタは取り方（wp-rest / sitemap / html）</span>
+          </div>
+          {sites.length === 0 ? (
+            <div class="admin-card-body">
+              <p class="admin-empty">観測しているサイトがありません（targets.json の sites が空）。</p>
+            </div>
+          ) : (
+            <div class="admin-table-wrap">
+              <table class="admin-table cp-table">
+                <thead>
+                  <tr>
+                    <th>host</th>
+                    <th class="cp-center">アダプタ</th>
+                    <th class="col-num">観測記事数</th>
+                    <th class="cp-center">最終取得</th>
+                    <th>note</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sites.map((s) => (
+                    <tr class={s.active ? '' : 'is-inactive'}>
+                      <td class="col-title">
+                        <a href={siteUrl(s.host)} target="_blank" rel="noopener noreferrer">
+                          {s.host}
+                        </a>
+                        {s.label && <span class="cp-sub">{s.label}</span>}
+                        {!s.active && <span class="status status-draft">停止中</span>}
+                      </td>
+                      <td class="cp-center">
+                        <code class="cp-code">{s.adapter || '—'}</code>
+                      </td>
+                      <td class={`cell-num${!pageCountBySite.get(s.id) ? ' is-zero' : ''}`}>{num(pageCountBySite.get(s.id) ?? 0)}</td>
+                      <td class="cp-center cell-date">{ymd(s.fetched_at)}</td>
+                      <td class="cp-note">{s.note}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <div class="admin-card">
+          <div class="admin-card-head">
+            新着記事
+            <span class="admin-hint">見つけた日（first_seen）の新しい順 {NEW_PAGES_N} 本。競合が今なにを書いているか＝KW候補の種</span>
+          </div>
+          {newPages.length === 0 ? (
+            <div class="admin-card-body">
+              <p class="admin-empty">記事がまだありません（site-scan.ts を回すと入る）。</p>
+            </div>
+          ) : (
+            <div class="admin-table-wrap">
+              <table class="admin-table cp-table">
+                <thead>
+                  <tr>
+                    <th>サイト</th>
+                    <th>タイトル</th>
+                    <th class="cp-center">公開日</th>
+                    <th class="cp-center">更新日</th>
+                    <th class="cp-center">見つけた日</th>
+                    <th class="col-num">traffic</th>
+                    <th>主要KW</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {newPages.map((p) => (
+                    <tr>
+                      <td class="cp-site-cell">{siteById.get(p.site_id)?.host ?? `(site ${p.site_id})`}</td>
+                      <td class="col-title cp-title">
+                        <a href={p.url} target="_blank" rel="noopener noreferrer" title={p.url}>
+                          {p.title || p.url}
+                        </a>
+                      </td>
+                      <td class="cp-center cell-date">{ymd(p.published_at)}</td>
+                      <td class="cp-center cell-date">{ymd(p.modified_at)}</td>
+                      <td class="cp-center cell-date">{ymd(p.first_seen)}</td>
+                      <td class={`cell-num${p.traffic === null ? ' is-zero' : ''}`}>{cell(p.traffic)}</td>
+                      <td class="cp-keyword">{p.top_keyword}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {trafficPages.length > 0 && (
+          <div class="admin-card">
+            <div class="admin-card-head">
+              トラフィック上位 {TRAFFIC_TOP_N}
+              <span class="admin-hint">Ahrefs の推定月間トラフィック（取れた回だけ入る）。主要KW はそのまま /anniv-pick-keyword の候補に</span>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table cp-table">
+                <thead>
+                  <tr>
+                    <th>サイト</th>
+                    <th>タイトル</th>
+                    <th class="col-num">traffic</th>
+                    <th>主要KW</th>
+                    <th class="cp-center">取得日</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {trafficPages.map((p) => (
+                    <tr>
+                      <td class="cp-site-cell">{siteById.get(p.site_id)?.host ?? `(site ${p.site_id})`}</td>
+                      <td class="col-title cp-title">
+                        <a href={p.url} target="_blank" rel="noopener noreferrer" title={p.url}>
+                          {p.title || p.url}
+                        </a>
+                      </td>
+                      <td class="cell-num">{num(p.traffic)}</td>
+                      <td class="cp-keyword">{p.top_keyword}</td>
+                      <td class="cp-center cell-date">{ymd(p.traffic_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        <p class="admin-hint cp-note-foot">
+          数字は最後にスクリプトを回した時点のもの。ページを開いても動かない。最新を見るなら <code>scripts/seo/ig-scan.ts</code> ／
+          <code>site-scan.ts</code> を回す（<code>/anniv-competitor</code>）。鍵が無い間の手動取り込みは <code>ig-scan.ts --template</code>。
+        </p>
+      </>
+    )
+  }
+</AdminLayout>
+
+<style>
+  /* セクションの見出し。seo.astro の seo-h2 と同じ */
+  .cp-h2 {
+    margin: 28px 0 12px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--navy);
+    /* #ig / #pages で飛んだとき、固定ヘッダー（54px）の下に見出しが潜らないようにする */
+    scroll-margin-top: 64px;
+  }
+  .cp-h2:first-of-type {
+    margin-top: 0;
+  }
+
+  /* アカウントのカード（keywords.astro の kw-summary と同じ形。中身が多いので左寄せ） */
+  .cp-accounts {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+  .cp-account {
+    flex: 1;
+    min-width: 220px;
+    max-width: 320px;
+    padding: 12px 14px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--admin-radius);
+    box-shadow: var(--shadow-sm);
+  }
+  .cp-account[aria-current='page'] {
+    border-color: var(--navy);
+  }
+  /* active=0 は薄く。消してはいない（過去の投稿は残る）ので表示は続ける */
+  .cp-account.is-inactive {
+    opacity: 0.55;
+  }
+  .cp-account-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .cp-handle {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--navy);
+    text-decoration: none;
+  }
+  .cp-handle:hover {
+    text-decoration: underline;
+  }
+  .cp-handle::after {
+    content: '↗';
+    margin-left: 2px;
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-light);
+  }
+  .cp-account-label {
+    display: block;
+    font-size: 11.5px;
+    color: var(--text-light);
+  }
+  .cp-account-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 12px;
+    margin-top: 8px;
+  }
+  .cp-account-stats dt {
+    font-size: 10.5px;
+    color: var(--text-light);
+    letter-spacing: 0.04em;
+  }
+  .cp-account-stats dd {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--navy);
+    line-height: 1.3;
+    font-variant-numeric: tabular-nums;
+  }
+  .cp-account-foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .cp-account-note {
+    flex: 1;
+    min-width: 0;
+    font-size: 11px;
+    color: var(--text-light);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cp-account-foot .btn {
+    margin-left: auto;
+  }
+  .cp-account-foot .btn[aria-current='page'] {
+    background: var(--navy);
+    border-color: var(--navy);
+    color: var(--white);
+  }
+
+  /* 種別。SNS戦略.md 3章の3タイプ＋同業。同業（concierge）だけ金で目立たせる＝位置取りが最も近い */
+  .cp-kind {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 700;
+    background: #eef1f5;
+    color: var(--text-light);
+    white-space: nowrap;
+  }
+  .cp-kind-concierge {
+    background: var(--gold-pale);
+    color: #8a6d2f;
+  }
+  .cp-kind-couple_media {
+    background: #fdf1f4;
+    color: #a8506b;
+  }
+  .cp-kind-gift_media {
+    background: var(--blue-pale);
+    color: var(--blue-mid);
+  }
+  .cp-kind-vendor {
+    background: #e6f4ec;
+    color: var(--admin-ok);
+  }
+
+  /* 絞り込みフォーム（keywords.astro の kw-filter と同じ形） */
+  .cp-filter {
+    margin-bottom: 18px;
+  }
+  .cp-filter-body {
+    display: flex;
+    gap: 14px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+  .cp-filter-body .field {
+    margin-bottom: 0;
+    min-width: 170px;
+  }
+  .cp-filter-body .admin-hint {
+    margin-left: auto;
+    align-self: center;
+  }
+  .cp-filter-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  /* 一覧は情報量が多いので字を少し詰める（seo-table と同じ） */
+  .cp-table {
+    font-size: 13px;
+  }
+  .cp-center {
+    text-align: center;
+    white-space: nowrap;
+  }
+  .cp-sub {
+    display: block;
+    font-size: 11px;
+    color: var(--text-light);
+    line-height: 1.6;
+    margin-top: 2px;
+    font-family: 'Noto Sans JP', system-ui, sans-serif;
+    font-weight: 400;
+  }
+  .cell-num .cp-sub {
+    text-align: right;
+  }
+  .cp-account-cell {
+    white-space: nowrap;
+  }
+  .cp-account-cell a {
+    color: var(--navy);
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .cp-account-cell a:hover {
+    text-decoration: underline;
+  }
+  .cp-hook {
+    min-width: 260px;
+    max-width: 480px;
+  }
+  .cp-hook a {
+    color: var(--navy);
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .cp-hook a:hover {
+    text-decoration: underline;
+  }
+  /* api 以外の出どころ（手動・ハッシュタグ）。数字の性質が違うので印を付ける */
+  .cp-source {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 0 5px;
+    border-radius: 3px;
+    background: #eef1f5;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-light);
+    vertical-align: 1px;
+  }
+  /* 中央値比が HOT_RATIO 以上＝伸びた。数字の色だけに頼らず太字にする */
+  .cp-hot {
+    color: var(--admin-ok);
+    font-weight: 700;
+  }
+
+  /* 6則のバッジ。当たりだけ出す。独壇場は「競合が踏み込んできた」警戒なので赤系 */
+  .cp-badges {
+    white-space: nowrap;
+  }
+  .cp-badge {
+    display: inline-block;
+    margin-right: 4px;
+    padding: 1px 7px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 1.6;
+    background: #eef1f5;
+    color: var(--text-light);
+  }
+  .cp-badge-audience {
+    background: var(--blue-pale);
+    border-color: var(--border);
+    color: var(--navy);
+  }
+  .cp-badge-number {
+    background: #e6f4ec;
+    border-color: #bfe3ce;
+    color: var(--admin-ok);
+  }
+  .cp-badge-profileCta {
+    background: #fdf6e7;
+    border-color: #eddcb0;
+    color: #8a6d2f;
+  }
+  .cp-badge-annivTerritory {
+    background: #fdf1ef;
+    border-color: #eccac5;
+    color: var(--admin-danger);
+  }
+
+  .cp-pattern td:first-child {
+    min-width: 260px;
+  }
+
+  /* 記事側 */
+  .cp-site-cell {
+    font-family: var(--admin-mono);
+    font-size: 12px;
+    color: var(--text-light);
+    white-space: nowrap;
+  }
+  .cp-title {
+    min-width: 260px;
+    max-width: 520px;
+  }
+  .cp-title a {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cp-keyword {
+    min-width: 140px;
+    color: var(--navy);
+  }
+  .cp-note {
+    min-width: 160px;
+    max-width: 360px;
+    font-size: 12px;
+    color: var(--text-light);
+  }
+  .cp-code {
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: var(--blue-pale);
+    font-family: var(--admin-mono);
+    font-size: 11.5px;
+    color: var(--navy);
+  }
+  tr.is-inactive td {
+    opacity: 0.55;
+  }
+
+  /* 判定基準は画面の中に書いておく（seo.astro の seo-legend と同じ） */
+  .cp-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    align-items: center;
+    border-top: 1px solid var(--border);
+    font-size: 11.5px;
+    color: var(--text-light);
+  }
+  .cp-legend .cp-badge {
+    margin-right: 5px;
+  }
+  .cp-note-foot {
+    margin-top: 14px;
+  }
+  .admin-empty code,
+  .cp-note-foot code {
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: var(--blue-pale);
+    font-family: var(--admin-mono);
+    font-size: 12px;
+    color: var(--navy);
+  }
+</style>

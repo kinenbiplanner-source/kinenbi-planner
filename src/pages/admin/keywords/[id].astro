@@ -1,0 +1,337 @@
+---
+/**
+ * キーワード台帳の1件編集（/admin/keywords/[id]）。
+ *
+ * 台帳画面（/admin/keywords）は「どれを次に書くか」を並べて選ぶ場所で、行の中で変えられるのは
+ * ステータスだけにしてある。ここは1件の中身——軸・ファネル・優先度と、SEO 列
+ * （種KW・検索数・需要スコア・KD・要塞度・調査日）——を直す画面。
+ *
+ * SEO 列は /anniv-pick-keyword が機械で入れる数字だが、scout の判定を人が覆したいときや、
+ * Ahrefs の数字を手で写したいときがある。取り込み JSON を貼り直すと他の列まで動くので、
+ * 1件だけを触れる口を別に持つ。用語は .claude/agents/reference/keyword-selection.md に揃える。
+ *
+ * keyword（主キー相当）と status（台帳のセレクトで変える）はここでは表示だけ。
+ * 保存は PUT /api/keywords/<id> に JSON を1回投げるだけで、画面の再構築はしない。
+ */
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getById, getKeyword } from '../../../lib/db';
+import { AXES, FUNNELS } from '../../../lib/axis';
+
+export const prerender = false;
+
+// URL を手で書き換えられても落ちないように、数値でなければ 404 と同じ扱いにする。
+const rawId = Number(Astro.params.id);
+const id = Number.isInteger(rawId) && rawId > 0 ? rawId : null;
+const k = id === null ? null : await getKeyword(id);
+if (!k) Astro.response.status = 404;
+
+// 記事に紐づいていれば編集画面へ飛べるようにする（台帳側は article_id しか持たない）。
+const article = k?.article_id ? await getById(k.article_id) : null;
+
+/** schema.sql の keywords.status と対。表示名は台帳画面と同じ。 */
+const STATUS_LABEL: Record<string, string> = {
+  todo: '未着手',
+  writing: '執筆中',
+  done: '記事化済み',
+  dropped: '見送り',
+};
+
+/** keyword-selection.md 4章の出どころ。上ほど信頼できる。 */
+const VOLUME_SOURCES = [
+  { value: '', label: '（無し）' },
+  { value: 'ahrefs', label: 'ahrefs（実数・KD 付き）' },
+  { value: 'csv', label: 'csv（キーワードプランナー／ラッコの手動CSV）' },
+  { value: 'gsc', label: 'gsc（Search Console の表示数）' },
+] as const;
+
+/** keyword-selection.md 2章の要塞度。 */
+const SERP_GRADES = [
+  { value: '', label: '（未判定）' },
+  { value: 'A', label: 'A＝要塞（正面から入らない）' },
+  { value: 'B', label: 'B＝割り込み可（主戦場）' },
+  { value: 'C', label: 'C＝空白（需要の裏取り必須）' },
+] as const;
+
+/** number 入力の value。null は空にする（0 と区別する）。 */
+const numVal = (n: number | null) => (n === null ? '' : String(n));
+---
+
+<AdminLayout title={k ? `台帳：${k.keyword}` : '台帳のキーワード'} current="keywords">
+  {
+    !k ? (
+      <>
+        <div class="admin-bar">
+          <h1 class="admin-title">キーワードが見つかりません</h1>
+          <a class="btn" href="/admin/keywords">台帳へ戻る</a>
+        </div>
+        <div class="admin-card">
+          <p class="admin-empty">この id のキーワードは台帳にありません。削除されたか、URL が違います。</p>
+        </div>
+      </>
+    ) : (
+      <>
+        <div class="admin-bar">
+          <h1 class="admin-title">
+            {k.keyword}
+            <span class="admin-hint">
+              （id {k.id} / {STATUS_LABEL[k.status] ?? k.status}）
+            </span>
+          </h1>
+          {article && (
+            <a class="btn" href={`/admin/${article.id}/edit`}>
+              記事を編集
+            </a>
+          )}
+          <a class="btn" href="/admin/seo">SEO分析へ</a>
+          <a class="btn" href="/admin/keywords">台帳へ戻る</a>
+        </div>
+
+        <div class="notice notice-error" id="kw-error" hidden />
+        <div class="notice notice-ok" id="kw-ok" hidden />
+
+        <form id="kw-form" data-id={String(k.id)}>
+          {/* ── 基本（軸・ファネル・優先度・目安）── */}
+          <div class="admin-card">
+            <div class="admin-card-head">
+              基本
+              <span class="admin-hint">キーワードとステータスはここでは変えない（ステータスは台帳のセレクトから）</span>
+            </div>
+            <div class="admin-card-body">
+              <div class="field-grid">
+                <div class="field">
+                  <label for="f-axis">軸</label>
+                  <select id="f-axis" data-field="axis">
+                    {AXES.map((a) => (
+                      <option value={a.slug} selected={k.axis === a.slug}>
+                        {a.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p class="field-note">コンテンツ軸。テーマ範囲は content-axis.md が正</p>
+                </div>
+                <div class="field">
+                  <label for="f-funnel">ファネル</label>
+                  <select id="f-funnel" data-field="funnel">
+                    {FUNNELS.map((f) => (
+                      <option value={f} selected={k.funnel === f}>
+                        {f}
+                      </option>
+                    ))}
+                  </select>
+                  <p class="field-note">
+                    語尾パターンで割り当てる（keyword-selection.md 3章）。課題解決が無料相談に直結
+                  </p>
+                </div>
+                <div class="field">
+                  <label for="f-priority">優先度</label>
+                  <select id="f-priority" data-field="priority">
+                    {[1, 2, 3].map((p) => (
+                      <option value={String(p)} selected={k.priority === p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                  <p class="field-note">1が最優先。保留（verdict=hold）は 3 に置く</p>
+                </div>
+              </div>
+              <div class="field-grid">
+                <div class="field">
+                  <label for="f-difficulty">難易度（目安）</label>
+                  <input id="f-difficulty" type="text" data-field="difficulty" value={k.difficulty} />
+                  <p class="field-note">低 / 中 / 高。人が読む粗い目安。機械の数字は下の KD と要塞度</p>
+                </div>
+                <div class="field">
+                  <label for="f-volume">ボリューム（目安）</label>
+                  <input id="f-volume" type="text" data-field="volume" value={k.volume} />
+                  <p class="field-note">小 / 中 / 大。実数は下の検索数に入れる（測っていないのと「小」は別物）</p>
+                </div>
+              </div>
+              <div class="field">
+                <label for="f-intent">検索意図</label>
+                <input id="f-intent" type="text" data-field="intent" value={k.intent} />
+                <p class="field-note">誰が何のために調べたか。ファネルの判定に迷ったらこちらを優先</p>
+              </div>
+              <div class="field">
+                <label for="f-persona">想定読者</label>
+                <input id="f-persona" type="text" data-field="persona" value={k.persona} />
+                <p class="field-note">贈る相手が恋人・交際中カップルか（メインターゲット外なら採らない）</p>
+              </div>
+              <div class="field">
+                <label for="f-note">メモ</label>
+                <textarea id="f-note" rows="3" data-field="note">{k.note}</textarea>
+                <p class="field-note">保留理由・切り口の案など。2000字まで</p>
+              </div>
+            </div>
+          </div>
+
+          {/* ── SEO 列 ── */}
+          <div class="admin-card">
+            <div class="admin-card-head">
+              SEO
+              <span class="admin-hint">
+                /anniv-pick-keyword が入れる列。数字が無い＝測っていない（空のまま保存すると null）
+              </span>
+            </div>
+            <div class="admin-card-body">
+              <div class="field">
+                <label for="f-seed">種KW</label>
+                <input id="f-seed" type="text" data-field="seed" value={k.seed} />
+                <p class="field-note">
+                  クラスタの単位。同じ種の記事どうしを内部リンクで束ね、カニバリ判定の母集団にもなる
+                </p>
+              </div>
+              <div class="field-grid">
+                <div class="field">
+                  <label for="f-volume-num">検索数（実数）</label>
+                  <input id="f-volume-num" type="number" min="0" step="1" data-field="volume_num" value={numVal(k.volume_num)} />
+                  <p class="field-note">月間検索数。レンジしか無いときは下限を入れる</p>
+                </div>
+                <div class="field">
+                  <label for="f-volume-source">検索数の出どころ</label>
+                  <select id="f-volume-source" data-field="volume_source">
+                    {VOLUME_SOURCES.map((s) => (
+                      <option value={s.value} selected={k.volume_source === s.value}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p class="field-note">ahrefs ＞ csv ＞ gsc の順に信頼できる。上位のソースが取れたら上書きしてよい</p>
+                </div>
+              </div>
+              <div class="field-grid">
+                <div class="field">
+                  <label for="f-demand">需要スコア</label>
+                  <input id="f-demand" type="number" min="0" max="100" step="1" data-field="demand_score" value={numVal(k.demand_score)} />
+                  <p class="field-note">
+                    サジェスト深度 0〜100。候補どうしの相対順位にしか使えず、絶対量は語らない
+                  </p>
+                </div>
+                <div class="field">
+                  <label for="f-kd">KD</label>
+                  <input id="f-kd" type="number" min="0" max="100" step="1" data-field="kd" value={numVal(k.kd)} />
+                  <p class="field-note">Ahrefs の Keyword Difficulty 0〜100</p>
+                </div>
+              </div>
+              <div class="field-grid">
+                <div class="field">
+                  <label for="f-grade">要塞度</label>
+                  <select id="f-grade" data-field="serp_grade">
+                    {SERP_GRADES.map((g) => (
+                      <option value={g.value} selected={k.serp_grade === g.value}>
+                        {g.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p class="field-note">
+                    上位10の顔ぶれで決める（要塞側＝EC・予約DB・比較まとめの件数。6件以上でA、3〜5でB、2件以下でC）
+                  </p>
+                </div>
+                <div class="field">
+                  <label for="f-researched">調査日</label>
+                  <input id="f-researched" type="date" data-field="researched_at" value={k.researched_at} />
+                  <p class="field-note">最後に SERP・ボリュームを調べた日。古ければ再調査</p>
+                </div>
+              </div>
+              <div class="field">
+                <label for="f-serp-note">要塞度の根拠</label>
+                <textarea id="f-serp-note" rows="3" data-field="serp_note">{k.serp_note}</textarea>
+                <p class="field-note">上位10の内訳（EC n / 予約DB n / 個人 n …）と、割り込み余地の一言。2000字まで</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="save-bar">
+            <button class="btn btn-primary" type="submit" id="kw-save">
+              保存する
+            </button>
+            <span class="save-state" id="kw-state" />
+            <span class="spacer" />
+            <a class="btn" href="/admin/keywords">台帳へ戻る</a>
+          </div>
+        </form>
+      </>
+    )
+  }
+</AdminLayout>
+
+<script>
+  /*
+   * 編集フォームのクライアント側。やることは保存の1つだけ。
+   * data-field を付けた入力を集めて PUT /api/keywords/<id> に投げる。
+   * 列名を JS 側にもう一度書かないので、列が増えても HTML だけ直せばよい
+   * （/admin/cases/[id] の data-patch と同じ作り）。
+   */
+  const form = document.getElementById('kw-form') as HTMLFormElement | null;
+  const msgError = document.getElementById('kw-error');
+  const msgOk = document.getElementById('kw-ok');
+  const state = document.getElementById('kw-state');
+  const btnSave = document.getElementById('kw-save') as HTMLButtonElement | null;
+
+  function show(box: HTMLElement | null, text: string) {
+    if (!box) return;
+    box.textContent = text;
+    box.hidden = false;
+    box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+  function hideMsgs() {
+    if (msgError) msgError.hidden = true;
+    if (msgOk) msgOk.hidden = true;
+  }
+
+  /** API のエラーは JSON の error に入る。取れなければステータスコードで返す。 */
+  async function errorText(res: Response): Promise<string> {
+    try {
+      const data = (await res.json()) as { error?: string };
+      return data.error ?? `エラー（HTTP ${res.status}）`;
+    } catch {
+      return `エラー（HTTP ${res.status}）`;
+    }
+  }
+
+  /**
+   * 入力を集める。number 入力の空は null（＝測っていない）で送る。
+   * '' のまま送っても API 側で null に寄せるが、意図をこちらで明示しておく。
+   */
+  function collect(root: HTMLElement): Record<string, unknown> {
+    const out: Record<string, unknown> = {};
+    const nodes = Array.from(root.querySelectorAll('[data-field]')) as unknown as HTMLElement[];
+    for (const node of nodes) {
+      const key = node.dataset.field;
+      if (!key) continue;
+      const input = node as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+      if (input instanceof HTMLInputElement && input.type === 'number') {
+        out[key] = input.value.trim() === '' ? null : Number(input.value);
+      } else if (key === 'priority') {
+        out[key] = Number(input.value);
+      } else {
+        out[key] = input.value;
+      }
+    }
+    return out;
+  }
+
+  form?.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    hideMsgs();
+    const id = form.dataset.id;
+    if (!id) return;
+
+    if (btnSave) btnSave.disabled = true;
+    if (state) state.textContent = '保存中…';
+    try {
+      const res = await fetch(`/api/keywords/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(collect(form)),
+      });
+      if (!res.ok) throw new Error(await errorText(res));
+      show(msgOk, '保存しました。');
+      if (state) state.textContent = '';
+    } catch (e) {
+      show(msgError, e instanceof Error ? e.message : '通信に失敗しました');
+      if (state) state.textContent = '';
+    } finally {
+      if (btnSave) btnSave.disabled = false;
+    }
+  });
+</script>

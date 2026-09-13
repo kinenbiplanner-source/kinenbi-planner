@@ -1,0 +1,912 @@
+---
+/**
+ * SEO分析（/admin/seo）。「書く前に見る画面」。
+ *
+ * /admin/stats は書いた後（PV・前期比・リライト候補）を見る画面で、こちらは書く前——
+ * 「そのKWは既存の記事や台帳と検索意図が重なっていないか」「どこから内部リンクを張れるか」
+ * 「検索ではいま何位に居て、何を取りこぼしているか」——を1枚で見る。
+ * /anniv-pick-keyword が候補を出したあと、台帳に入れる前・記事に着手する前に開く前提。
+ *
+ * 出しているもの：
+ *   1. カニバリ（検索意図の重なり）… 台帳（todo / writing）× 記事（下書き含む）の総当たり。dup と strong だけ
+ *   2. 内部リンク … 孤立記事／公開記事ごとの発・被リンク数／「ここから張れる」提案（?to= ?from= で絞る）
+ *   3. 検索クエリ … 週次レポートの GSC 断面から、複数記事が当たっているクエリ・striking distance・取りこぼし
+ *   4. 台帳の SEO 列 … 未着手KWの要塞度・需要・検索数。未調査を上に集める
+ *
+ * 判定はすべて src/lib/seo/（cannibal.ts / internal-links.ts）の純粋関数で、この画面は並べるだけ。
+ * ルールの正は .claude/agents/reference/keyword-selection.md。用語（要塞度 A/B/C・需要スコア・dup/strong/weak）もそこに揃える。
+ *
+ * 絞り込みを GET のクエリにしているのは keywords.astro / stats.astro と同じ理由で、
+ * リロードで状態が消えず、「この記事へ張れる候補」の URL をそのまま残せるため。
+ */
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { latestPvReport, listArticlesForSeo, listKeywords, type KeywordRow } from '../../lib/db';
+import { axisShort } from '../../lib/axis';
+import { parsePvSnapshot, type PvSnapshotQuery } from '../../lib/stats';
+import type { CannibalLevel, SeoArticle, SeoKeyword } from '../../lib/seo/types';
+import { cannibalMatrix, gscCannibal, type CannibalTarget } from '../../lib/seo/cannibal';
+import { buildLinkGraph, findOrphans, linkCounts, suggestLinks } from '../../lib/seo/internal-links';
+
+export const prerender = false;
+
+/* ────────────────────────────────────────────────
+ * しきい値（GSC の断面の読み方）
+ *
+ * scripts/update-pv.ts の同名の定数と対。あちらは現状ファクトシート（Markdown）に同じ表を書く。
+ * 値を変えるときは両方直す——画面とファクトシートで「striking distance」の中身が違うと読みが狂う。
+ * ──────────────────────────────────────────────── */
+
+/** striking distance（あと一押しで1ページ目上位）：順位がこの範囲で表示がこれ以上 */
+const STRIKE_POS_MIN = 4;
+const STRIKE_POS_MAX = 20;
+const STRIKE_MIN_IMPR = 5;
+/** 「表示はあるのに押されていない」：表示がこれ以上でCTRがこれ未満 */
+const GSC_MISS_MIN_IMPR = 20;
+const GSC_MISS_MAX_CTR = 0.02;
+/** 同じクエリに複数記事が当たっている判定に使う最低表示数。1〜2回の表示で「共食い」とは言えない */
+const GSC_CANNIBAL_MIN_IMPR = 5;
+
+// どれも独立したクエリなので同時に投げる。
+const [kwRows, articleRows, latestReport] = await Promise.all([listKeywords(), listArticlesForSeo(), latestPvReport()]);
+
+// 台帳は todo / writing だけ照合する。done は記事側に同じKWが居るので二重に数えない、
+// dropped は書かないと決めたものなので重なっていても困らない。
+const keywords: SeoKeyword[] = kwRows
+  .filter((k) => k.status === 'todo' || k.status === 'writing')
+  .map((k) => ({
+    id: k.id,
+    keyword: k.keyword,
+    axis: k.axis,
+    funnel: k.funnel,
+    status: k.status,
+    article_id: k.article_id,
+    seed: k.seed,
+  }));
+// 記事は下書きも含める（書きかけの記事と同じ意図のKWを台帳から拾ってしまうのを防ぐ）。列名は同じなのでそのまま渡す。
+const articles: SeoArticle[] = articleRows;
+const articleById = new Map(articles.map((a) => [a.id, a]));
+const articleBySlug = new Map(articles.filter((a) => a.slug).map((a) => [a.slug, a]));
+const published = articles.filter((a) => a.status === 'published');
+
+/* ── ① カニバリ ── */
+const LEVEL_ORDER: Record<CannibalLevel, number> = { dup: 0, strong: 1, weak: 2 };
+const LEVEL_LABEL: Record<CannibalLevel, string> = { dup: 'dup', strong: 'strong', weak: 'weak' };
+
+// weak は「切り口が違えば共存できる」なので出さない。台帳が増えると weak だけで数百行になり、
+// dup / strong が埋もれる。weak を見たいときは CLI（scripts/seo/）で。
+const pairs = cannibalMatrix(keywords, articles)
+  .filter((p) => p.hit.level !== 'weak')
+  .sort((x, y) => LEVEL_ORDER[x.hit.level] - LEVEL_ORDER[y.hit.level] || y.hit.score - x.hit.score);
+const dupCount = pairs.filter((p) => p.hit.level === 'dup').length;
+const strongCount = pairs.length - dupCount;
+
+/** 表の1マス。台帳なら編集画面、記事ならエディタへ飛ぶ。下書きの記事はそれと分かるように印を付ける。 */
+function targetView(t: CannibalTarget) {
+  if (t.kind === 'article') {
+    const a = articleById.get(t.id);
+    return {
+      kind: '記事',
+      href: `/admin/${t.id}/edit`,
+      label: t.title || t.keyword || `記事 #${t.id}`,
+      sub: [t.keyword, t.slug].filter(Boolean).join(' / '),
+      draft: a?.status === 'draft',
+      axis: axisShort(t.axis),
+      funnel: t.funnel,
+    };
+  }
+  return {
+    kind: '台帳',
+    href: `/admin/keywords/${t.id}`,
+    label: t.keyword,
+    sub: '',
+    draft: false,
+    axis: axisShort(t.axis),
+    funnel: t.funnel,
+  };
+}
+const cannibalRows = pairs.map((p) => ({
+  a: targetView(p.a),
+  b: targetView(p.b),
+  level: p.hit.level,
+  score: p.hit.score,
+  reason: p.hit.reason,
+}));
+
+/* ── ② 内部リンク ── */
+const graph = buildLinkGraph(articles);
+const orphans = findOrphans(articles, graph);
+const counts = linkCounts(articles, graph);
+
+// 絞り込み（不正な slug は無視して全件に戻す。URL を手で書き換えられても落ちない）
+const params = Astro.url.searchParams;
+const rawTo = params.get('to') ?? '';
+const rawFrom = params.get('from') ?? '';
+const fTo = articleBySlug.has(rawTo) ? rawTo : '';
+const fFrom = articleBySlug.has(rawFrom) ? rawFrom : '';
+const linkFiltered = Boolean(fTo || fFrom);
+
+const suggestions = suggestLinks(articles, graph, {
+  limit: 30,
+  toSlug: fTo || undefined,
+  fromSlug: fFrom || undefined,
+});
+
+const linkRows = published
+  .map((a) => {
+    const c = counts.get(a.slug) ?? { out: 0, in: 0 };
+    return { ...a, out: c.out, in: c.in };
+  })
+  // 被リンクの少ない順。上に来るものが「次に張るべき先」
+  .sort((x, y) => x.in - y.in || x.out - y.out || x.id - y.id);
+
+/* ── ③ 検索クエリ（GSC の断面）── */
+const snapshot = latestReport ? parsePvSnapshot(latestReport.snapshot_json) : null;
+const queries: PvSnapshotQuery[] = snapshot?.queries ?? [];
+const hasGsc = queries.length > 0;
+const gscYmd = snapshot?.ymd || latestReport?.ymd || '';
+const gscRange = snapshot?.gscRange ?? null;
+
+const byImpr = (a: PvSnapshotQuery, b: PvSnapshotQuery) => b.impressions - a.impressions || b.clicks - a.clicks;
+const gscMulti = hasGsc ? gscCannibal(queries, { minImpressions: GSC_CANNIBAL_MIN_IMPR }) : [];
+const striking = queries
+  .filter((q) => q.impressions >= STRIKE_MIN_IMPR && q.position >= STRIKE_POS_MIN && q.position <= STRIKE_POS_MAX)
+  .sort(byImpr);
+const missed = queries
+  .filter((q) => q.impressions >= GSC_MISS_MIN_IMPR && q.clicks / q.impressions < GSC_MISS_MAX_CTR)
+  .sort(byImpr);
+
+/* ── ④ 台帳の SEO 列 ── */
+// 要塞度も検索数も無い＝まだ /anniv-pick-keyword で調べていない。上に集めて、次に調べるものを一目で分かるようにする。
+const isUnresearched = (k: KeywordRow) => !k.serp_grade && k.volume_num === null;
+const todo = kwRows.filter((k) => k.status === 'todo'); // listKeywords は priority 順で返る
+const unresearched = todo.filter(isUnresearched);
+const researched = todo.filter((k) => !isUnresearched(k));
+
+/* ── 表示用 ── */
+const num = (n: number) => n.toLocaleString('ja-JP');
+const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
+const ctrOf = (q: PvSnapshotQuery) => (q.impressions > 0 ? q.clicks / q.impressions : 0);
+const cell = (v: number | null) => (v === null ? '—' : num(v));
+/** 「1,200（ahrefs）」の形。出どころが無い数字はそのまま数字だけ。 */
+const volumeText = (k: KeywordRow) =>
+  k.volume_num === null ? '—' : `${num(k.volume_num)}${k.volume_source ? `（${k.volume_source}）` : ''}`;
+/** slug から記事へのリンク。断面の slug が今の記事に無い（消した・改名した）ときは文字だけ出す。 */
+const slugLink = (slug: string) => {
+  const a = articleBySlug.get(slug);
+  return a ? { href: `/admin/${a.id}/edit`, title: a.title } : null;
+};
+---
+
+<AdminLayout title="SEO分析" current="seo">
+  <div class="admin-bar">
+    <h1 class="admin-title">
+      SEO分析<span class="admin-hint">（書く前に見る：重なり・内部リンク・検索での立ち位置）</span>
+    </h1>
+    <a class="btn" href="#cannibal">カニバリ</a>
+    <a class="btn" href="#links">内部リンク</a>
+    <a class="btn" href="#gsc">検索クエリ</a>
+    <a class="btn" href="#ledger">台帳</a>
+    <a class="btn" href="/admin/keywords">キーワード台帳</a>
+    <a class="btn" href="/admin/stats">メディア分析</a>
+  </div>
+
+  {/* ── ① カニバリ ── */}
+  <div class="seo-summary" id="cannibal">
+    <div class="seo-sum">
+      <span class="seo-sum-num">{num(dupCount)}</span>
+      <span class="seo-sum-label">dup（同じKW。書いたら確実に共食い）</span>
+    </div>
+    <div class="seo-sum">
+      <span class="seo-sum-num">{num(strongCount)}</span>
+      <span class="seo-sum-label">strong（意図が同じ可能性が高い）</span>
+    </div>
+    <div class="seo-sum">
+      <span class="seo-sum-num">{num(keywords.length)}</span>
+      <span class="seo-sum-label">照合した台帳KW（todo / writing）</span>
+    </div>
+    <div class="seo-sum">
+      <span class="seo-sum-num">{num(articles.length)}</span>
+      <span class="seo-sum-label">照合した記事（下書き含む）</span>
+    </div>
+  </div>
+
+  <div class="admin-card">
+    <div class="admin-card-head">
+      カニバリ（検索意図の重なり）
+      <span class="admin-hint">
+        台帳は todo / writing だけ、記事は下書きも含む。weak（切り口が違えば共存できる）は出さない
+      </span>
+    </div>
+    {
+      cannibalRows.length === 0 ? (
+        <div class="admin-card-body">
+          <p class="admin-empty">重なりはありません。</p>
+        </div>
+      ) : (
+        <div class="admin-table-wrap">
+          <table class="admin-table seo-table">
+            <thead>
+              <tr>
+                <th>KW A</th>
+                <th>KW B</th>
+                <th class="kw-center">レベル</th>
+                <th>理由</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cannibalRows.map((r) => (
+                <tr>
+                  {[r.a, r.b].map((t) => (
+                    <td class="seo-target">
+                      <span class="seo-kind">{t.kind}</span>
+                      <a href={t.href}>{t.label}</a>
+                      {t.draft && <span class="status status-draft">下書き</span>}
+                      <span class="seo-sub">
+                        {t.axis} / {t.funnel}
+                        {t.sub ? ` / ${t.sub}` : ''}
+                      </span>
+                    </td>
+                  ))}
+                  <td class="kw-center">
+                    <span class={`seo-level seo-level-${r.level}`} title={`score ${r.score.toFixed(2)}`}>
+                      {LEVEL_LABEL[r.level]}
+                    </span>
+                  </td>
+                  <td class="seo-reason">{r.reason}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+    <div class="admin-card-body seo-legend">
+      <span><span class="seo-level seo-level-dup">dup</span>無条件で落とす（台帳なら見送り、記事なら片方に寄せる）</span>
+      <span><span class="seo-level seo-level-strong">strong</span>切り口をずらすか、既存記事のリライトに振る</span>
+      <span class="admin-hint">判定は src/lib/seo/cannibal.ts。ルールは keyword-selection.md 1章⑤</span>
+    </div>
+  </div>
+
+  {/* ── ② 内部リンク ── */}
+  <h2 class="seo-h2" id="links">内部リンク</h2>
+
+  {
+    orphans.length > 0 && (
+      <div class="notice notice-error">
+        <strong>孤立記事 {num(orphans.length)}本</strong>——どこからもリンクされていない。下の提案で「この記事へ」を張る先を探す。
+        <ul>
+          {orphans.map((a) => (
+            <li>
+              <a href={`/admin/${a.id}/edit`}>{a.title || a.slug || `記事 #${a.id}`}</a>
+              {a.status === 'draft' && <span class="status status-draft">下書き</span>}
+              {a.slug && (
+                <>
+                  {' '}
+                  <a href={`/admin/seo?to=${encodeURIComponent(a.slug)}#links`}>この記事へ張れる候補</a>
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
+
+  <div class="admin-card">
+    <div class="admin-card-head">
+      公開記事ごとのリンク数
+      <span class="admin-hint">被リンクの少ない順。本文中の /media/&lt;slug&gt; を数える（下書きへのリンクも含む）</span>
+    </div>
+    {
+      linkRows.length === 0 ? (
+        <div class="admin-card-body">
+          <p class="admin-empty">公開中の記事がまだありません。</p>
+        </div>
+      ) : (
+        <div class="admin-table-wrap">
+          <table class="admin-table seo-table">
+            <thead>
+              <tr>
+                <th>タイトル</th>
+                <th>軸</th>
+                <th class="col-num">発リンク</th>
+                <th class="col-num">被リンク</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {linkRows.map((a) => (
+                <tr>
+                  <td class="col-title">
+                    <a href={`/admin/${a.id}/edit`}>{a.title}</a>
+                    <span class="seo-sub cell-slug">{a.slug}</span>
+                  </td>
+                  <td>{axisShort(a.axis)}</td>
+                  <td class={`cell-num${a.out === 0 ? ' is-zero' : ''}`}>{num(a.out)}</td>
+                  <td class={`cell-num${a.in === 0 ? ' seo-zero-in' : ''}`}>{num(a.in)}</td>
+                  <td>
+                    <div class="row-actions">
+                      <a
+                        class="btn btn-sm"
+                        href={`/admin/seo?to=${encodeURIComponent(a.slug)}#links`}
+                        aria-current={fTo === a.slug ? 'page' : undefined}
+                      >
+                        この記事へ
+                      </a>
+                      <a
+                        class="btn btn-sm"
+                        href={`/admin/seo?from=${encodeURIComponent(a.slug)}#links`}
+                        aria-current={fFrom === a.slug ? 'page' : undefined}
+                      >
+                        この記事から
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+  </div>
+
+  <div class="admin-card">
+    <div class="admin-card-head">
+      リンクの提案
+      <span class="admin-hint">「その段落はその記事の話をしている」のに、まだリンクが無い箇所。上位30件</span>
+      {
+        linkFiltered && (
+          <span class="seo-filter">
+            {fTo && (
+              <>
+                リンク先：<code>{fTo}</code>
+              </>
+            )}
+            {fFrom && (
+              <>
+                リンク元：<code>{fFrom}</code>
+              </>
+            )}
+            <a class="btn btn-sm" href="/admin/seo#links">
+              絞り込みを解除
+            </a>
+          </span>
+        )
+      }
+    </div>
+    {
+      suggestions.length === 0 ? (
+        <div class="admin-card-body">
+          <p class="admin-empty">
+            {linkFiltered ? 'この条件で張れる箇所は見つかりませんでした。' : '提案できる箇所はありません。'}
+          </p>
+        </div>
+      ) : (
+        <div class="admin-table-wrap">
+          <table class="admin-table seo-table">
+            <thead>
+              <tr>
+                <th>from（ここに書く）</th>
+                <th>to（ここへ張る）</th>
+                <th class="col-num">スコア</th>
+                <th>抜粋</th>
+                <th>理由</th>
+              </tr>
+            </thead>
+            <tbody>
+              {suggestions.map((s) => {
+                const from = articleBySlug.get(s.from.slug);
+                const to = articleBySlug.get(s.to.slug);
+                return (
+                  <tr>
+                    <td class="col-title seo-target">
+                      {from ? <a href={`/admin/${from.id}/edit`}>{s.from.title}</a> : s.from.title}
+                      <span class="seo-sub">
+                        {axisShort(s.from.axis)} / {s.from.slug} / {s.line + 1}行目
+                      </span>
+                    </td>
+                    <td class="col-title seo-target">
+                      {to ? <a href={`/admin/${to.id}/edit`}>{s.to.title}</a> : s.to.title}
+                      <span class="seo-sub">
+                        {axisShort(s.to.axis)} / KW：{s.to.keyword}
+                      </span>
+                    </td>
+                    <td class="cell-num">{s.score.toFixed(2)}</td>
+                    <td class="seo-excerpt">{s.excerpt}</td>
+                    <td class="seo-reason">{s.reason}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+    <div class="admin-card-body seo-legend">
+      <span class="admin-hint">
+        判定は src/lib/seo/internal-links.ts。リンクを置くときはエディタの内部リンク挿入から選ぶ（URL を手で書かない：style-guide 11章）
+      </span>
+    </div>
+  </div>
+
+  {/* ── ③ 検索クエリ（GSC の断面）── */}
+  <h2 class="seo-h2" id="gsc">検索クエリ（Search Console）</h2>
+
+  {
+    !hasGsc ? (
+      <div class="admin-card">
+        <div class="admin-card-body">
+          <p class="admin-empty">
+            GSC の断面はまだありません（<code>/anniv-update-pv</code> を回すと入る。ローカルの鍵は 計測設計.md 11章）。
+          </p>
+        </div>
+      </div>
+    ) : (
+      <>
+        <div class="notice notice-info">
+          {gscYmd} 時点の断面（週次レポートと同じ回に取得
+          {gscRange ? `。GSC の期間は ${gscRange.start}〜${gscRange.end}` : ''}）。
+          全クエリではなく、update-pv.ts が記事別の上位と全体の上位に間引いた {num(queries.length)} 行。
+          ページを開いても動かない数字なので、最新を見るなら <code>/anniv-update-pv</code> を回す。
+        </div>
+
+        <div class="admin-card">
+          <div class="admin-card-head">
+            同じクエリに複数記事
+            <span class="admin-hint">
+              表示≥{GSC_CANNIBAL_MIN_IMPR}。Google がどちらを出すか迷っている＝評価が割れる。片方に寄せるか、意図を分ける
+            </span>
+          </div>
+          {gscMulti.length === 0 ? (
+            <div class="admin-card-body">
+              <p class="admin-empty">複数記事が当たっているクエリはありません。</p>
+            </div>
+          ) : (
+            <div class="admin-table-wrap">
+              <table class="admin-table seo-table">
+                <thead>
+                  <tr>
+                    <th>クエリ</th>
+                    <th>記事（slug）</th>
+                    <th class="col-num">クリック</th>
+                    <th class="col-num">表示</th>
+                    <th class="col-num">CTR</th>
+                    <th class="col-num">順位</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {gscMulti.map((g) =>
+                    g.pages.map((p, i) => {
+                      const link = slugLink(p.slug);
+                      return (
+                        <tr>
+                          {i === 0 && (
+                            <td class="seo-query" rowspan={g.pages.length}>
+                              {g.query}
+                              <span class="seo-sub">表示 {num(g.impressions)} / {g.pages.length}記事</span>
+                            </td>
+                          )}
+                          <td class="cell-slug">
+                            {link ? (
+                              <a href={link.href} title={link.title}>
+                                {p.slug}
+                              </a>
+                            ) : (
+                              p.slug
+                            )}
+                          </td>
+                          <td class={`cell-num${p.clicks === 0 ? ' is-zero' : ''}`}>{num(p.clicks)}</td>
+                          <td class="cell-num">{num(p.impressions)}</td>
+                          <td class="cell-num">{pct(p.impressions > 0 ? p.clicks / p.impressions : 0)}</td>
+                          <td class="cell-num">{p.position.toFixed(1)}</td>
+                        </tr>
+                      );
+                    }),
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {[
+          {
+            key: 'striking',
+            title: 'striking distance',
+            hint: `順位${STRIKE_POS_MIN}〜${STRIKE_POS_MAX}・表示≥${STRIKE_MIN_IMPR}＝あと一押しで1ページ目上位。加筆・内部リンクの候補`,
+            empty: 'striking distance のクエリはありません。',
+            rows: striking,
+          },
+          {
+            key: 'missed',
+            title: '取りこぼし',
+            hint: `表示≥${GSC_MISS_MIN_IMPR}・CTR<${GSC_MISS_MAX_CTR * 100}%＝順位はあるのに押されていない。タイトル／ディスクリプションの見直し候補`,
+            empty: '取りこぼしのクエリはありません。',
+            rows: missed,
+          },
+        ].map((sec) => (
+          <div class="admin-card">
+            <div class="admin-card-head">
+              {sec.title}
+              <span class="admin-hint">{sec.hint}</span>
+            </div>
+            {sec.rows.length === 0 ? (
+              <div class="admin-card-body">
+                <p class="admin-empty">{sec.empty}</p>
+              </div>
+            ) : (
+              <div class="admin-table-wrap">
+                <table class="admin-table seo-table">
+                  <thead>
+                    <tr>
+                      <th>クエリ</th>
+                      <th>記事（slug）</th>
+                      <th class="col-num">クリック</th>
+                      <th class="col-num">表示</th>
+                      <th class="col-num">CTR</th>
+                      <th class="col-num">順位</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sec.rows.map((q) => {
+                      const link = slugLink(q.slug);
+                      return (
+                        <tr>
+                          <td class="seo-query">{q.query}</td>
+                          <td class="cell-slug">
+                            {link ? (
+                              <a href={link.href} title={link.title}>
+                                {q.slug}
+                              </a>
+                            ) : (
+                              q.slug
+                            )}
+                          </td>
+                          <td class={`cell-num${q.clicks === 0 ? ' is-zero' : ''}`}>{num(q.clicks)}</td>
+                          <td class="cell-num">{num(q.impressions)}</td>
+                          <td class="cell-num">{pct(ctrOf(q))}</td>
+                          <td class="cell-num">{q.position.toFixed(1)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        ))}
+        <p class="admin-hint seo-note">
+          しきい値は scripts/update-pv.ts と同じ値をこの画面にも持っている（現状ファクトシートの表と一致させるため）。変えるときは両方直す。
+        </p>
+      </>
+    )
+  }
+
+  {/* ── ④ 台帳の SEO 列 ── */}
+  <h2 class="seo-h2" id="ledger">台帳の SEO 列（未着手）</h2>
+
+  <div class="admin-card">
+    <div class="admin-card-head">
+      未着手KW {num(todo.length)}件
+      <span class="admin-hint">
+        優先度順。要塞度も検索数も無い行は「未調査」として上に集める＝次に /anniv-pick-keyword で調べるもの
+      </span>
+    </div>
+    {
+      todo.length === 0 ? (
+        <div class="admin-card-body">
+          <p class="admin-empty">未着手のキーワードはありません。</p>
+        </div>
+      ) : (
+        <div class="admin-table-wrap">
+          <table class="admin-table seo-table">
+            <thead>
+              <tr>
+                <th>キーワード</th>
+                <th>軸</th>
+                <th>ファネル</th>
+                <th class="kw-center">優先度</th>
+                <th class="kw-center">要塞度</th>
+                <th class="col-num">需要スコア</th>
+                <th class="col-num">検索数</th>
+                <th class="col-num">KD</th>
+                <th class="kw-center">調査日</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { label: '未調査', rows: unresearched, note: '要塞度も検索数も無い' },
+                { label: '調査済み', rows: researched, note: '' },
+              ].map(
+                (grp) =>
+                  grp.rows.length > 0 && (
+                    <>
+                      <tr class="seo-group">
+                        <td colspan="9">
+                          {grp.label}
+                          <span class="admin-hint">
+                            {num(grp.rows.length)}件{grp.note ? `・${grp.note}` : ''}
+                          </span>
+                        </td>
+                      </tr>
+                      {grp.rows.map((k) => (
+                        <tr>
+                          <td class="seo-target">
+                            <a class="seo-keyword" href={`/admin/keywords/${k.id}`}>
+                              {k.keyword}
+                            </a>
+                            {k.seed && <span class="seo-sub">種：{k.seed}</span>}
+                            {k.serp_note && <span class="seo-sub">{k.serp_note}</span>}
+                          </td>
+                          <td>{axisShort(k.axis)}</td>
+                          <td>{k.funnel}</td>
+                          <td class="kw-center">
+                            <span class={`kw-prio kw-prio-${k.priority}`}>{k.priority}</span>
+                          </td>
+                          <td class="kw-center">
+                            {k.serp_grade ? (
+                              <span class={`seo-grade seo-grade-${k.serp_grade}`}>{k.serp_grade}</span>
+                            ) : (
+                              <span class="seo-none">—</span>
+                            )}
+                          </td>
+                          <td class={`cell-num${k.demand_score === null ? ' is-zero' : ''}`}>{cell(k.demand_score)}</td>
+                          <td class={`cell-num${k.volume_num === null ? ' is-zero' : ''}`}>{volumeText(k)}</td>
+                          <td class={`cell-num${k.kd === null ? ' is-zero' : ''}`}>{cell(k.kd)}</td>
+                          <td class="kw-center cell-date">
+                            {k.researched_at || <span class="seo-unresearched">未調査</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </>
+                  ),
+              )}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+    <div class="admin-card-body seo-legend">
+      <span><span class="seo-grade seo-grade-A">A</span>要塞。正面から入らない（一次情報で殴れなければ差し戻し）</span>
+      <span><span class="seo-grade seo-grade-B">B</span>割り込み可。主戦場</span>
+      <span><span class="seo-grade seo-grade-C">C</span>空白。最優先だが需要の裏取りが必須</span>
+      <span class="admin-hint">需要スコアは候補どうしの相対値で絶対量ではない。検索数の出どころは ahrefs ＞ csv ＞ gsc（keyword-selection.md 2章・4章）</span>
+    </div>
+  </div>
+</AdminLayout>
+
+<style>
+  /* セクションの見出し。カードの中の見出しより一段大きく、余白で区切る */
+  .seo-h2 {
+    margin: 28px 0 12px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--navy);
+  }
+
+  /* 件数サマリ（keywords.astro の kw-summary と同じ形。押す先が無いので div） */
+  .seo-summary {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+  .seo-sum {
+    flex: 1;
+    min-width: 150px;
+    padding: 12px 14px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--admin-radius);
+    box-shadow: var(--shadow-sm);
+    text-align: center;
+  }
+  .seo-sum-num {
+    display: block;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--navy);
+    line-height: 1.3;
+    font-variant-numeric: tabular-nums;
+  }
+  .seo-sum-label {
+    display: block;
+    font-size: 11.5px;
+    color: var(--text-light);
+  }
+
+  /* 一覧は情報量が多いので、字を少し詰めて1行に収める（kw-table と同じ） */
+  .seo-table {
+    font-size: 13px;
+  }
+  .seo-target {
+    min-width: 200px;
+  }
+  .seo-target a,
+  .seo-keyword {
+    color: var(--navy);
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .seo-target a:hover,
+  .seo-keyword:hover {
+    text-decoration: underline;
+  }
+  .seo-keyword {
+    font-weight: 700;
+  }
+  .seo-sub {
+    display: block;
+    font-size: 11.5px;
+    color: var(--text-light);
+    line-height: 1.6;
+    margin-top: 2px;
+  }
+  /* 台帳か記事か。行の先頭に小さく出して、リンク先がどこかを分からせる */
+  .seo-kind {
+    display: inline-block;
+    margin-right: 6px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: #eef1f5;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-light);
+    vertical-align: 1px;
+  }
+  .seo-target .status {
+    margin-left: 6px;
+  }
+  .seo-reason,
+  .seo-excerpt {
+    min-width: 200px;
+    max-width: 380px;
+    font-size: 12px;
+    color: var(--text-light);
+  }
+  .seo-excerpt {
+    max-width: 420px;
+    color: var(--text);
+  }
+  .seo-query {
+    font-weight: 500;
+    color: var(--navy);
+    min-width: 180px;
+  }
+  .kw-center {
+    text-align: center;
+    white-space: nowrap;
+  }
+  .seo-none {
+    color: var(--text-light);
+  }
+  .seo-note {
+    margin-top: 10px;
+  }
+
+  /* 被リンク0は「誰も指していない」＝孤立に近いので赤で強調（発リンク0は薄いだけ） */
+  .seo-zero-in {
+    color: var(--admin-danger);
+    font-weight: 700;
+  }
+
+  /* カニバリのレベル。dup は赤、strong は黄で、色だけに頼らず文字も出す */
+  .seo-level {
+    display: inline-block;
+    padding: 1px 8px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    font-family: var(--admin-mono);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.6;
+  }
+  .seo-level-dup {
+    background: #fdf1ef;
+    border-color: #eccac5;
+    color: var(--admin-danger);
+  }
+  .seo-level-strong {
+    background: #fdf6e7;
+    border-color: #eddcb0;
+    color: #8a6d2f;
+  }
+
+  /* 要塞度のバッジ。kw-prio と同じ形で、A は赤・C は緑・B は素の灰 */
+  .seo-grade {
+    display: inline-block;
+    min-width: 22px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    background: #eef1f5;
+    color: var(--text-light);
+  }
+  .seo-grade-A {
+    background: #fdf1ef;
+    color: var(--admin-danger);
+  }
+  .seo-grade-C {
+    background: #e6f4ec;
+    color: var(--admin-ok);
+  }
+  /* 優先度は keywords.astro と同じ見た目（スコープが別なのでここにも持つ） */
+  .kw-prio {
+    display: inline-block;
+    min-width: 22px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    background: #eef1f5;
+    color: var(--text-light);
+  }
+  .kw-prio-1 {
+    background: #fdf3e0;
+    color: #b7791f;
+  }
+  .seo-unresearched {
+    color: #b7791f;
+    font-weight: 700;
+    font-family: 'Noto Sans JP', system-ui, sans-serif;
+  }
+  /* 未調査／調査済みの区切り行 */
+  .seo-group td {
+    padding: 7px 14px;
+    background: var(--ivory);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--navy);
+  }
+  .seo-group .admin-hint {
+    margin-left: 8px;
+  }
+
+  /* 絞り込み中の表示（提案カードの見出し右） */
+  .seo-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-light);
+  }
+  .seo-filter code {
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: var(--blue-pale);
+    font-family: var(--admin-mono);
+    font-size: 11.5px;
+    color: var(--navy);
+  }
+  .row-actions .btn[aria-current='page'] {
+    background: var(--navy);
+    border-color: var(--navy);
+    color: var(--white);
+  }
+
+  /* 判定基準は画面の中に書いておく（stats.astro の stat-legend と同じ） */
+  .seo-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    align-items: center;
+    border-top: 1px solid var(--border);
+    font-size: 11.5px;
+    color: var(--text-light);
+  }
+  .seo-legend .seo-level,
+  .seo-legend .seo-grade {
+    margin-right: 5px;
+  }
+  .notice ul a {
+    color: inherit;
+    font-weight: 700;
+  }
+  .notice .status {
+    margin-left: 6px;
+  }
+</style>

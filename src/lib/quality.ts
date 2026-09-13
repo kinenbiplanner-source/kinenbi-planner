@@ -53,6 +53,26 @@ export function charCount(s: string): number {
   return [...s].length;
 }
 
+/**
+ * 検索結果でのタイトルの表示幅（px の目安）。
+ *
+ * Google はタイトルを文字数ではなく幅で切る（PC でおよそ 600px）。日本語だけなら
+ * 「32字以内」の文字数ルールで足りるが、半角の数字・英字・記号が混ざると
+ * 同じ32字でも幅が違い、全角ばかりのタイトルは30字で切れる。全角 20px・半角 10px の
+ * 粗い換算で、文字数の横に幅の目安を添える用。フォント実測ではないので ±5% は見る。
+ */
+export const TITLE_MAX_PX = 600;
+export function displayWidth(s: string): number {
+  let w = 0;
+  for (const ch of s) {
+    const cp = ch.codePointAt(0)!;
+    // 半角：ASCII・半角カナ。それ以外（かな・漢字・全角記号・絵文字）は全角扱い
+    const half = cp < 0x7f || (cp >= 0xff61 && cp <= 0xff9f);
+    w += half ? 10 : 20;
+  }
+  return w;
+}
+
 /** description の目安（style-guide 17章）。API 側の警告レンジもこれを使う。 */
 export const DESC_MIN = 60;
 export const DESC_MAX = 140;
@@ -352,6 +372,16 @@ export function inspectArticle(input: InspectInput): CheckItem[] {
     add('title', 'タイトル', 'warn', '未入力');
   } else {
     add('title', 'タイトル', titleLen <= 32 ? 'ok' : 'ng', `${titleLen}字 / 32字以内`);
+    // 文字数が収まっていても全角ばかりだと幅で切れる。幅は目安なので ng ではなく warn。
+    const px = displayWidth(title);
+    add(
+      'title-px',
+      'タイトルの表示幅',
+      px <= TITLE_MAX_PX ? 'ok' : 'warn',
+      px <= TITLE_MAX_PX
+        ? `推定 ${px}px / ${TITLE_MAX_PX}px（PCの検索結果で切れない目安）`
+        : `推定 ${px}px / ${TITLE_MAX_PX}px。全角${Math.floor(TITLE_MAX_PX / 20)}字相当で切れる（半角を混ぜるか短くする）`,
+    );
     if (tokens.length) {
       const missing = tokens.filter((t) => !hasToken(title, t));
       add(

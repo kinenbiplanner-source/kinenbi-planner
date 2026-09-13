@@ -33,3 +33,6 @@ keywords.seed.sql
 # Python のバイトコードキャッシュ（card-renderer / ig-renderer）
 __pycache__/
 *.pyc
+
+# SEO ツールの作業ファイル（scripts/seo/*.ts が in-place 更新前に残す控え）
+記事管理/KW候補/*.bak

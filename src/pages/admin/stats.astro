@@ -12,6 +12,8 @@
  *   3. 記事別のPV（直近28日 / 前28日 / 増減 / スパークライン）＋リライト候補の印
  *   4. 軸別カバレッジ（公開本数とKW在庫を並べる。次にどの軸を書くかの判断用）
  *   5. 公開ペース（月別の本数）
+ *   6. 検索クエリ（GSC の断面。記事ごとの上位クエリと全体の上位。「どの語で見つかっているか」を眺める場所で、
+ *      カニバリの実測・striking distance のような「手を入れる判断」は /admin/seo が出す。ここには出さない）
  *
  * ここのPVは `POST /api/pv` のビーコンで数えた自前の値で、GA4とは別物。
  * 突き合わせると必ずズレる（ビーコンは30秒の重複除去あり・JS無効では飛ばない）。
@@ -53,6 +55,7 @@ import {
   sumOver,
   ymdRange,
   type ChartRange,
+  type PvSnapshotQuery,
 } from '../../lib/stats';
 
 export const prerender = false;
@@ -201,6 +204,49 @@ const deltaClass = (d: number | null) => (d === null ? 'is-flat' : d > 0 ? 'is-u
 /** 断面の1マス。null（その回に取れていない・記事が新しい）は「—」。 */
 const snapCell = (v: number | null | undefined, digits = 0) =>
   v === null || v === undefined ? '—' : digits ? v.toFixed(digits) : num(v);
+
+// ── 検索クエリ（GSC 断面）──
+// 断面のクエリは update-pv.ts が「記事別の上位5語＋全体の上位100語」に間引いて入れたもの（PvSnapshotQuery）。
+// 記事ごとの表は公開中の記事（perf）と slug で結ぶ。非公開に戻した記事のクエリは断面に残っていても出さない。
+// 全体の表はクエリ単位に合算する（同じ語で複数記事が出ていれば表示・クリックを足し、順位は表示で加重）。
+/** 全体の上位クエリに出す件数 */
+const TOP_QUERIES = 30;
+const snapQueries: PvSnapshotQuery[] = report?.snapshot.queries ?? [];
+const byImpr = (a: { impressions: number; clicks: number }, b: { impressions: number; clicks: number }) =>
+  b.impressions - a.impressions || b.clicks - a.clicks;
+const queriesBySlug = new Map<string, PvSnapshotQuery[]>();
+for (const q of snapQueries) {
+  const list = queriesBySlug.get(q.slug);
+  if (list) list.push(q);
+  else queriesBySlug.set(q.slug, [q]);
+}
+// 記事の並びは上の「記事別のPV」と同じ（直近28日の多い順）
+const queryArticles = perf
+  .map((p) => ({ id: p.id, title: p.title, queries: [...(queriesBySlug.get(p.slug) ?? [])].sort(byImpr) }))
+  .filter((a) => a.queries.length > 0);
+const queryAgg = new Map<string, { query: string; clicks: number; impressions: number; posWeighted: number; perSlug: Map<string, number> }>();
+for (const q of snapQueries) {
+  const cur = queryAgg.get(q.query) ?? { query: q.query, clicks: 0, impressions: 0, posWeighted: 0, perSlug: new Map() };
+  cur.clicks += q.clicks;
+  cur.impressions += q.impressions;
+  cur.posWeighted += q.position * q.impressions;
+  cur.perSlug.set(q.slug, (cur.perSlug.get(q.slug) ?? 0) + q.impressions);
+  queryAgg.set(q.query, cur);
+}
+const topQueries = [...queryAgg.values()]
+  .map((c) => ({
+    query: c.query,
+    clicks: c.clicks,
+    impressions: c.impressions,
+    position: c.impressions > 0 ? c.posWeighted / c.impressions : 0,
+    // 表示の多い記事から。slug のまま出す（記事の表は上にあるので、ここは「どれに出ているか」が分かれば足りる）
+    slugs: [...c.perSlug.entries()].sort((a, b) => b[1] - a[1]).map(([s]) => s),
+  }))
+  .sort(byImpr)
+  .slice(0, TOP_QUERIES);
+/** CTR。表示0は割れないので「—」。 */
+const ctrText = (clicks: number, impressions: number) =>
+  impressions > 0 ? `${((clicks / impressions) * 100).toFixed(1)}%` : '—';
 ---
 
 <AdminLayout title="メディア分析" current="stats">
@@ -489,6 +535,110 @@ const snapCell = (v: number | null | undefined, digits = 0) =>
         )
       }
     </div>
+  </div>
+
+  {/* ── 検索クエリ（GSC 断面）── */}
+  <div class="admin-card">
+    <div class="admin-card-head">
+      検索クエリ
+      {
+        snapQueries.length > 0 ? (
+          <span class="admin-hint">Search Console の断面（{report!.ymd} 時点）。記事ごとの上位と全体の上位</span>
+        ) : (
+          <span class="admin-hint">Search Console の断面</span>
+        )
+      }
+    </div>
+    {
+      snapQueries.length === 0 ? (
+        <div class="admin-card-body">
+          <p class="admin-empty">
+            GSC の断面はまだありません（<code>/anniv-update-pv</code> を回すと入る。ローカルの鍵は 計測設計.md 11章）。
+          </p>
+        </div>
+      ) : (
+        <>
+          <div class="admin-card-body stat-q-list">
+            {queryArticles.length === 0 ? (
+              <p class="admin-hint">公開中の記事に対応するクエリが断面にありません。</p>
+            ) : (
+              queryArticles.map((a) => (
+                <details>
+                  <summary>
+                    <a href={`/admin/${a.id}/edit`}>{a.title}</a>
+                    <span class="admin-hint">{a.queries.length}語</span>
+                  </summary>
+                  <div class="admin-table-wrap">
+                    <table class="admin-table stat-table">
+                      <thead>
+                        <tr>
+                          <th>クエリ</th>
+                          <th class="col-num">クリック</th>
+                          <th class="col-num">表示</th>
+                          <th class="col-num">CTR</th>
+                          <th class="col-num">順位</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {a.queries.map((q) => (
+                          <tr>
+                            <td class="col-title">{q.query}</td>
+                            <td class={`cell-num${q.clicks === 0 ? ' is-zero' : ''}`}>{num(q.clicks)}</td>
+                            <td class="cell-num">{num(q.impressions)}</td>
+                            <td class="cell-num">{ctrText(q.clicks, q.impressions)}</td>
+                            <td class="cell-num">{q.position.toFixed(1)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
+              ))
+            )}
+          </div>
+          <div class="stat-q-sub">
+            全体の上位クエリ
+            <span class="admin-hint">表示順・上位{TOP_QUERIES}。同じ語で複数記事が出ていれば合算</span>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table stat-table">
+              <thead>
+                <tr>
+                  <th>クエリ</th>
+                  <th class="col-num">クリック</th>
+                  <th class="col-num">表示</th>
+                  <th class="col-num">CTR</th>
+                  <th class="col-num">順位</th>
+                  <th>記事</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topQueries.map((q) => (
+                  <tr>
+                    <td class="col-title">{q.query}</td>
+                    <td class={`cell-num${q.clicks === 0 ? ' is-zero' : ''}`}>{num(q.clicks)}</td>
+                    <td class="cell-num">{num(q.impressions)}</td>
+                    <td class="cell-num">{ctrText(q.clicks, q.impressions)}</td>
+                    <td class="cell-num">{q.position.toFixed(1)}</td>
+                    <td class="cell-slug">{q.slugs.join(' / ')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div class="admin-card-body stat-legend">
+            <span class="admin-hint">
+              検索クエリは {report!.ymd} 時点の断面（週次レポートと同じ回に取得
+              {report!.snapshot.gscRange
+                ? `。GSC は ${report!.snapshot.gscRange.start}〜${report!.snapshot.gscRange.end}`
+                : ''}
+              ）。記事別の上位5語と全体の上位100語に間引いてある。自前PVとは必ずズレるので突き合わせない。
+              カニバリの実測と striking distance は <a href="/admin/seo">SEO</a> に出る。
+            </span>
+          </div>
+        </>
+      )
+    }
   </div>
 
   <div class="stat-cols">
@@ -890,5 +1040,34 @@ const snapCell = (v: number | null | undefined, digits = 0) =>
   /* 断面の列は自前PVと別物なので、薄く見せる */
   .stat-snap-col {
     color: var(--text-light);
+  }
+
+  /* ── 検索クエリ（GSC 断面）。記事ごとは details で畳む（記事が増えると縦に長くなるだけなので）── */
+  .stat-q-list details + details {
+    border-top: 1px solid var(--border);
+  }
+  .stat-q-list summary {
+    padding: 8px 0;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .stat-q-list summary .admin-hint {
+    margin-left: 8px;
+  }
+  .stat-q-list .admin-table-wrap {
+    margin: 0 0 10px;
+  }
+  /* カード内の2つ目の見出し。admin-card-head は先頭用（下罫線のみ）なので、上下に罫線を持つ別クラスにする */
+  .stat-q-sub {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 18px;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: var(--blue-pale);
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--navy);
   }
 </style>

@@ -5,6 +5,13 @@
  * Astro 5 以降は Astro.locals.runtime.env ではなくこちらが正式な経路。
  */
 import { env } from 'cloudflare:workers';
+import type {
+  CompetitorAccount,
+  CompetitorPage,
+  CompetitorPost,
+  CompetitorPostStat,
+  CompetitorSite,
+} from './seo/types';
 
 export interface ArticleRow {
   id: number;
@@ -244,11 +251,32 @@ export interface KeywordRow {
   status: 'todo' | 'writing' | 'done' | 'dropped';
   article_id: number | null;
   note: string;
+  // ── SEO 列（schema.sql のコメントが正）。数字が無い＝測っていない は null ──
+  seed: string;
+  volume_num: number | null;
+  volume_source: string;
+  demand_score: number | null;
+  kd: number | null;
+  serp_grade: string;
+  serp_note: string;
+  researched_at: string;
   created_at: string;
   updated_at: string;
 }
 
-export type KeywordInput = Omit<KeywordRow, 'id' | 'created_at' | 'updated_at'>;
+/** SEO 列だけの部分型。取り込み JSON・PATCH・add-keywords.ts が渡す。 */
+export type KeywordSeoFields = Pick<
+  KeywordRow,
+  'seed' | 'volume_num' | 'volume_source' | 'demand_score' | 'kd' | 'serp_grade' | 'serp_note' | 'researched_at'
+>;
+
+/**
+ * 取り込みの入力。SEO 列は任意——リサーチ JSON の多くは持っていないし、
+ * 持っていない列を上書きで空にされると /anniv-pick-keyword が入れた数字が消える。
+ * 渡さなかった列は upsert 時に既存値を残す。
+ */
+export type KeywordInput = Omit<KeywordRow, 'id' | 'created_at' | 'updated_at' | keyof KeywordSeoFields> &
+  Partial<KeywordSeoFields>;
 
 export async function listKeywords(opts: { axis?: string; status?: string } = {}): Promise<KeywordRow[]> {
   const where: string[] = [];
@@ -269,24 +297,89 @@ export async function countKeywordsByStatus(): Promise<Record<string, number>> {
   return Object.fromEntries((results ?? []).map((r) => [r.status, r.n]));
 }
 
-/** キーワードを1件追加。keyword が重複したら既存を更新する（リサーチの再取り込み用）。 */
+/**
+ * キーワードを1件追加。keyword が重複したら既存を更新する（リサーチの再取り込み用）。
+ *
+ * SEO 列（seed / volume_num …）は **渡された列だけ**更新する。undefined は「触らない」で、
+ * 新規行なら schema.sql の既定値（'' か null）が入る。COALESCE(excluded.x, keywords.x) がその実装で、
+ * 文字列列は '' ではなく null を bind して既定値に落とす。
+ */
 export async function upsertKeyword(k: KeywordInput): Promise<void> {
   const now = new Date().toISOString();
+  const opt = <T>(v: T | undefined): T | null => (v === undefined ? null : v);
   await db()
     .prepare(
       `INSERT INTO keywords
-       (keyword,axis,funnel,intent,persona,difficulty,volume,priority,status,article_id,note,created_at,updated_at)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+       (keyword,axis,funnel,intent,persona,difficulty,volume,priority,status,article_id,note,
+        seed,volume_num,volume_source,demand_score,kd,serp_grade,serp_note,researched_at,
+        created_at,updated_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,
+               COALESCE(?,''),?,COALESCE(?,''),?,?,COALESCE(?,''),COALESCE(?,''),COALESCE(?,''),
+               ?,?)
        ON CONFLICT(keyword) DO UPDATE SET
          axis=excluded.axis, funnel=excluded.funnel, intent=excluded.intent,
          persona=excluded.persona, difficulty=excluded.difficulty, volume=excluded.volume,
-         priority=excluded.priority, note=excluded.note, updated_at=excluded.updated_at`,
+         priority=excluded.priority, note=excluded.note,
+         seed=CASE WHEN ? IS NULL THEN keywords.seed ELSE excluded.seed END,
+         volume_num=COALESCE(excluded.volume_num, keywords.volume_num),
+         volume_source=CASE WHEN ? IS NULL THEN keywords.volume_source ELSE excluded.volume_source END,
+         demand_score=COALESCE(excluded.demand_score, keywords.demand_score),
+         kd=COALESCE(excluded.kd, keywords.kd),
+         serp_grade=CASE WHEN ? IS NULL THEN keywords.serp_grade ELSE excluded.serp_grade END,
+         serp_note=CASE WHEN ? IS NULL THEN keywords.serp_note ELSE excluded.serp_note END,
+         researched_at=CASE WHEN ? IS NULL THEN keywords.researched_at ELSE excluded.researched_at END,
+         updated_at=excluded.updated_at`,
     )
     .bind(
       k.keyword, k.axis, k.funnel, k.intent, k.persona, k.difficulty, k.volume,
-      k.priority, k.status, k.article_id, k.note, now, now,
+      k.priority, k.status, k.article_id, k.note,
+      opt(k.seed), opt(k.volume_num), opt(k.volume_source), opt(k.demand_score), opt(k.kd),
+      opt(k.serp_grade), opt(k.serp_note), opt(k.researched_at),
+      now, now,
+      // ON CONFLICT 側の「渡されたか」判定用（文字列列だけ。数値列は COALESCE で済む）
+      opt(k.seed), opt(k.volume_source), opt(k.serp_grade), opt(k.serp_note), opt(k.researched_at),
     )
     .run();
+}
+
+/** 台帳の編集画面（/admin/keywords/[id]）が更新できる列。keyword と status はここでは触らない。 */
+export type KeywordEditable = Pick<
+  KeywordRow,
+  | 'axis' | 'funnel' | 'intent' | 'persona' | 'difficulty' | 'volume' | 'priority' | 'note'
+  | 'seed' | 'volume_num' | 'volume_source' | 'demand_score' | 'kd' | 'serp_grade' | 'serp_note' | 'researched_at'
+>;
+
+/** 渡された列だけ UPDATE する。空オブジェクトなら何もしない。 */
+export async function updateKeywordFields(id: number, patch: Partial<KeywordEditable>): Promise<void> {
+  const sets: string[] = [];
+  const bind: unknown[] = [];
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === undefined) continue;
+    sets.push(`${key}=?`);
+    bind.push(value);
+  }
+  if (sets.length === 0) return;
+  sets.push('updated_at=?');
+  bind.push(new Date().toISOString(), id);
+  await db().prepare(`UPDATE keywords SET ${sets.join(', ')} WHERE id=?`).bind(...bind).run();
+}
+
+export async function getKeyword(id: number): Promise<KeywordRow | null> {
+  return await db().prepare('SELECT * FROM keywords WHERE id=?').bind(id).first<KeywordRow>();
+}
+
+/**
+ * SEO 画面（/admin/seo）のカニバリ判定・内部リンク提案の照合相手。
+ * 本文を全件引くので重いが、立ち上げ期の記事数なら問題ない。数百本になったら
+ * 本文を要約列（見出しだけ）に置き換える。
+ */
+export async function listArticlesForSeo(): Promise<
+  Array<Pick<ArticleRow, 'id' | 'slug' | 'title' | 'keyword' | 'axis' | 'funnel' | 'status' | 'body_md'>>
+> {
+  const { results } = await db()
+    .prepare('SELECT id, slug, title, keyword, axis, funnel, status, body_md FROM articles ORDER BY id')
+    .all<Pick<ArticleRow, 'id' | 'slug' | 'title' | 'keyword' | 'axis' | 'funnel' | 'status' | 'body_md'>>();
+  return results ?? [];
 }
 
 export async function updateKeywordStatus(
@@ -532,5 +625,84 @@ export async function latestPvReport(): Promise<PvReportRow | null> {
       .first<PvReportRow>();
   } catch {
     return null;
+  }
+}
+
+/* ────────────────────────────────────────────────
+ * 競合の観測（schema.sql の competitor_*。/admin/competitors が読む）
+ *
+ * Worker は読むだけ。書くのは scripts/seo/ig-scan.ts / site-scan.ts（wrangler 経由）。
+ * テーブルが無い環境（migration 前）でも画面を落とさないよう、try で空に落とす（latestPvReport と同じ立場）。
+ * ──────────────────────────────────────────────── */
+
+export async function listCompetitorAccounts(): Promise<CompetitorAccount[]> {
+  try {
+    const { results } = await db()
+      .prepare('SELECT * FROM competitor_accounts ORDER BY active DESC, kind, handle')
+      .all<CompetitorAccount>();
+    return results ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/** 投稿。既定は直近 days 日に投稿されたもの。accountId で絞れる。 */
+export async function listCompetitorPosts(opts: { accountId?: number; days?: number; limit?: number } = {}): Promise<CompetitorPost[]> {
+  const days = opts.days ?? 180;
+  const limit = opts.limit ?? 1000;
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  try {
+    const sql = opts.accountId
+      ? `SELECT * FROM competitor_posts WHERE account_id=? AND posted_at>=? ORDER BY posted_at DESC LIMIT ?`
+      : `SELECT * FROM competitor_posts WHERE posted_at>=? ORDER BY posted_at DESC LIMIT ?`;
+    const stmt = opts.accountId
+      ? db().prepare(sql).bind(opts.accountId, since, limit)
+      : db().prepare(sql).bind(since, limit);
+    const { results } = await stmt.all<CompetitorPost>();
+    return results ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/** 投稿ごとの直近2断面（伸びの計算用）。post_id → [最新, その前] の順。 */
+export async function latestCompetitorStats(): Promise<Map<string, CompetitorPostStat[]>> {
+  const out = new Map<string, CompetitorPostStat[]>();
+  try {
+    const { results } = await db()
+      .prepare('SELECT * FROM competitor_post_stats ORDER BY post_id, ymd DESC')
+      .all<CompetitorPostStat>();
+    for (const r of results ?? []) {
+      const arr = out.get(r.post_id) ?? [];
+      if (arr.length < 2) arr.push(r);
+      out.set(r.post_id, arr);
+    }
+  } catch {
+    /* テーブルが無い */
+  }
+  return out;
+}
+
+export async function listCompetitorSites(): Promise<CompetitorSite[]> {
+  try {
+    const { results } = await db().prepare('SELECT * FROM competitor_sites ORDER BY active DESC, host').all<CompetitorSite>();
+    return results ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/** 記事。新しく見つかった順（first_seen DESC）。 */
+export async function listCompetitorPages(opts: { siteId?: number; limit?: number } = {}): Promise<CompetitorPage[]> {
+  const limit = opts.limit ?? 500;
+  try {
+    const sql = opts.siteId
+      ? 'SELECT * FROM competitor_pages WHERE site_id=? ORDER BY first_seen DESC, modified_at DESC LIMIT ?'
+      : 'SELECT * FROM competitor_pages ORDER BY first_seen DESC, modified_at DESC LIMIT ?';
+    const stmt = opts.siteId ? db().prepare(sql).bind(opts.siteId, limit) : db().prepare(sql).bind(limit);
+    const { results } = await stmt.all<CompetitorPage>();
+    return results ?? [];
+  } catch {
+    return [];
   }
 }

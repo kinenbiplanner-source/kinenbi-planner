@@ -324,17 +324,32 @@ export interface PvSnapshotRow {
   gscPos: number | null;
 }
 
+/**
+ * GSC のクエリ×ページ（その回の断面）。/admin/stats と /admin/seo の「検索クエリ」に出す。
+ * 5000行を全部は入れない——記事別の上位数件と全体の上位を update-pv.ts が間引いて入れる。
+ */
+export interface PvSnapshotQuery {
+  query: string;
+  slug: string;
+  clicks: number;
+  impressions: number;
+  /** 表示数で加重した平均順位 */
+  position: number;
+}
+
 export interface PvSnapshot {
   ymd: string;
   ga4: boolean;
   gsc: boolean;
   gscRange: { start: string; end: string } | null;
   rows: PvSnapshotRow[];
+  /** 2026-09-10 から。それ以前の断面には無いので空配列に落ちる */
+  queries: PvSnapshotQuery[];
 }
 
 /** 壊れた JSON や古い形でも落とさず、空の断面に落とす。 */
 export function parsePvSnapshot(json: string): PvSnapshot {
-  const empty: PvSnapshot = { ymd: '', ga4: false, gsc: false, gscRange: null, rows: [] };
+  const empty: PvSnapshot = { ymd: '', ga4: false, gsc: false, gscRange: null, rows: [], queries: [] };
   try {
     const v = JSON.parse(json) as Partial<PvSnapshot> | null;
     if (!v || typeof v !== 'object') return empty;
@@ -357,6 +372,20 @@ export function parsePvSnapshot(json: string): PvSnapshot {
               gscClicks: num(r.gscClicks),
               gscImpr: num(r.gscImpr),
               gscPos: num(r.gscPos),
+            }))
+        : [],
+      queries: Array.isArray(v.queries)
+        ? v.queries
+            .filter(
+              (q): q is PvSnapshotQuery =>
+                !!q && typeof (q as PvSnapshotQuery).query === 'string' && typeof (q as PvSnapshotQuery).slug === 'string',
+            )
+            .map((q) => ({
+              query: q.query,
+              slug: q.slug,
+              clicks: num(q.clicks) ?? 0,
+              impressions: num(q.impressions) ?? 0,
+              position: num(q.position) ?? 0,
             }))
         : [],
     };

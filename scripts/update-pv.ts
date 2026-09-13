@@ -13,11 +13,22 @@
  *        記事管理/KWマスターDB.csv                 … /api/export.csv と同じ列（src/lib/kw-csv.ts）
  *        記事管理/PV履歴.csv                       … 日付スナップショット。同日に何度回しても上書き（二重計上しない）
  *        記事管理/PVレポート/現状ファクトシート.md … 毎回まっさらに再生成。Claudeが週次レポートを書くときの唯一の入力
+ *        記事管理/PVレポート/gsc-queries.json      … GSC のクエリ×記事の断面（記事別の上位5件＋全体の上位100件に間引いたもの）。
+ *                                                    --publish がこれを読んで pv_reports の snapshot に入れる。GSC が取れた回だけ書く
+ *        記事管理/KW候補/gsc-queries.json          … 同じ GSC データをクエリ単位に束ねた全量（上限2000）。scripts/seo/volume.ts --gsc が
+ *                                                    需要の代理指標として読む。GSC が取れた回だけ書く
+ *      gsc-queries.json を2か所に書くのは用途が違うため：PVレポート側は画面に載せる断面なので小さく間引き、
+ *      KW候補側は「台帳に無い語」を拾うためのもので、間引くと肝心の裾野が消える。
  *
  * --publish で何をするか：
- *   Claude が書いた週次レポート（Markdown）と、その日の記事別 GA4 / GSC の断面（PV履歴.csv から）を
- *   D1 の pv_reports に入れる。/admin/stats（メディア分析）がそれを読んで、レポート本文と
- *   GA4・GSC の列を出す。**ダッシュボードは D1 を読むだけなので、毎週の更新にデプロイは要らない。**
+ *   Claude が書いた週次レポート（Markdown）と、その日の記事別 GA4 / GSC の断面（PV履歴.csv から）、
+ *   GSC のクエリ断面（PVレポート/gsc-queries.json から。無ければ空）を D1 の pv_reports に入れる。
+ *   /admin/stats（メディア分析）がそれを読んで、レポート本文と GA4・GSC の列・検索クエリを出す。
+ *   **ダッシュボードは D1 を読むだけなので、毎週の更新にデプロイは要らない。**
+ *
+ * ファクトシートの「GSC クエリ」節には、取りこぼし・striking distance に加えて
+ * カニバリ（実測）・未カバーのクエリ（新KW候補）・リライト優先度を出す（2026-09-10）。
+ * 3節を組む部分は export した純粋関数（buildGscExtraSections）で、node -e から固定データで確かめられる。
  *
  * 経路は put-draft.ts と同じで、D1 は wrangler（ユーザーの Cloudflare ログイン）で直接読み書きする。
  * /api/export.csv を curl で叩くには Access のサービストークンが要り、管理画面用に閉じてある口を
@@ -54,10 +65,13 @@ import {
   shiftYmd,
   ymdRange,
   type PvSnapshot,
+  type PvSnapshotQuery,
   type PvSnapshotRow,
 } from '../src/lib/stats.ts';
 import { AXES, axisShort } from '../src/lib/axis.ts';
 import { buildKwCsv, csvRow, windowPerf, type KwCsvArticle, type KwCsvPerf } from '../src/lib/kw-csv.ts';
+import { gscCannibal } from '../src/lib/seo/cannibal.ts';
+import { overlap, textCoverage, tokenize } from '../src/lib/seo/tokens.ts';
 
 /* ────────────────────────────────────────────────
  * 場所と設定
@@ -72,6 +86,11 @@ const CSV_PATH = join(ROOT, '記事管理', 'KWマスターDB.csv');
 const HISTORY_PATH = join(ROOT, '記事管理', 'PV履歴.csv');
 const REPORT_DIR = join(ROOT, '記事管理', 'PVレポート');
 const FACTSHEET_PATH = join(REPORT_DIR, '現状ファクトシート.md');
+/** GSC のクエリ断面（間引き済み）。--publish が snapshot に入れる。 */
+const GSC_QUERIES_SNAPSHOT_PATH = join(REPORT_DIR, 'gsc-queries.json');
+/** GSC のクエリ全量（クエリ単位）。scripts/seo/volume.ts --gsc が読む。 */
+const KW_CANDIDATE_DIR = join(ROOT, '記事管理', 'KW候補');
+const GSC_QUERIES_ALL_PATH = join(KW_CANDIDATE_DIR, 'gsc-queries.json');
 const DEV_VARS = join(ROOT, '.dev.vars');
 
 /** GSC は直近2〜3日が未確定なので、集計の終端を3日手前に置く。 */
@@ -93,6 +112,36 @@ const STRIKE_POS_MAX = 20;
 const STRIKE_MIN_IMPR = 5;
 /** 記事別に載せる上位クエリの件数 */
 const QUERIES_PER_PAGE = 3;
+
+/*
+ * GSC クエリの分析（カニバリ実測・未カバー・リライト優先度）のしきい値。上と同じく立ち上げ期用に低い。
+ */
+/** カニバリ（実測）：同じクエリに2記事以上が出ていて、記事側の表示がこれ以上のものだけ */
+const CANNIBAL_MIN_IMPR = 5;
+/**
+ * 未カバーのクエリ：台帳・記事のどのKWとも「語の重なりが薄い」と見なす境界。
+ * jaccard は cannibal.ts の WEAK_JACCARD と同じ 0.34（2語どうしで1語共通＝1/3 のすぐ上）。
+ * coverB は「KW側のトークンがクエリに何割含まれるか」で、3語KWのうち2語がクエリに入っている（0.67）なら
+ * そのKWの守備範囲と見て新KWにしない。4語KWで3語（0.75）から「同じ狙い」と見る。
+ */
+const UNCOVERED_JACCARD_MAX = 0.34;
+const UNCOVERED_COVERB_MAX = 0.75;
+/**
+ * 3つ目の物差し：クエリの語が KW の文字列に（分かち書きを無視して）何割含まれるか。
+ * 台帳の「誕生日プレゼント 彼女 予算 相場 社会人」は「誕生日プレゼント」が1トークンなので、
+ * クエリ「誕生日 プレゼント 相場」とは上の2条件でほぼ重ならず、主力記事のクエリが毎週「新KW候補」に化ける。
+ * 字面で拾えるぶんはここで塞ぐ（cannibal.ts が見出しルールで同じ穴を塞いでいるのと同じ理屈）。
+ */
+const UNCOVERED_TEXT_COVER_MAX = 0.75;
+const UNCOVERED_LIMIT = 30;
+/** リライト優先度：経過日の重みはこの日数で頭打ち（式は buildGscExtraSections のコメント） */
+const REWRITE_AGE_CAP_DAYS = 90;
+const REWRITE_LIMIT = 10;
+/** snapshot に入れるクエリ：記事別の上位と全体の上位の和集合（src/lib/stats.ts の PvSnapshotQuery） */
+const SNAPSHOT_QUERIES_PER_PAGE = 5;
+const SNAPSHOT_QUERIES_TOP = 100;
+/** KW候補用の全量ファイルの上限（クエリ単位） */
+const GSC_ALL_QUERIES_LIMIT = 2000;
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_SCOPES = [
@@ -188,6 +237,19 @@ function lit(value: string): string {
 
 interface ArticleRow extends KwCsvArticle {
   id: number;
+}
+/**
+ * KW台帳の1行のうち「未カバーのクエリ」の照合に要る列。
+ * seed（種KW）は 2026-09-10 の migrations/2026-09-10-keywords-seo.sql で足す列で、本番 D1 に
+ * scripts/seo/migrate.ts を当てるまでは無い。同じバッチに入れると1段目ごと落ちて週次が止まるので、
+ * 照合に使わない seed はここでは引かない（要るようになったら migrate 済みを確認して足す）。
+ */
+interface KeywordRow {
+  id: number;
+  keyword: string;
+  axis: string;
+  funnel: string;
+  status: string;
 }
 interface EventAgg {
   name: string;
@@ -614,6 +676,264 @@ function mdTable(headers: string[], rows: Array<Array<string | number>>): string
 }
 
 /* ────────────────────────────────────────────────
+ * GSC クエリの分析（純粋関数）
+ *
+ * ここは D1 にもファイルにも触らない。GSC が取れる環境がローカルに無いので、
+ * `node --experimental-strip-types -e` から import して固定データで出力を確かめられるように export している
+ * （末尾の main() は直接実行のときだけ回る）。
+ * ──────────────────────────────────────────────── */
+
+/** 分析節に要る記事の最小限。perf（公開記事）から作る。 */
+export interface GscExtraArticle {
+  slug: string;
+  keyword: string;
+  /** 公開日（JST の YYYY-MM-DD）。無ければ null */
+  pubYmd: string | null;
+  /** 最終更新日（同上） */
+  updYmd: string | null;
+}
+/** 台帳側。dropped を除く判断だけするので keyword と status があればよい。 */
+export interface GscExtraKeyword {
+  keyword: string;
+  status: string;
+}
+
+/** 小数1桁。順位は表示加重の平均なので桁が伸びる。JSON と表に出す前に丸める。 */
+const round1 = (n: number) => Math.round(n * 10) / 10;
+
+/**
+ * クエリ×記事の行を (query, slug) で束ねる。
+ * GSC は末尾スラッシュ違いなどで同じ記事が複数の page 行に割れて返り、slug に寄せた時点で重複する。
+ * 順位は表示数で加重して合成する（fetchGsc のページ側と同じ式）。
+ */
+export function aggregateQueryRows(rows: GscQuery[]): GscQuery[] {
+  const by = new Map<string, GscQuery>();
+  for (const r of rows) {
+    const key = `${r.query} ${r.slug}`;
+    const cur = by.get(key);
+    if (!cur) {
+      by.set(key, { ...r });
+      continue;
+    }
+    const w = cur.impressions + r.impressions;
+    cur.position = w > 0 ? (cur.position * cur.impressions + r.position * r.impressions) / w : 0;
+    cur.clicks += r.clicks;
+    cur.impressions += r.impressions;
+  }
+  return [...by.values()];
+}
+
+export interface QueryAgg {
+  query: string;
+  clicks: number;
+  impressions: number;
+  position: number;
+  /** そのクエリで出ている記事（表示の多い順） */
+  slugs: string[];
+}
+
+/** クエリ単位（記事横断）に束ねる。「未カバーのクエリ」と KW候補用の全量ファイルの元。表示の多い順。 */
+export function aggregateByQuery(rows: GscQuery[]): QueryAgg[] {
+  const by = new Map<string, QueryAgg & { perSlug: Map<string, number> }>();
+  for (const r of aggregateQueryRows(rows)) {
+    const cur = by.get(r.query) ?? { query: r.query, clicks: 0, impressions: 0, position: 0, slugs: [], perSlug: new Map() };
+    const w = cur.impressions + r.impressions;
+    cur.position = w > 0 ? (cur.position * cur.impressions + r.position * r.impressions) / w : 0;
+    cur.clicks += r.clicks;
+    cur.impressions += r.impressions;
+    cur.perSlug.set(r.slug, (cur.perSlug.get(r.slug) ?? 0) + r.impressions);
+    by.set(r.query, cur);
+  }
+  return [...by.values()]
+    .map(({ perSlug, ...q }) => ({ ...q, slugs: [...perSlug.entries()].sort((a, b) => b[1] - a[1]).map(([s]) => s) }))
+    .sort((a, b) => b.impressions - a.impressions || b.clicks - a.clicks || a.query.localeCompare(b.query));
+}
+
+/**
+ * snapshot（pv_reports.snapshot_json）に入れるクエリ。
+ * 5000行を全部入れると D1 の1行が重くなり画面でも読めないので、「記事別の上位5件」と「全体の上位100件」の
+ * 和集合に間引く。記事別を残すのは、表示の少ない新しい記事が全体上位に1件も入らず画面から消えるのを避けるため。
+ */
+export function buildSnapshotQueries(rows: GscQuery[]): PvSnapshotQuery[] {
+  const sorted = aggregateQueryRows(rows).sort(
+    (a, b) => b.impressions - a.impressions || b.clicks - a.clicks || a.query.localeCompare(b.query),
+  );
+  const key = (q: GscQuery) => `${q.query} ${q.slug}`;
+  const picked = new Map<string, GscQuery>();
+  const perSlug = new Map<string, number>();
+  for (const q of sorted) {
+    const n = perSlug.get(q.slug) ?? 0;
+    if (n >= SNAPSHOT_QUERIES_PER_PAGE) continue;
+    perSlug.set(q.slug, n + 1);
+    picked.set(key(q), q);
+  }
+  for (const q of sorted.slice(0, SNAPSHOT_QUERIES_TOP)) picked.set(key(q), q);
+  return [...picked.values()]
+    .sort((a, b) => b.impressions - a.impressions || b.clicks - a.clicks || a.query.localeCompare(b.query))
+    .map((q) => ({ query: q.query, slug: q.slug, clicks: q.clicks, impressions: q.impressions, position: round1(q.position) }));
+}
+
+/**
+ * ファクトシートの「GSC クエリ」節に足す3節（カニバリ実測／未カバーのクエリ／リライト優先度）。
+ * 戻りは Markdown の行。既存の「### 記事別 上位クエリ」の後ろに置く前提で、見出しは ### から始める。
+ * GSC が取れていない回は「出せない」の1行だけ返す（節が消えると「無い」と「見落とし」の区別がつかない）。
+ */
+export function buildGscExtraSections(
+  gsc: GscData | null,
+  articles: GscExtraArticle[],
+  keywords: GscExtraKeyword[],
+  today: string,
+): string[] {
+  const L: string[] = [];
+  if (!gsc || !gsc.ok) {
+    L.push('### カニバリ（実測）／未カバーのクエリ／リライト優先度', '');
+    L.push('- GSC が無いので出せない（Search Console が取れた回に出る。鍵の置き方は メディア方針/計測設計.md 11章）', '');
+    return L;
+  }
+  const rows = aggregateQueryRows(gsc.queries);
+  const kwOf = new Map(articles.map((a) => [a.slug, a.keyword]));
+
+  /* ── カニバリ（実測）── */
+  const cannibal = gscCannibal(rows, { minImpressions: CANNIBAL_MIN_IMPR });
+  L.push(`### カニバリ（実測。同じクエリに2記事以上が出ている・記事側の表示≥${CANNIBAL_MIN_IMPR}）`, '');
+  if (cannibal.length === 0) {
+    L.push('- なし', '');
+  } else {
+    L.push(
+      mdTable(
+        ['クエリ', '表示合計', '記事（slug・表示・順位・クリック）'],
+        cannibal.map((c) => [
+          c.query,
+          c.impressions,
+          c.pages.map((p) => `${p.slug}（表示 ${p.impressions}・順位 ${p.position.toFixed(1)}・クリック ${p.clicks}）`).join(' / '),
+        ]),
+      ),
+      '',
+    );
+    L.push(
+      '- 順位が近い2本は検索意図が同じ＝統合か、片方の見出しから該当KWを外す候補。順位が離れていれば Google が使い分けているので急がない',
+      '',
+    );
+  }
+
+  /* ── 未カバーのクエリ（新KW候補）── */
+  // 照合相手は台帳（dropped 以外）と公開記事の keyword。トークンに落として、どれとも重なりが薄い語だけ残す。
+  // compact は空白を抜いた KW 文字列（部分一致用。textHasToken は同義グループの全メンバーで当てる）
+  const targets = [
+    ...keywords.filter((k) => k.status !== 'dropped').map((k) => k.keyword),
+    ...articles.map((a) => a.keyword),
+  ]
+    .map((kw) => ({ tokens: tokenize(kw), compact: kw.replace(/[\s　]+/g, '') }))
+    .filter((t) => t.tokens.length > 0);
+  const uncovered = aggregateByQuery(rows)
+    .filter((q) => q.impressions >= GSC_MISS_MIN_IMPR)
+    .filter((q) => {
+      const tq = tokenize(q.query);
+      if (tq.length === 0) return false; // ストップワードだけの語は判定できない
+      return targets.every((t) => {
+        const o = overlap(tq, t.tokens);
+        return (
+          o.jaccard < UNCOVERED_JACCARD_MAX &&
+          o.coverB < UNCOVERED_COVERB_MAX &&
+          textCoverage(t.compact, tq).ratio < UNCOVERED_TEXT_COVER_MAX
+        );
+      });
+    })
+    .slice(0, UNCOVERED_LIMIT);
+  L.push(
+    `### 未カバーのクエリ（新KW候補。表示≥${GSC_MISS_MIN_IMPR} で、台帳（dropped 以外）と記事のどのKWとも語の重なりが薄いもの・上位${UNCOVERED_LIMIT}）`,
+    '',
+  );
+  if (uncovered.length === 0) {
+    L.push('- なし', '');
+  } else {
+    L.push(
+      mdTable(
+        ['クエリ', '表示', 'クリック', '順位', '今出ている記事（slug）'],
+        uncovered.map((q) => [q.query, q.impressions, q.clicks, q.position.toFixed(1), q.slugs.join(' / ')]),
+      ),
+      '',
+    );
+  }
+  L.push(
+    `- \`/anniv-pick-keyword\` の種KW候補（keyword-selection.md 7章）。判定は tokenize した語の重なりで jaccard<${UNCOVERED_JACCARD_MAX} かつ KW側の被覆<${UNCOVERED_COVERB_MAX} かつ クエリの語のKW文字列への部分一致<${UNCOVERED_TEXT_COVER_MAX}（src/lib/seo/tokens.ts）。「今出ている記事」があるのは、その記事が拾ってはいるが狙ってはいない語`,
+    '',
+  );
+
+  /* ── リライト優先度 ── */
+  // スコア＝striking distance（順位 STRIKE_POS_MIN〜MAX・表示≥STRIKE_MIN_IMPR）のクエリの表示合計 × (1 + min(経過日/90, 1))。
+  // 公開直後は順位がまだ動いている最中で、同じ表示数でも「待てば上がる」余地がある。
+  // 90日たって同じ位置に居座っているものほど、加筆しないと動かない＝手を入れる価値が高い。重みは 1〜2 倍の範囲に収める。
+  const scored = articles
+    .map((a) => {
+      const mine = rows.filter(
+        (q) => q.slug === a.slug && q.impressions >= STRIKE_MIN_IMPR && q.position >= STRIKE_POS_MIN && q.position <= STRIKE_POS_MAX,
+      );
+      const impr = mine.reduce((n, q) => n + q.impressions, 0);
+      const age = a.pubYmd ? daysBetween(a.pubYmd, today) : null;
+      const upd = a.updYmd ? daysBetween(a.updYmd, today) : null;
+      const weight = 1 + Math.min(1, Math.max(0, age ?? 0) / REWRITE_AGE_CAP_DAYS);
+      return { a, score: Math.round(impr * weight), n: mine.length, impr, age, upd };
+    })
+    .filter((s) => s.n > 0)
+    .sort((x, y) => y.score - x.score || y.impr - x.impr)
+    .slice(0, REWRITE_LIMIT);
+  L.push(
+    `### リライト優先度（striking distance の表示合計 × (1 + 経過日/${REWRITE_AGE_CAP_DAYS}、上限1.0)・上位${REWRITE_LIMIT}）`,
+    '',
+  );
+  if (scored.length === 0) {
+    L.push(`- なし（順位${STRIKE_POS_MIN}〜${STRIKE_POS_MAX}・表示≥${STRIKE_MIN_IMPR} のクエリを持つ記事が無い）`, '');
+  } else {
+    L.push(
+      mdTable(
+        ['記事（KW）', 'slug', 'スコア', 'striking のクエリ数', '表示合計', '公開からの日数', '最終更新からの日数'],
+        scored.map((s) => [kwOf.get(s.a.slug) ?? s.a.keyword, s.a.slug, s.score, s.n, s.impr, s.age ?? '—', s.upd ?? '—']),
+      ),
+      '',
+    );
+  }
+  L.push(
+    '- 上位ほど、新規1本より既存記事の加筆・内部リンクのほうが ROI が高い可能性（keyword-selection.md 7章）。`/anniv-rewrite-article <KW>` の候補順',
+    '',
+  );
+  return L;
+}
+
+/**
+ * --publish が読む、通常実行が書いた GSC クエリの断面。
+ * PV履歴.csv にはクエリ別の列が無い（1記事1行の作り）ので、別ファイルで持ち越す。
+ * 無い・壊れている・日付が違う（別の日の実行分）ときは空にする。断面の ymd と中身の日付が食い違うと、画面の注記が嘘になるため。
+ */
+function readSnapshotQueries(ymd: string): PvSnapshotQuery[] {
+  if (!existsSync(GSC_QUERIES_SNAPSHOT_PATH)) return [];
+  let parsed: { ymd?: unknown; rows?: unknown };
+  try {
+    parsed = JSON.parse(readFileSync(GSC_QUERIES_SNAPSHOT_PATH, 'utf8').replace(/^﻿/, ''));
+  } catch {
+    console.log(`警告: ${GSC_QUERIES_SNAPSHOT_PATH} を読めなかった。クエリの断面は空で入れる`);
+    return [];
+  }
+  if (parsed.ymd !== ymd) {
+    console.log(`警告: ${GSC_QUERIES_SNAPSHOT_PATH} は ${String(parsed.ymd ?? '?')} の分（入れるのは ${ymd}）。クエリの断面は空で入れる`);
+    return [];
+  }
+  if (!Array.isArray(parsed.rows)) return [];
+  return parsed.rows
+    .filter(
+      (q): q is PvSnapshotQuery =>
+        !!q && typeof q === 'object' && typeof (q as PvSnapshotQuery).query === 'string' && typeof (q as PvSnapshotQuery).slug === 'string',
+    )
+    .map((q) => ({
+      query: q.query,
+      slug: q.slug,
+      clicks: Number(q.clicks) || 0,
+      impressions: Number(q.impressions) || 0,
+      position: Number(q.position) || 0,
+    }));
+}
+
+/* ────────────────────────────────────────────────
  * --publish：週次レポートを D1 に入れる
  * ──────────────────────────────────────────────── */
 
@@ -633,6 +953,9 @@ function publish(opts: Options): void {
   }
   const hasGa4 = rows.some((r) => r.ga4Pv !== null);
   const hasGsc = rows.some((r) => r.gscImpr !== null);
+  // クエリの断面は PV履歴.csv に無いので gsc-queries.json から。GSC が無い回（--no-gsc で回し直した日など）は
+  // 同じ日のファイルが残っていても入れない（gsc:false なのにクエリだけ出る画面になる）
+  const queries = hasGsc ? readSnapshotQueries(ymd) : [];
   const snapshot: PvSnapshot = {
     ymd,
     ga4: hasGa4,
@@ -648,6 +971,7 @@ function publish(opts: Options): void {
         gscPos: r.gscPos,
       }),
     ),
+    queries,
   };
 
   const sql = `INSERT INTO pv_reports (ymd, report_md, snapshot_json, created_at)
@@ -655,11 +979,15 @@ VALUES (${lit(ymd)}, ${lit(reportMd)}, ${lit(JSON.stringify(snapshot))}, ${lit(n
 ON CONFLICT(ymd) DO UPDATE SET report_md = excluded.report_md, snapshot_json = excluded.snapshot_json, created_at = excluded.created_at`;
 
   if (opts.dryRun) {
-    console.log(`dry-run: ${ymd} のレポート（${reportMd.length} 字）と断面 ${rows.length} 行を pv_reports に入れる予定`);
+    console.log(
+      `dry-run: ${ymd} のレポート（${reportMd.length} 字）と断面 ${rows.length} 行・クエリ ${queries.length} 行を pv_reports に入れる予定`,
+    );
     return;
   }
   d1Many([sql], opts);
-  console.log(`pv_reports に入れた: ${ymd}（本文 ${reportMd.length} 字 / 断面 ${rows.length} 行 / GA4 ${hasGa4 ? 'あり' : '無し'} / GSC ${hasGsc ? 'あり' : '無し'}）`);
+  console.log(
+    `pv_reports に入れた: ${ymd}（本文 ${reportMd.length} 字 / 断面 ${rows.length} 行 / クエリ ${queries.length} 行 / GA4 ${hasGa4 ? 'あり' : '無し'} / GSC ${hasGsc ? 'あり' : '無し'}）`,
+  );
   console.log('https://anniv.gift/admin/stats を開けば出ている（デプロイは要らない）。');
 }
 
@@ -690,8 +1018,8 @@ async function main(): Promise<void> {
   console.log(`Anniv PV更新  ${today}（JST） ${opts.dryRun ? '[dry-run: ファイルは書かない]' : ''}`);
 
   /* ── 1. D1 ── */
-  section(`1/3 D1（${opts.local ? 'ローカル' : '本番'}）から記事・自前PV・導線イベント`);
-  const [articlesR, pvRowsR, pvTotR, firstR, evR, evPrevR] = d1Many(
+  section(`1/3 D1（${opts.local ? 'ローカル' : '本番'}）から記事・自前PV・導線イベント・KW台帳`);
+  const [articlesR, pvRowsR, pvTotR, firstR, evR, evPrevR, keywordsR] = d1Many(
     [
       `SELECT id, slug, title, keyword, axis, funnel, status, is_ad, published_at, updated_at
        FROM articles ORDER BY COALESCE(published_at, updated_at) DESC, id DESC`,
@@ -702,6 +1030,8 @@ async function main(): Promise<void> {
        WHERE ymd >= '${since28}' GROUP BY name, label, source, medium ORDER BY n DESC`,
       `SELECT name, SUM(count) AS n FROM event_daily
        WHERE ymd >= '${since56}' AND ymd < '${since28}' GROUP BY name`,
+      // KW台帳。「未カバーのクエリ」（GSC にあるのに狙っていない語）の照合相手。seed を引かない理由は KeywordRow のコメント
+      `SELECT id, keyword, axis, funnel, status FROM keywords ORDER BY id`,
     ],
     opts,
   ) as [
@@ -711,6 +1041,7 @@ async function main(): Promise<void> {
     Array<{ ymd: string | null }>,
     EventAgg[],
     Array<{ name: string; n: number }>,
+    KeywordRow[],
   ];
 
   const articles = articlesR;
@@ -770,7 +1101,8 @@ async function main(): Promise<void> {
   const cvCur = [...evByName.entries()].filter(([n]) => CV.has(n)).reduce((n, [, v]) => n + v, 0);
   const cvPrev = evPrevR.filter((r) => CV.has(r.name)).reduce((n, r) => n + r.n, 0);
 
-  console.log(`  公開 ${published.length} 本 / 下書き ${drafts} 本`);
+  const keywordsLive = keywordsR.filter((k) => k.status !== 'dropped').length;
+  console.log(`  公開 ${published.length} 本 / 下書き ${drafts} 本 / KW台帳 ${keywordsR.length} 件（dropped 除く ${keywordsLive} 件）`);
   console.log(
     `  自前PV: 直近${WINDOW_DAYS}日 ${fmt(pvCur)}（前${WINDOW_DAYS}日 ${fmt(pvPrev)}、${deltaText(deltaPct(pvCur, pvPrev))}）/ 累計 ${fmt(pvAll)}`,
   );
@@ -1117,7 +1449,24 @@ async function main(): Promise<void> {
     }
     L.push(mdTable(['記事（KW）', 'クエリ', 'クリック', '表示', '順位'], perPage), '');
     L.push('- しきい値は立ち上げ期の暫定（`scripts/update-pv.ts` 冒頭の定数）。表示が3桁に乗ったら上げる', '');
+  } else {
+    // 取れていない回も見出しは出す。レポートを書く側が「無い」と「見落とし」を区別できるように
+    L.push('## GSC クエリ', '');
   }
+  // カニバリ（実測）／未カバーのクエリ／リライト優先度。GSC が無い回は「出せない」の1行になる
+  L.push(
+    ...buildGscExtraSections(
+      gsc,
+      perf.map((p) => ({
+        slug: p.article.slug,
+        keyword: p.article.keyword,
+        pubYmd: p.pubYmd,
+        updYmd: isoToYmd(p.article.updated_at),
+      })),
+      keywordsR,
+      today,
+    ),
+  );
 
   L.push('## 前回比（PV履歴.csv の直近2断面・機械計算）', '');
   if (prevDate) {
@@ -1165,9 +1514,22 @@ async function main(): Promise<void> {
   L.push('## 台帳（KWマスターDB.csv）', '');
   L.push(`- D1 の全記事 ${articles.length} 行で再生成${opts.dryRun ? 'する予定（dry-run）' : 'した'}。列は \`/api/export.csv\` と同じ（src/lib/kw-csv.ts）`);
   L.push(`- 更新前の台帳に載っていなかった公開記事: ${missingInCsv.length ? missingInCsv.join(', ') : '無し'}`);
+  L.push(
+    `- KW台帳（D1 keywords）: ${keywordsR.length} 件（dropped 除く ${keywordsLive} 件）。「未カバーのクエリ」は、この台帳と公開記事の keyword のどれとも重ならない語を GSC から拾ったもの`,
+  );
   L.push('');
 
   const factsheet = L.join('\n');
+
+  /* ── GSC クエリのファイル（取れた回だけ）── */
+  // 取れなかった回は前回のファイルに触らない。snapshot 側は ymd を見て別の日の分を弾く（readSnapshotQueries）。
+  // KW候補側は日付を持たない配列（volume.ts の契約）なので古いまま残る。「無いより前回の分」の判断
+  const snapshotQueries = gsc?.ok ? buildSnapshotQueries(gsc.queries) : [];
+  const allQueries = gsc?.ok
+    ? aggregateByQuery(gsc.queries)
+        .slice(0, GSC_ALL_QUERIES_LIMIT)
+        .map((q) => ({ query: q.query, impressions: q.impressions, clicks: q.clicks, position: round1(q.position) }))
+    : [];
 
   /* ── 書き出し ── */
   section('書き出し');
@@ -1176,6 +1538,12 @@ async function main(): Promise<void> {
     console.log(`    ${CSV_PATH}（${articles.length} 行）`);
     console.log(`    ${HISTORY_PATH}（${today} の ${todayRows.length} 行を追記／同日分は差し替え）`);
     console.log(`    ${FACTSHEET_PATH}`);
+    if (gsc?.ok) {
+      console.log(`    ${GSC_QUERIES_SNAPSHOT_PATH}（${snapshotQueries.length} 行・snapshot 用に間引き）`);
+      console.log(`    ${GSC_QUERIES_ALL_PATH}（${allQueries.length} クエリ・KW選定用の全量）`);
+    } else {
+      console.log('    （GSC が無いので gsc-queries.json は書かない）');
+    }
     return;
   }
 
@@ -1205,9 +1573,31 @@ async function main(): Promise<void> {
   console.log(`  ${CSV_PATH}`);
   console.log(`  ${HISTORY_PATH}`);
   console.log(`  ${FACTSHEET_PATH}`);
+
+  if (gsc?.ok) {
+    // 1行1レコードにしておくと git の差分がクエリ単位で読める
+    const jsonLines = (rows: unknown[]) => `[\n${rows.map((r) => `  ${JSON.stringify(r)}`).join(',\n')}\n]\n`;
+    writeFileSync(
+      GSC_QUERIES_SNAPSHOT_PATH,
+      `{\n  "ymd": ${JSON.stringify(today)},\n  "range": ${JSON.stringify(gsc.range)},\n  "rows": ${jsonLines(snapshotQueries).trimEnd()}\n}\n`,
+      'utf8',
+    );
+    mkdirSync(KW_CANDIDATE_DIR, { recursive: true });
+    writeFileSync(GSC_QUERIES_ALL_PATH, jsonLines(allQueries), 'utf8');
+    console.log(`  ${GSC_QUERIES_SNAPSHOT_PATH}（${snapshotQueries.length} 行）`);
+    console.log(`  ${GSC_QUERIES_ALL_PATH}（${allQueries.length} クエリ）`);
+  }
+
   console.log(`\n次: 現状ファクトシート.md だけを読んで 記事管理/PVレポート/週次レポート_${today}.md を書き、`);
   console.log(`    node --experimental-strip-types scripts/update-pv.ts --publish "記事管理/PVレポート/週次レポート_${today}.md"`);
   console.log('    で D1 に入れる（/admin/stats に出る。前回のレポートは開かない）。');
 }
 
-main().catch((e) => die(e instanceof Error ? (e.stack ?? e.message) : String(e)));
+/*
+ * 直接実行のときだけ main を回す。`node -e "import('.../update-pv.ts')"` で純粋関数だけ取り出せるように
+ * （argv[1] が無い＝-e、別ファイルから import＝argv[1] がそのファイル）。Windows はドライブ文字の大小が揺れるので寄せて比べる。
+ */
+const selfPath = fileURLToPath(import.meta.url);
+const entryPath = process.argv[1] ? resolve(process.argv[1]) : '';
+const isDirectRun = process.platform === 'win32' ? entryPath.toLowerCase() === selfPath.toLowerCase() : entryPath === selfPath;
+if (isDirectRun) main().catch((e) => die(e instanceof Error ? (e.stack ?? e.message) : String(e)));

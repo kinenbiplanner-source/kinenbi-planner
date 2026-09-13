@@ -1,0 +1,17 @@
+{
+  "_comment": "競合の観測対象。人が編集するのはこのファイルだけで、scripts/seo/ig-scan.ts と site-scan.ts が実行のたびに D1 の competitor_accounts / competitor_sites へ写す。kind は SNS戦略.md 3章の3タイプ（couple_media / gift_media / vendor）＋同業（concierge）。初期値は 2026-09-07 の競合スキャン（SNS戦略.md）から。",
+  "accounts": [
+    { "handle": "epocha_cha", "label": "えぽ夫婦", "kind": "couple_media", "note": "10.6万。リールとカルーセル半々。人柄でフォローされている" },
+    { "handle": "ico_present", "label": "ico present", "kind": "gift_media", "note": "5.2万。全部カルーセル。ハッシュタグ上位に常駐" },
+    { "handle": "gift_psypre", "label": "psypre", "kind": "gift_media", "note": "4.5万・1,392投稿。いいね13〜118（題材で9倍ひらく）" },
+    { "handle": "tutumu_1010", "label": "大阪バルーン", "kind": "vendor", "note": "3,173。実物の納品写真だけ。価格帯つき" },
+    { "handle": "memoreplay_surprisemall", "label": "サプライズモール", "kind": "vendor", "note": "1.8万。演出ベンダー" },
+    { "handle": "surprise_holic", "label": "Surprise Holic", "kind": "concierge", "active": false, "note": "2,778。位置取りは最も近いが2019年で更新停止。参照用" },
+    { "handle": "remegift.jp", "label": "remegift", "kind": "gift_media", "active": false, "note": "99。静止画コラージュのリール。小さすぎるので既定では見ない" }
+  ],
+  "sites": [
+    { "host": "anny.gift", "label": "Anny マガジン", "adapter": "html", "entry": "https://anny.gift/latest/", "note": "最大の競合。記念日クエリ全域にガイド記事を量産中。/magazine/ はアプリLPで記事が無く、新着一覧は /latest/（10件/ページ・/latest/page_N/）。sitemap は robots.txt の sitemap.xml.gz → S3 が生きている（adapter を sitemap にしても取れる。9,129 本）" },
+    { "host": "giftpedia.jp", "label": "giftpedia（ギフトモール）", "adapter": "wp-rest", "entry": "https://giftpedia.jp/wp-json/wp/v2/posts", "note": "WP REST が開いている。最終更新が 2024-05 で止まっている（更新が再開したら気づける）" }
+  ],
+  "hashtags": ["サプライズ代行", "記念日代行", "彼女誕生日サプライズ", "バルーンサプライズ", "ホテルサプライズ"]
+}

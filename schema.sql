@@ -88,6 +88,17 @@ CREATE TABLE IF NOT EXISTS keywords (
   status     TEXT    NOT NULL DEFAULT 'todo', -- todo | writing | done | dropped
   article_id INTEGER,                       -- 記事化されたら articles.id を入れる
   note       TEXT    NOT NULL DEFAULT '',
+  -- ── SEO 列（2026-09-10。既存の D1 には migrations/2026-09-10-keywords-seo.sql を scripts/seo/migrate.ts で当てる）──
+  -- difficulty / volume（低中高・小中大）は人が読むための粗い目安として残し、機械が出す数字は別列に置く。
+  -- 数字が無い（null）と「小」は意味が違う（測っていない／測ったら小さかった）ので、同じ列に混ぜない。
+  seed          TEXT    NOT NULL DEFAULT '',   -- 種KW（クラスタ）。同じ種の記事どうしを内部リンクで束ねる単位。カニバリ判定の母集団
+  volume_num    INTEGER,                       -- 月間検索数の実数。無ければ null
+  volume_source TEXT    NOT NULL DEFAULT '',   -- ahrefs | csv | gsc | ''（keyword-selection.md 4章。上ほど信頼できる）
+  demand_score  INTEGER,                       -- サジェスト深度スコア 0〜100（src/lib/seo/demand.ts。候補どうしの相対値で絶対量ではない）
+  kd            INTEGER,                       -- Ahrefs の Keyword Difficulty。無ければ null
+  serp_grade    TEXT    NOT NULL DEFAULT '',   -- SERP 要塞度 A | B | C | ''（keyword-selection.md 2章。scout が判定）
+  serp_note     TEXT    NOT NULL DEFAULT '',   -- 上位10の内訳と根拠（1〜2行）
+  researched_at TEXT    NOT NULL DEFAULT '',   -- 最後に SERP・ボリュームを調べた日（YYYY-MM-DD）。古ければ再調査
   created_at TEXT    NOT NULL,
   updated_at TEXT    NOT NULL
 );
@@ -110,6 +121,87 @@ CREATE TABLE IF NOT EXISTS pv_reports (
   snapshot_json TEXT NOT NULL DEFAULT '{}',     -- 記事別の断面（src/lib/stats.ts の PvSnapshot）
   created_at    TEXT NOT NULL
 );
+
+-- ────────────────────────────────────────────────
+-- 競合の観測（2026-09-10）。同業の Instagram 投稿と記事を継続的に取って、
+-- Anniv のネタ（SNSネタ台帳）・KW候補（/anniv-pick-keyword）に変換する材料にする。
+--
+-- 対象（誰を見るか）は `記事管理/競合/targets.json` が正で、scripts/seo/ig-scan.ts と site-scan.ts が
+-- 実行のたびにここへ写す（人が編集するのは JSON だけ。D1 は観測結果の置き場）。
+-- Worker 側（/admin/competitors）は読むだけ。書くのはローカルのスクリプトだけ（pv_reports と同じ立場）。
+--
+-- Instagram の取得は Facebook Login 方式の Graph API（Business Discovery）。multi-SNS-manager が
+-- 投稿に使っている Instagram Login 方式（graph.instagram.com）には他アカウントを見る機能が無いので、
+-- トークンは別に用意する（手順は メディア方針/SNS戦略.md「競合の観測」）。トークンが無い間は
+-- 手で見た数字を JSON で取り込む口がある（source='manual'）。
+CREATE TABLE IF NOT EXISTS competitor_accounts (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  platform    TEXT    NOT NULL DEFAULT 'instagram',
+  handle      TEXT    NOT NULL,                  -- @ なし
+  label       TEXT    NOT NULL DEFAULT '',       -- 表示名（えぽ夫婦 など）
+  kind        TEXT    NOT NULL DEFAULT '',       -- couple_media | gift_media | vendor | concierge | other（SNS戦略.md 3章の3タイプ＋同業）
+  active      INTEGER NOT NULL DEFAULT 1,
+  followers   INTEGER,                           -- 最終取得時。null＝未取得
+  media_count INTEGER,
+  fetched_at  TEXT    NOT NULL DEFAULT '',
+  note        TEXT    NOT NULL DEFAULT '',
+  created_at  TEXT    NOT NULL,
+  UNIQUE(platform, handle)
+);
+
+CREATE TABLE IF NOT EXISTS competitor_posts (
+  id             TEXT    PRIMARY KEY,            -- IG の media id。手動取込は 'manual:<shortcode>'
+  account_id     INTEGER NOT NULL,
+  media_type     TEXT    NOT NULL DEFAULT '',    -- IMAGE | VIDEO | CAROUSEL_ALBUM
+  caption        TEXT    NOT NULL DEFAULT '',
+  permalink      TEXT    NOT NULL DEFAULT '',
+  posted_at      TEXT    NOT NULL DEFAULT '',    -- ISO8601
+  like_count     INTEGER,                        -- 最新の値。推移は competitor_post_stats
+  comments_count INTEGER,
+  view_count     INTEGER,                        -- リールだけ
+  source         TEXT    NOT NULL DEFAULT 'api', -- api | hashtag | manual
+  first_seen     TEXT    NOT NULL,
+  fetched_at     TEXT    NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_cposts_account ON competitor_posts(account_id, posted_at DESC);
+
+-- 同じ投稿を取り直すたびに1行。「伸びている」は前回との差で見る（合計だけだと分からない。pageviews と同じ思想）
+CREATE TABLE IF NOT EXISTS competitor_post_stats (
+  post_id        TEXT    NOT NULL,
+  ymd            TEXT    NOT NULL,               -- YYYY-MM-DD（JST）
+  like_count     INTEGER,
+  comments_count INTEGER,
+  view_count     INTEGER,
+  PRIMARY KEY (post_id, ymd)
+);
+
+CREATE TABLE IF NOT EXISTS competitor_sites (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  host       TEXT    NOT NULL UNIQUE,            -- anny.gift
+  label      TEXT    NOT NULL DEFAULT '',
+  adapter    TEXT    NOT NULL DEFAULT '',        -- wp-rest | sitemap | html（取り方。scripts/seo/site-scan.ts）
+  entry      TEXT    NOT NULL DEFAULT '',        -- 一覧の URL・sitemap の URL・REST のベース
+  active     INTEGER NOT NULL DEFAULT 1,
+  fetched_at TEXT    NOT NULL DEFAULT '',
+  note       TEXT    NOT NULL DEFAULT '',
+  created_at TEXT    NOT NULL
+);
+
+-- 競合の記事1本＝1行。新着・更新は first_seen / modified_at で追う。
+-- 「伸びているか」は sitemap や HTML からは分からない。Ahrefs（MCP）で取れた回だけ traffic に入る。
+CREATE TABLE IF NOT EXISTS competitor_pages (
+  url          TEXT    PRIMARY KEY,
+  site_id      INTEGER NOT NULL,
+  title        TEXT    NOT NULL DEFAULT '',
+  published_at TEXT    NOT NULL DEFAULT '',
+  modified_at  TEXT    NOT NULL DEFAULT '',
+  first_seen   TEXT    NOT NULL,
+  last_seen    TEXT    NOT NULL,
+  traffic      INTEGER,                          -- Ahrefs の推定月間トラフィック。null＝未取得
+  top_keyword  TEXT    NOT NULL DEFAULT '',      -- Ahrefs の主要KW
+  traffic_at   TEXT    NOT NULL DEFAULT ''       -- traffic を取った日
+);
+CREATE INDEX IF NOT EXISTS idx_cpages_site ON competitor_pages(site_id, first_seen DESC);
 
 -- ────────────────────────────────────────────────
 -- 受注（案件）。Tally → Notion 2DB → Make の流れを D1 1テーブルに畳んだもの（2026-09-07）。
@@ -193,6 +285,18 @@ CREATE TABLE IF NOT EXISTS line_users (
   followed_at     TEXT NOT NULL,
   unfollowed_at   TEXT,
   last_message_at TEXT,
+  -- ── アンケートの本人確認トークン（2026-09-10。既存の D1 には
+  --    migrations/2026-09-10-line-survey-token.sql を scripts/seo/migrate.ts で当てる）──
+  --
+  -- 友だち追加のときに push する案内リンクを `/survey?t=<survey_token>` にするためのもの。
+  -- **こちらが特定のトークルームへ送ったURL**なので、持っている＝そのLINEアカウント本人。
+  -- 時刻の近さで推測する紐づけ候補（cases.ts の rankLinkCandidates）と違い、
+  -- 他人に結びつく余地が無いので、回答と同時に cases.line_user_id を自動で埋められる。
+  --
+  -- 一度発行したら作り直さない。過去のトークに残っているリンクを生かしたままにするため
+  -- （空文字＝未発行。src/lib/line.ts の issueSurveyToken）。
+  survey_token    TEXT NOT NULL DEFAULT '',
+  survey_token_at TEXT NOT NULL DEFAULT '',
   updated_at      TEXT NOT NULL
 );
 
